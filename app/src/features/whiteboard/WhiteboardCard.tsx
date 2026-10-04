@@ -1,6 +1,7 @@
 import { PencilSimple, Trash } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../../components/Button';
+import { Tooltip } from '../../components/Tooltip';
 import { Badge } from '../../components/Badge';
 import { RowMenu } from '../../components/RowMenu';
 import { formatRelative, shortId } from '../../lib/utils';
@@ -42,18 +43,20 @@ export function WhiteboardCard({ board, canEdit, unread = false, narrow = false,
             {canEdit && !narrow && (onEdit || onDelete) && (
               <span className="wb-card-actions">
                 {onEdit && (
+                  <Tooltip title={t('whiteboard.card.editBoard')}>
                   <Button
                     variant="ghost"
                     size="sm"
                     className="btn-icon wb-edit"
                     aria-label={t('whiteboard.card.editBoard')}
-                    title={t('whiteboard.card.editBoard')}
                     onClick={(e) => { e.stopPropagation(); onEdit?.(); }}
                   >
                     <PencilSimple size={14} aria-hidden="true" />
                   </Button>
+                  </Tooltip>
                 )}
                 {onDelete && (
+                  <Tooltip title={t('whiteboard.card.deleteBoard')}>
                   <Button
                     variant="danger"
                     size="sm"
@@ -63,6 +66,7 @@ export function WhiteboardCard({ board, canEdit, unread = false, narrow = false,
                   >
                     <Trash size={14} aria-hidden="true" />
                   </Button>
+                  </Tooltip>
                 )}
               </span>
             )}

@@ -6,6 +6,7 @@ import { getErrorMessage } from '../../lib/errors';
 import type { ProjectTemplate } from '../../lib/types';
 import { formatDate } from '../../lib/utils';
 import { Button } from '../../components/Button';
+import { Tooltip } from '../../components/Tooltip';
 import { EmptyState } from '../../components/EmptyState';
 import { DataErrorState } from '../../components/DataErrorState';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
@@ -156,26 +157,28 @@ export function TemplatesPage() {
                     <span className="data-row-props">
                       {!isNarrow ? (
                         <>
+                          <Tooltip title={t('templates.use')}>
                           <Button
                             variant="ghost"
                             size="sm"
                             className="btn-icon"
                             onClick={() => setUseTarget(tpl)}
                             aria-label={t('templates.use')}
-                            title={t('templates.use')}
                           >
                             <Copy size={14} aria-hidden="true" />
                           </Button>
+                          </Tooltip>
+                          <Tooltip title={`${t('templates.delete')}: ${tpl.name}`}>
                           <Button
                             variant="ghost"
                             size="sm"
                             className="btn-icon btn-danger"
                             onClick={() => openDelete(tpl)}
                             aria-label={`${t('templates.delete')}: ${tpl.name}`}
-                            title={`${t('templates.delete')}: ${tpl.name}`}
                           >
                             <Trash size={14} aria-hidden="true" />
                           </Button>
+                          </Tooltip>
                         </>
                       ) : (
                         <RowMenu

@@ -17,7 +17,7 @@ import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { ConfirmFooter } from '../../components/ConfirmFooter';
 import { LinkButton } from '../../components/LinkButton';
-import { Section } from '../../components/Section';
+import { Section, SettingsRowGroup } from '../../components/Section';
 import { Skeleton } from '../../components/Skeleton';
 import { UsageMeter } from '../../components/UsageMeter';
 import { FE_LIMITS } from '../../lib/limits';
@@ -259,33 +259,46 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
           {team.icon ? <span aria-hidden="true">{team.icon} </span> : null}
           {team.name}
         </div>
-        <div className="dashboard__settings-id-row">
-          <div className="dashboard__settings-id-field">
-            <Input
-              label={t('dashboard.team.settingsIdLabel')}
-              value={team.id}
-              readOnly
-            />
-          </div>
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            className="dashboard__settings-copy"
-            leftIcon={copied ? <Check size={14} weight="bold" aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
-            onClick={() => void handleCopyId()}
-            aria-live="polite"
-            aria-label={copied ? (t('dashboard.team.settingsCopied') as string) : (t('dashboard.team.settingsCopyId') as string)}
-          >
-            {copied ? t('dashboard.team.settingsCopied') : t('dashboard.team.settingsCopyId')}
-          </Button>
-        </div>
-        <div className="dashboard__settings-read-meta-block">
-          <p className="dashboard__settings-read-key">
-            {t('dashboard.team.settingsSlugLabel')}
-          </p>
-          <p className="settings-mono">/{team.slug ?? 'team-xxxx'}/projects</p>
-        </div>
+        {/* Nilai read-only ikut pola settings-row kanonik Profile
+            (dt kiri / dd kanan + mono + aksi), bukan Input readOnly. */}
+        <dl className="settings-rows">
+          <SettingsRowGroup>
+            <div className="settings-row">
+              <dt>{t('dashboard.team.settingsIdLabel')}</dt>
+              <dd className="settings-row-value">
+                <span className="settings-mono" title={team.id} style={{ overflowWrap: 'anywhere' }}>
+                  {team.id}
+                </span>
+                <span className="settings-row-actions">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    leftIcon={copied ? <Check size={14} weight="bold" aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
+                    onClick={() => void handleCopyId()}
+                    aria-live="polite"
+                    aria-label={copied ? (t('dashboard.team.settingsCopied') as string) : (t('dashboard.team.settingsCopyId') as string)}
+                  >
+                    {copied ? t('dashboard.team.settingsCopied') : t('dashboard.team.settingsCopyId')}
+                  </Button>
+                </span>
+                {copied && (
+                  <span className="field-helper field-helper--micro" role="status" aria-live="polite">
+                    {t('dashboard.team.settingsCopied')}
+                  </span>
+                )}
+              </dd>
+            </div>
+          </SettingsRowGroup>
+          <SettingsRowGroup>
+            <div className="settings-row">
+              <dt>{t('dashboard.team.settingsSlugLabel')}</dt>
+              <dd>
+                <span className="settings-mono">/{team.slug ?? 'team-xxxx'}/projects</span>
+              </dd>
+            </div>
+          </SettingsRowGroup>
+        </dl>
         {copyError && <InlineError>{copyError}</InlineError>}
         {!canEditGeneral && (
           <p className="dashboard__settings-helper">{t('dashboard.team.settingsReadOnlyHelper')}</p>

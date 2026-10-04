@@ -155,11 +155,11 @@ describe('DueCalendar', () => {
     expect(mocks.dispatch).toHaveBeenCalledWith({
       type: 'task/update',
       id: '55555555-5555-4555-8555-555555555555',
-      patch: { dueDate: '2026-08-21' },
+      patch: { dueDate: '2026-08-21', startDate: '2026-08-21' },
     });
   });
 
-  it('clears the due date when dropped on the strip', () => {
+  it('clears both dates (unschedule) when dropped on the strip', () => {
     renderCalendar();
     const chip = screen.getByText('Ship calendar');
     fireEvent.dragStart(chip, { dataTransfer: dataTransfer() });
@@ -167,7 +167,72 @@ describe('DueCalendar', () => {
     expect(mocks.dispatch).toHaveBeenCalledWith({
       type: 'task/update',
       id: '55555555-5555-4555-8555-555555555555',
-      patch: { dueDate: null },
+      patch: { dueDate: null, startDate: null },
+    });
+  });
+
+  it('menjadwalkan task strip: startDate = dueDate = tanggal target', () => {
+    renderCalendar();
+    const chip = screen.getByText('No date task');
+    const transfer = () => ({ getData: () => '66666666-6666-4666-8666-666666666666', setData: vi.fn(), effectAllowed: 'move' }) as unknown as DataTransfer;
+    fireEvent.dragStart(chip, { dataTransfer: transfer() });
+    fireEvent.drop(document.querySelector('[data-date="2026-08-21"]')!, { dataTransfer: transfer() });
+    expect(mocks.dispatch).toHaveBeenCalledWith({
+      type: 'task/update',
+      id: '66666666-6666-4666-8666-666666666666',
+      patch: { dueDate: '2026-08-21', startDate: '2026-08-21' },
+    });
+  });
+
+  it('memindahkan task start==due sekaligus tanpa jadi rentang multi-hari', () => {
+    mockState.tasks.push({
+      id: '88888888-8888-4888-8888-888888888888',
+      title: 'Single day',
+      status: 'todo',
+      priority: 'medium',
+      labels: [],
+      blockedBy: [],
+      startDate: '2026-08-20',
+      dueDate: '2026-08-20',
+      description: '',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    });
+    renderCalendar();
+    const chip = screen.getByText('Single day');
+    const transfer = () => ({ getData: () => '88888888-8888-4888-8888-888888888888', setData: vi.fn(), effectAllowed: 'move' }) as unknown as DataTransfer;
+    fireEvent.dragStart(chip, { dataTransfer: transfer() });
+    fireEvent.drop(document.querySelector('[data-date="2026-08-21"]')!, { dataTransfer: transfer() });
+    expect(mocks.dispatch).toHaveBeenCalledWith({
+      type: 'task/update',
+      id: '88888888-8888-4888-8888-888888888888',
+      patch: { dueDate: '2026-08-21', startDate: '2026-08-21' },
+    });
+  });
+
+  it('strip membersihkan startDate juga sehingga tidak ada start basi', () => {
+    mockState.tasks.push({
+      id: '99999999-9999-4999-8999-999999999999',
+      title: 'Ranged task',
+      status: 'todo',
+      priority: 'medium',
+      labels: [],
+      blockedBy: [],
+      startDate: '2026-08-19',
+      dueDate: '2026-08-20',
+      description: '',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    });
+    renderCalendar();
+    const chip = screen.getByText('Ranged task');
+    const transfer = () => ({ getData: () => '99999999-9999-4999-8999-999999999999', setData: vi.fn(), effectAllowed: 'move' }) as unknown as DataTransfer;
+    fireEvent.dragStart(chip, { dataTransfer: transfer() });
+    fireEvent.drop(document.querySelector('.due-cal-strip')!, { dataTransfer: transfer() });
+    expect(mocks.dispatch).toHaveBeenCalledWith({
+      type: 'task/update',
+      id: '99999999-9999-4999-8999-999999999999',
+      patch: { dueDate: null, startDate: null },
     });
   });
 
@@ -184,7 +249,7 @@ describe('DueCalendar', () => {
     expect(mocks.dispatch).toHaveBeenCalledWith({
       type: 'task/update',
       id: '55555555-5555-4555-8555-555555555555',
-      patch: { dueDate: '2026-08-21' },
+      patch: { dueDate: '2026-08-21', startDate: '2026-08-21' },
     });
     expect(target.classList.contains('due-cal-cell--drop-active')).toBe(false);
     expect(chip.classList.contains('dragging')).toBe(true);
@@ -347,7 +412,7 @@ describe('DueCalendar', () => {
     expect(mocks.dispatch).toHaveBeenCalledWith({
       type: 'task/update',
       id: 'cccccccc-cccc-4ccc-8ccc-ccccccccccc0',
-      patch: { dueDate: '2026-08-21' },
+      patch: { dueDate: '2026-08-21', startDate: '2026-08-21' },
     });
   });
 
@@ -378,7 +443,7 @@ describe('DueCalendar', () => {
     expect(mocks.dispatch).toHaveBeenCalledWith({
       type: 'task/update',
       id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeee0',
-      patch: { dueDate: '2026-08-21' },
+      patch: { dueDate: '2026-08-21', startDate: '2026-08-21' },
     });
   });
 
@@ -413,7 +478,8 @@ describe('DueCalendar', () => {
     const btn = collapses[0] as HTMLElement;
     expect(btn.getAttribute('data-drop-key')).toBeTruthy();
     // Footer math: top + 22 (tinggi tombol) + 8 (pad) <= bawah baris expanded.
-    // Baris expanded terdeteksi via tinggi > 200 (collapsed=142, kosong=112).
+    // Baris expanded terdeteksi via tinggi > 200 (collapsed=142; baris kosong
+    // ikut 142 sejak 2026-10-04 — seragam, bukan 112).
     const grid = document.querySelector('.due-cal-grid') as HTMLElement;
     const rows = grid.style.gridTemplateRows.split(' ').map((s) => parseFloat(s));
     const expandedIdx = rows.findIndex((v) => v > 200);
@@ -424,6 +490,36 @@ describe('DueCalendar', () => {
     // Collapse per baris mengembalikan kedua tombol more.
     fireEvent.click(btn);
     expect(screen.getAllByText('+4 lagi').length).toBe(2);
+  });
+
+  it('baris seragam berisi task maupun kosong (regresi visual 2026-10-04)', () => {
+    const mk = (id: string, title: string, dueDate: string | null): Task => ({
+      id,
+      title,
+      status: 'todo',
+      priority: 'low',
+      labels: [],
+      blockedBy: [],
+      dueDate,
+      description: '',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    });
+    // Hanya 1 baris berisi task (20 Agu 2026); sisanya kosong.
+    mockState.tasks = [mk('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'Dated', '2026-08-20')];
+    const first = renderCalendar();
+    const grid = document.querySelector('.due-cal-grid') as HTMLElement;
+    const rows = grid.style.gridTemplateRows.split(' ').map((s) => parseFloat(s));
+    expect(rows[0]).toBe(28);
+    // Semua baris bulan = collapsed 142 walau kosong (dulu 112).
+    expect(new Set(rows.slice(1)).size).toBe(1);
+    expect(rows[1]).toBe(28 + 3 * 26 + 6 + 22 + 8);
+    first.view.unmount();
+    // Bulan kosong total: template identik (grid tak bergeser).
+    mockState.tasks = [];
+    renderCalendar();
+    const grid2 = document.querySelector('.due-cal-grid') as HTMLElement;
+    expect(grid2.style.gridTemplateRows).toBe(grid.style.gridTemplateRows);
   });
 
   it('hides day chips and unscheduled tasks rejected by taskFilter', () => {

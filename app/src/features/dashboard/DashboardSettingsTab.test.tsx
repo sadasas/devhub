@@ -133,4 +133,17 @@ describe('DashboardSettingsTab panel', () => {
     expect(await screen.findByText('No access to settings')).toBeTruthy();
     expect(screen.queryByRole('navigation')).toBeNull();
   });
+
+  it('shows Team ID and Team URL in the canonical settings-row pattern', async () => {
+    const { container } = renderSettings('/alpha/settings');
+    expect(await screen.findByRole('heading', { name: 'General' })).toBeTruthy();
+    // Bukan Input readOnly: dt kiri / dd kanan + mono + aksi Copy.
+    const rows = container.querySelectorAll('.settings-row');
+    expect(rows.length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByText('Team ID')).toBeTruthy();
+    expect(screen.getByText('team-1')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Copy ID' })).toBeTruthy();
+    expect(screen.getByText('Team URL')).toBeTruthy();
+    expect(screen.getByText('/alpha/projects')).toBeTruthy();
+  });
 });

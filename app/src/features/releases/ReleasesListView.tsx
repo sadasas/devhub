@@ -1,5 +1,6 @@
 import { Badge } from "../../components/Badge";
 import { Button } from "../../components/Button";
+import { Tooltip } from "../../components/Tooltip";
 import { EmptyState } from "../../components/EmptyState";
 import { MILESTONE_STATUS } from "../../lib/labels";
 import type { Milestone, Task } from "../../lib/types";
@@ -69,15 +70,14 @@ function MilestoneRow({ m, tasks, unread, canEdit, onSelect, onEdit, onDelete, i
           {canEdit && !isNarrow && (
             <span className="row-swap">
               <span className="swap-group">
-                <Button size="sm" variant="ghost" className="btn-icon" aria-label={t("releases.editAria")} onClick={() => onEdit(m.id)}>
+                <Tooltip title={t("releases.editAria")}><Button size="sm" variant="ghost" className="btn-icon" aria-label={t("releases.editAria")} onClick={() => onEdit(m.id)}>
                   <PencilSimple size={14} aria-hidden="true" />
-                </Button>
-                <Button
+                </Button></Tooltip>
+                <Tooltip title={`Delete milestone ${m.name}`}><Button
                   size="sm"
                   variant="ghost"
                   className="btn-icon btn-danger swap-trash"
                   aria-label={`Delete milestone ${m.name}`}
-                  title={`Delete milestone ${m.name}`}
                   onClick={(e) => {
                     e.stopPropagation();
                     const btn = e.currentTarget;
@@ -88,7 +88,7 @@ function MilestoneRow({ m, tasks, unread, canEdit, onSelect, onEdit, onDelete, i
                   }}
                 >
                   <Trash size={14} aria-hidden="true" />
-                </Button>
+                </Button></Tooltip>
               </span>
             </span>
           )}

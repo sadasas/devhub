@@ -6,6 +6,7 @@ import { newId, nowIso } from '../../lib/utils';
 import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { Button } from '../../components/Button';
+import { Tooltip } from '../../components/Tooltip';
 import { Modal } from '../../components/Modal';
 import { ModalFooter } from '../../components/ModalFooter';
 import { MarkdownField } from '../../components/MarkdownField';
@@ -292,6 +293,7 @@ export function NewTableModal({ open, onClose, initialPosition = null, onCreated
                     maxLength={FE_LIMITS.COLUMN_COMMENT}
                     onChange={(e) => updateColumn(c.id, { comment: e.target.value })}
                   />
+                  <Tooltip title={t('schema.table.deleteColAria', { name: c.name || t('schema.table.fbUnnamed') })}>
                   <Button
                     variant="danger"
                     size="sm"
@@ -301,6 +303,7 @@ export function NewTableModal({ open, onClose, initialPosition = null, onCreated
                   >
                     <Trash size={13} aria-hidden="true" />
                   </Button>
+                  </Tooltip>
                 </div>
               ))}
             </div>

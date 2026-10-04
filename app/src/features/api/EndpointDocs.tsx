@@ -4,6 +4,7 @@ import { useCopyFeedback } from '../../hooks/useCopyFeedback';
 import type { ApiEndpoint } from '../../lib/types';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
+import { Tooltip } from '../../components/Tooltip';
 import { ApiMethodChip } from './ApiMethodChip';
 
 export function responseTone(status: number): 'success' | 'warn' | 'danger' | 'info' {
@@ -25,12 +26,12 @@ export function EndpointDocs({ endpoint }: { endpoint: ApiEndpoint }) {
           <ApiMethodChip method={endpoint.method} />
           <code className="api-path-view">{endpoint.path}</code>
         </div>
+        <Tooltip title={copied ? t('api.workbench.copied') : t('api.workbench.copyPath')}>
         <Button
           variant="ghost"
           size="sm"
           className="btn-icon"
           aria-label={copied ? t('api.workbench.copied') : t('api.workbench.copyPath')}
-          title={copied ? t('api.workbench.copied') : t('api.workbench.copyPath')}
           leftIcon={
             copied ? (
               <Check size={13} weight="bold" aria-hidden="true" />
@@ -40,6 +41,7 @@ export function EndpointDocs({ endpoint }: { endpoint: ApiEndpoint }) {
           }
           onClick={() => void copy(endpoint.path)}
         />
+        </Tooltip>
       </div>
       {endpoint.description && (
         <div className="preview-block">

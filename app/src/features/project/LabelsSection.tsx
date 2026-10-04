@@ -17,6 +17,7 @@ import { Modal } from '../../components/Modal';
 import { ModalFooter } from '../../components/ModalFooter';
 import { RowMenu } from '../../components/RowMenu';
 import { Section } from '../../components/Section';
+import { Tooltip } from '../../components/Tooltip';
 
 /** Mode sempit (≤640px): aksi rename/hapus diganti kebab ⋮ — pola IssuesPage. */
 function useIsLabelsNarrow(): boolean {
@@ -187,7 +188,7 @@ export function LabelsSection() {
                 className="mini-row"
                 style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '7px 0', borderTop: i === 0 ? 'none' : '1px solid var(--border-hairline)' }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, position: 'relative' }}>
                   <span
                     aria-hidden="true"
                     title={LABEL_COLOR_LABEL[def.color]}
@@ -196,18 +197,22 @@ export function LabelsSection() {
                   <span style={{ ...style, fontSize: 12, padding: '2px 8px', borderRadius: 6, overflowWrap: 'anywhere' }} title={def.description || def.name}>
                     {def.name}
                   </span>
-                  <span style={{ fontSize: 12, color: 'var(--text-muted)', flexShrink: 0, marginLeft: 'auto' }} className="tabular">
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)', flexShrink: 0, marginLeft: 'auto' }} className="tabular mini-row-meta">
                     {t('settings.labelsUsed', { defaultValue: '{{count}} tasks', count })}
                   </span>
                   {canEdit && !isNarrow && (
-                    <>
+                    <span className="mini-row-actions">
+                      <Tooltip title={`${t('settings.labelsRename', { defaultValue: 'Rename' })} ${def.name}`}>
                       <button type="button" className="mini-del" onClick={() => openEdit(def)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 6, display: 'inline-flex', flexShrink: 0 }} aria-label={`${t('settings.labelsRename', { defaultValue: 'Rename' })} ${def.name}`}>
                         <PencilSimple size={14} aria-hidden="true" />
                       </button>
+                      </Tooltip>
+                      <Tooltip title={`${t('settings.labelsDelete', { defaultValue: 'Delete' })} ${def.name}`}>
                       <button type="button" className="mini-del" onClick={() => setDeleteId(def.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--status-danger)', padding: 6, display: 'inline-flex', flexShrink: 0 }} aria-label={`${t('settings.labelsDelete', { defaultValue: 'Delete' })} ${def.name}`}>
                         <Trash size={14} aria-hidden="true" />
                       </button>
-                    </>
+                      </Tooltip>
+                    </span>
                   )}
                   {canEdit && isNarrow && (
                     <RowMenu

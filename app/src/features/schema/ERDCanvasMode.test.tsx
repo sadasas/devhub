@@ -327,6 +327,27 @@ describe('SchemaPage U1 ERD canvas mode', () => {
     expect(document.getElementById('erd-col-tip')).toBeNull();
   });
 
+  it('Tooltip kolom menempel tepi tabel, tidak mengikuti kursor (tak tutupi daftar)', () => {
+    mockLive();
+    renderSchema('/p/p1?tab=schema&schemaView=erd&canvas=1');
+    const dialog = canvasDialog();
+    fireEvent.click(within(dialog).getByRole('button', { name: /^Presentasi$|^Present$/ }));
+    const colRow = dialog.querySelector('[data-connect-col="tb1:c1"]');
+    expect(colRow).not.toBeNull();
+    fireEvent.mouseEnter(colRow!, { clientX: 100, clientY: 100 });
+    const leftAfterEnter = (document.getElementById('erd-col-tip') as HTMLElement | null)?.style.left;
+    expect(leftAfterEnter).toBeTruthy();
+    // Geser kursor jauh ke kanan — posisi tooltip harus TETAP (anchor tepi
+    // tabel, bukan kursor), sehingga judul kolom lain tak tertutup.
+    fireEvent.mouseMove(colRow!, { clientX: 600, clientY: 400 });
+    const tip = document.getElementById('erd-col-tip');
+    expect(tip).not.toBeNull();
+    expect((tip as HTMLElement).style.left).toBe(leftAfterEnter);
+    expect((tip as HTMLElement).style.top).toBeTruthy();
+    fireEvent.mouseLeave(colRow!);
+    expect(document.getElementById('erd-col-tip')).toBeNull();
+  });
+
   it('Import di pill membuka ImportSchemaModal di atas overlay', () => {
     mockLive();
     renderSchema('/p/p1?tab=schema&schemaView=erd&canvas=1');
