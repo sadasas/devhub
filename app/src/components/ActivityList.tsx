@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { formatDate, formatRelative } from '../lib/utils';
 import { useOptionalAuth } from '../state/auth-context';
 import { DetailEmpty } from './DetailList';
+import { DoodleIllustration } from './DoodleIllustration';
 import { DataErrorState } from './DataErrorState';
 
 interface ActivityListProps {
@@ -196,7 +197,12 @@ export function ActivityList({ projectId, entity, entityId }: ActivityListProps)
     );
   }
   if (items.length === 0) {
-    return <DetailEmpty>{t('activity.empty')}</DetailEmpty>;
+    return (
+      <DetailEmpty>
+        <DoodleIllustration variant="empty" size={52} />
+        <span>{t('activity.empty')}</span>
+      </DetailEmpty>
+    );
   }
 
   const fieldLabel = (field: string): string =>

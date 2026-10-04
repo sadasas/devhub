@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Modal } from '../../components/Modal';
+import { DoodleIllustration } from '../../components/DoodleIllustration';
 import { WizardFooter } from '../../components/WizardFooter';
 import { TourProgressPill } from './TourProgressPill';
 import { TourPopover } from './TourPopover';
@@ -134,6 +135,16 @@ export function OnboardingWizard({
       <div className="tour-wizard-top">
         <TourProgressPill current={step + 1} total={total} />
       </div>
+      {def.id === 'welcome' && (
+        <div className="tour-wizard-art" aria-hidden="true">
+          <DoodleIllustration variant="tour-welcome" size={104} />
+        </div>
+      )}
+      {def.id === 'finish' && (
+        <div className="tour-wizard-art" aria-hidden="true">
+          <DoodleIllustration variant="success" size={120} />
+        </div>
+      )}
       <p id={bodyId} className="modal-copy">
         {body}
       </p>
@@ -155,7 +166,12 @@ export function OnboardingWizard({
           describedBy={bodyId}
           onEscape={onSkip}
         >
-          <div className="tour-popover-head">
+          <div className="tour-popover-head tour-popover-head--feature">
+            {def.doodle && (
+              <div className="tour-popover-art" aria-hidden="true">
+                <DoodleIllustration variant={def.doodle} size={64} />
+              </div>
+            )}
             <h2 id={titleId} className="tour-popover-title">
               {title}
             </h2>

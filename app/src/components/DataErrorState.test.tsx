@@ -27,4 +27,11 @@ describe('DataErrorState', () => {
     render(<DataErrorState error={new ApiError(402, 'PLAN_LIMIT', 'Downgrade blocked')} />);
     expect(screen.getByText('Needs attention')).toBeDefined();
   });
+  it('maps error kinds to object-scene doodles', () => {
+    const { unmount } = render(<DataErrorState error={new ApiError(503, 'UNAVAILABLE', 'boom')} />);
+    expect(screen.getByLabelText('broken')).toBeDefined();
+    unmount();
+    render(<DataErrorState error={new ApiError(404, 'NOT_FOUND', 'missing')} />);
+    expect(screen.getByLabelText('not-found')).toBeDefined();
+  });
 });

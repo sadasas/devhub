@@ -1103,6 +1103,7 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
               {isViewing && !hasSnapshot ? (
                 <EmptyState
                   icon={<FloppyDisk size={22} />}
+                  doodle="camera"
                   title={t('schema.viewBanner.noSnapshotTitle')}
                   description={t('schema.viewBanner.noSnapshotDesc')}
                   action={<Button size="sm" variant="secondary" leftIcon={<ArrowLeft size={14} aria-hidden="true" />} onClick={exitViewing}>{t('schema.viewBanner.backToCurrent')}</Button>}
@@ -1110,6 +1111,7 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
               ) : displayTables.length === 0 ? (
                 <EmptyState
                   icon={<Graph size={22} />}
+                  doodle="table"
                   title={isViewing ? t('schema.viewBanner.noTablesInSnapshot') : t('schema.empty.tablesTitle')}
                   description={isViewing ? t('schema.viewBanner.noTablesDesc') : t('schema.empty.tablesDesc')}
                   action={
@@ -1367,6 +1369,7 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
               {state.schemaVersions.length === 0 ? (
                 <EmptyState
                   icon={<FloppyDisk size={22} />}
+                  doodle="clock"
                   title={t('schema.empty.versionsTitle')}
                   description={t('schema.empty.versionsDesc')}
                   action={canEdit ? <Button size="sm" variant="ghost" leftIcon={<FloppyDisk size={14} aria-hidden="true" />} onClick={() => setSaveVersionOpen(true)}>{t('schema.saveVersion')}</Button> : undefined}

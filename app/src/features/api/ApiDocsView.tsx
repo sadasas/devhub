@@ -6,6 +6,7 @@ import { formatDate, matchesApiEndpoint } from '../../lib/utils';
 import { FE_LIMITS } from '../../lib/limits';
 import { Button } from '../../components/Button';
 import { EmptyState } from '../../components/EmptyState';
+import { DoodleIllustration } from '../../components/DoodleIllustration';
 import { DocsToc, DocsTocMobile, type DocsTocItem } from '../docs/DocsToc';
 import { EndpointDocs } from './EndpointDocs';
 
@@ -140,6 +141,7 @@ export function ApiDocsView({
       <div className="api-docs-empty">
         <EmptyState
           icon={<Plugs size={22} />}
+          doodle="nodes"
           title={t('api.docs.emptyTitle')}
           description={canEdit ? t('api.empty.editorDesc') : undefined}
           action={
@@ -194,6 +196,7 @@ export function ApiDocsView({
 
         {query && shownCount === 0 ? (
           <div className="api-search-empty">
+            <DoodleIllustration variant="not-found" tone="soft-blue" size={52} />
             <p className="api-sidebar-empty">
               {t('api.sidebar.noResults', { query: search.trim() })}
             </p>

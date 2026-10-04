@@ -140,6 +140,7 @@ export function TemplatesPage() {
             <div className="page-empty">
               <EmptyState
                 icon={<BookmarkSimple size={22} />}
+                doodle="layout"
                 title={t('templates.empty.title')}
                 description={t('templates.empty.desc')}
               />

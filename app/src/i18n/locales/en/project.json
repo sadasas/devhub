@@ -1050,7 +1050,7 @@
     },
     "welcome": {
       "title": "Welcome to DevHub",
-      "body": "Your technical memory for tasks, issues, and decisions. This 7-step tour shows the fastest path from team to shipped release."
+      "body": "Your technical memory for tasks, issues, and decisions. This 14-step tour shows the fastest path from team to shipped release."
     },
     "team": {
       "title": "Create your team",
@@ -1060,21 +1060,49 @@
       "title": "Create your first project",
       "body": "Projects hold the board, issues, stack, schema, and releases. Create one to unlock the full workspace."
     },
-    "plan": {
-      "title": "Plan: Board + Issues",
-      "body": "Break work into tasks on the Board (Alt+1) and track bugs in Issues (Alt+2). The N shortcut is paused during this tour."
+    "board": {
+      "title": "Board: track the work",
+      "body": "Break work into tasks on the Board (Alt+1) — drag cards from Todo to Done."
     },
-    "build": {
-      "title": "Build: Tests + Stack + Schema",
-      "body": "Lock quality with Test Cases (Alt+3), record versions in Stack (Alt+4), and model data in Schema (Alt+5)."
+    "issues": {
+      "title": "Issues: track every bug",
+      "body": "File bugs in Issues (Alt+2) with severity and reproduction steps."
     },
-    "decide": {
-      "title": "Decide: Decisions + Releases + API",
-      "body": "Log ADRs in Decisions (Alt+6), group work in Releases (Alt+7), and document endpoints in API (Alt+8)."
+    "tests": {
+      "title": "Tests: lock quality in",
+      "body": "Attach Test Cases (Alt+3) as checklists to tasks and issues."
     },
-    "collab": {
-      "title": "Collaborate: Whiteboard + Overview",
-      "body": "Sketch flows in Whiteboard (Alt+9) and review health in Overview (Alt+0). Finish here, or replay anytime from Help."
+    "stack": {
+      "title": "Stack: remember versions",
+      "body": "Record every dependency version in Stack (Alt+4) and never lose track of upgrades."
+    },
+    "schema": {
+      "title": "Schema: model your data",
+      "body": "Define tables and relations in Schema (Alt+5) and reason over the visual ERD."
+    },
+    "decisions": {
+      "title": "Decisions: remember the why",
+      "body": "Log ADRs in Decisions (Alt+6) — options considered, decision, and consequences."
+    },
+    "releases": {
+      "title": "Releases: ship in milestones",
+      "body": "Group work into Releases (Alt+7) with versions and changelogs."
+    },
+    "api": {
+      "title": "API: document endpoints",
+      "body": "Inventory every endpoint in API (Alt+8) — methods, params, and responses."
+    },
+    "whiteboard": {
+      "title": "Whiteboard: sketch flows",
+      "body": "Brainstorm in Whiteboard (Alt+9) — stickies, diagrams, and AI wireframes."
+    },
+    "overview": {
+      "title": "Overview: review health",
+      "body": "Review project health in Overview (Alt+0) — stats, charts, and the PRD."
+    },
+    "finish": {
+      "title": "You're all set",
+      "body": "Team created, workspace mapped. Build something great — replay this tour anytime from Help."
     }
   }
 }

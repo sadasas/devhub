@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { House, ArrowLeft } from '@phosphor-icons/react';
 import { Button } from '../components/Button';
+import { DoodleIllustration } from '../components/DoodleIllustration';
 
 /** 404 proper Bahasa Indonesia — ganti wildcard *→/ agar deep-link salah tidak diam-diam ke dashboard. */
 export function NotFoundPage() {
@@ -25,6 +26,7 @@ export function NotFoundPage() {
         <article className="pcard">
           <div className="pcard-body">
             <div className="narrow-center notfound-body">
+              <DoodleIllustration variant="not-found" tone="soft-blue" size={140} />
               <p className="notfound-code" aria-hidden="true">404</p>
               <h1 id="notfound-title" className="page-title">
                 {t('notFound.title', { defaultValue: lang === 'id' ? 'Halaman tidak ditemukan' : 'Page not found' })}

@@ -8,7 +8,7 @@ export const TOUR_SKIPPED_KEY = 'devhub:tour:skipped';
 export const TOUR_FINISHED_KEY = 'devhub:tour:finished';
 export const TOUR_STEP_KEY = 'devhub:tour:step';
 
-export const TOUR_TOTAL = 7;
+export const TOUR_TOTAL = 14;
 
 let tourActiveFlag = false;
 const listeners = new Set<() => void>();
@@ -90,6 +90,9 @@ export function hasTourStep(): boolean {
 export function readTourStep(): number {
   try {
     const raw = Number(localStorage.getItem(TOUR_STEP_KEY));
+    // Plain read by design: the value is always a current 14-step index.
+    // (A per-read legacy remap was removed — it corrupted live tours because
+    // new indices 3..6 collide with the legacy keys on every store sync.)
     if (Number.isInteger(raw) && raw >= 0 && raw < TOUR_TOTAL) return raw;
   } catch {
     /* ignore */

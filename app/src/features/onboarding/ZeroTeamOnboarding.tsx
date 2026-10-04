@@ -60,7 +60,7 @@ export function ZeroTeamOnboarding() {
   return (
     <div className="dashboard__onboarding dashboard__onboarding--center">
       <div className="zero-team-doodle" aria-hidden="true">
-        <DoodleIllustration variant="thinking" tone="neutral" size={140} />
+        <DoodleIllustration variant="tour-team" tone="neutral" size={140} />
       </div>
       <h1 className="page-title dashboard__onboarding-title">
         {t('dashboard.team.onboardingTitle')}

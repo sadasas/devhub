@@ -63,6 +63,8 @@ import { ArchivedBanner } from './ArchivedBanner';
 import { ArchiveUndoToast } from './ArchiveUndoToast';
 import { useTabUnread } from '../../hooks/useTabUnread';
 import { OnboardingWizard } from '../onboarding/OnboardingWizard';
+import { IntegrationAnnounceSheet } from '../../components/IntegrationAnnounceSheet';
+import { hasTourStep, readTourStep } from '../onboarding/tour-events';
 import { useOnboardingTour } from '../onboarding/useOnboardingTour';
 import { getTourStep } from '../onboarding/tourSteps';
 
@@ -564,8 +566,12 @@ export function ProjectPage() {
       setSearchParams(p, { replace: true });
       return;
     }
-    if (!tour.active) tour.start(3);
-    else if (tour.step < 3) tour.goTo(3);
+    // Resume a stored mid-tour step (e.g. after reload) instead of forcing
+    // step 3 — otherwise a refresh at step 9 silently jumps back to board.
+    if (!tour.active) {
+      const at = hasTourStep() ? readTourStep() : 3;
+      tour.start(at >= 3 ? at : 3);
+    } else if (tour.step < 3) tour.goTo(3);
     const p = new URLSearchParams(searchParams);
     p.delete('tour');
     if (!p.get('tab')) p.set('tab', 'board');
@@ -573,7 +579,7 @@ export function ProjectPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [projectId, project !== undefined]);
 
-  // Tour phase -> tab: Plan=board, Build=tests, Decide=decisions, Collab=whiteboard.
+  // Tour step -> tab: each per-feature step opens its own tab.
   // Runs only on step change so Alt+digits stay user-controlled.
   const tourStep = tour.step;
   const tourActive = tour.active;
@@ -620,6 +626,8 @@ export function ProjectPage() {
           <div className="page-empty">
             <EmptyState
               icon={<Columns size={22} />}
+              doodle="not-found"
+              doodleTone="soft-blue"
               title={t('page.notFoundTitle')}
               description={t('page.notFoundDesc')}
             />
@@ -1074,6 +1082,7 @@ export function ProjectPage() {
             blockReason={null}
           />
         )}
+        <IntegrationAnnounceSheet projectId={projectId} />
       </div>
     </ProjectProvider>
   );

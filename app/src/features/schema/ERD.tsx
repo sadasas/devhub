@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { RefObject } from 'react';
-import { CornersOut, Graph, MagnifyingGlassMinus, MagnifyingGlassPlus } from '@phosphor-icons/react';
+import { CornersOut, MagnifyingGlassMinus, MagnifyingGlassPlus } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import type { Column, Relation, Table } from '../../lib/types';
 import type { State } from '../../lib/types';
@@ -10,6 +10,7 @@ import { headerFill, headerTitleColor, normalizeHeaderColor } from './erd-header
 import { dropTargetGroup, resolveGroupBox, resizeBox } from './erd-groups';
 import type { ErdGroupBox, GroupCorner } from './erd-groups';
 import { Button } from '../../components/Button';
+import { DoodleIllustration } from '../../components/DoodleIllustration';
 import { TooltipCard } from '../../components/Tooltip';
 
 const TABLE_W = 208;
@@ -2015,7 +2016,7 @@ export function ERD({
       {state.tables.length === 0 && !readOnly && (
         <div className="erd-empty">
           <div className="empty-state">
-            <Graph size={22} aria-hidden="true" />
+            <DoodleIllustration variant="table" size={140} />
             <p className="empty-state-title">{t('schema.empty.tablesTitle')}</p>
             <p className="empty-state-desc">{t('schema.erd.emptyDesc')}</p>
             <Button size="sm" onClick={onNewTable}>
@@ -2027,7 +2028,7 @@ export function ERD({
       {state.tables.length === 0 && readOnly && (
         <div className="erd-empty">
           <div className="empty-state">
-            <Graph size={22} aria-hidden="true" />
+            <DoodleIllustration variant="table" size={140} />
             <p className="empty-state-title">{t('schema.empty.tablesTitle')}</p>
             <p className="empty-state-desc">{t('schema.viewBanner.noTablesInSnapshot')}</p>
           </div>

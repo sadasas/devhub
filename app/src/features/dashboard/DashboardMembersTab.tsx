@@ -254,6 +254,7 @@ export function DashboardMembersTab({ team }: DashboardMembersTabProps) {
         <div className="page-empty">
           <EmptyState
             icon={<UsersThree size={22} weight="duotone" aria-hidden="true" />}
+            doodle="idcard"
             title={t('teams.emptyTitle')}
             description={t('teams.emptyDescription')}
             action={
@@ -275,6 +276,8 @@ export function DashboardMembersTab({ team }: DashboardMembersTabProps) {
         <div className="page-empty">
           <EmptyState
             icon={<MagnifyingGlass size={22} weight="duotone" aria-hidden="true" />}
+            doodle="not-found"
+            doodleTone="soft-blue"
             title={t('dashboard.team.membersNoResultTitle', { query: query.trim() })}
             description={t('dashboard.team.membersNoResultDesc')}
             action={

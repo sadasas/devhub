@@ -1,6 +1,7 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
 import { i18n } from '../i18n';
 import { Button } from './Button';
+import { DoodleIllustration } from './DoodleIllustration';
 import { LinkButton } from './LinkButton';
 import { reportError } from '../lib/analytics';
 
@@ -83,6 +84,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           role="alert"
           data-testid="error-boundary"
         >
+          <DoodleIllustration variant="broken" tone="soft-cream" size={120} style={{ marginInline: 'auto' }} />
           <h1 className="page-title">{title}</h1>
           <p className="page-subtitle">{subtitle}</p>
           {this.props.area && (

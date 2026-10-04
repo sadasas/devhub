@@ -156,7 +156,7 @@ export function ReleasesListView({ milestones, tasks, unreadIds, canEdit, onSele
   const isNarrow = useIsReleasesNarrow();
   if (milestones.length === 0) {
     return (
-      <EmptyState icon={<Rocket size={22} />} title={t("releases.emptyTitle")} description={t("releases.emptyDesc")} action={canEdit && <Button size="md" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={onNew}>{isNarrow ? t("releases.newMilestoneShort", { defaultValue: "Milestone" }) : t("releases.newMilestone")}</Button>} />
+              <EmptyState icon={<Rocket size={22} />} doodle="flag" title={t("releases.emptyTitle")} description={t("releases.emptyDesc")} action={canEdit && <Button size="md" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} onClick={onNew}>{isNarrow ? t("releases.newMilestoneShort", { defaultValue: "Milestone" }) : t("releases.newMilestone")}</Button>} />
     );
   }
   const active = milestones.filter((mm) => mm.status === "inProgress");

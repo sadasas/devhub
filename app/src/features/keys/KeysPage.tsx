@@ -120,6 +120,7 @@ export function KeysPage() {
         <div className="page-empty">
           <EmptyState
             icon={<ShieldCheck size={22} />}
+            doodle="key"
             title={t("account:keys.empty.title")}
             description={t("account:keys.empty.description")}
             action={

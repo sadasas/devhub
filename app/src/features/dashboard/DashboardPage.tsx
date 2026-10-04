@@ -22,11 +22,13 @@ import { TEAM_ROLE } from '../../lib/labels';
 import { FE_LIMITS } from '../../lib/limits';
 import { Tooltip } from '../../components/Tooltip';
 import { EmptyState } from '../../components/EmptyState';
+import { DoodleIllustration } from '../../components/DoodleIllustration';
 import { Skeleton } from '../../components/Skeleton';
 import { DataErrorState } from '../../components/DataErrorState';
 import { NewProjectModal } from './NewProjectModal';
 import { CreateTeamModal } from '../teams/CreateTeamModal';
 import { OnboardingWizard } from '../onboarding/OnboardingWizard';
+import { IntegrationAnnounceSheet } from '../../components/IntegrationAnnounceSheet';
 import { useOnboardingTour } from '../onboarding/useOnboardingTour';
 import { hasTourStep, readTourStep } from '../onboarding/tour-events';
 import { fastForwardStep } from '../onboarding/tour-dom';
@@ -511,6 +513,12 @@ export function DashboardPage() {
 
   // Shared by manual Next, auto-advance, and resume: jump into the newest
   // project of the active team and resume the tour at the Plan step.
+  // Announce CTA (Mount B) reuses the same newest-project resolution.
+  const newestTeamProjectId = useMemo(() => {
+    if (!teamProjects || teamProjects.length === 0) return null;
+    const first = [...teamProjects].sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))[0];
+    return first?.id ?? null;
+  }, [teamProjects]);
   const advanceFromProjectStep = () => {
     if (!teamProjects || teamProjects.length === 0) return false;
     const first = [...teamProjects].sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt))[0];
@@ -649,6 +657,7 @@ export function DashboardPage() {
       ) : showSlugNotFound ? (
         <div className="team-workspace">
           <div className="team-workspace__card" role="status" aria-live="polite">
+            <DoodleIllustration variant="not-found" tone="soft-blue" size={140} />
             <h2 className="team-workspace__title">{t('dashboard.team.slugNotFoundTitle')}</h2>
             <p className="team-workspace__desc">{t('dashboard.team.slugNotFoundDesc')}</p>
             <div className="team-workspace__actions">
@@ -821,10 +830,16 @@ export function DashboardPage() {
                       );
                     })}
                     {daily && daily.length === 0 && (
-                      <span className="task-activity-empty">{t('dashboard.welcome.activity.empty')}</span>
+                      <span className="task-activity-empty">
+                        <DoodleIllustration variant="empty" size={52} />
+                        <span>{t('dashboard.welcome.activity.empty')}</span>
+                      </span>
                     )}
                     {!daily && !dailyLoading && (
-                      <span className="task-activity-empty">{t('dashboard.welcome.activity.noData')}</span>
+                      <span className="task-activity-empty">
+                        <DoodleIllustration variant="empty" size={52} />
+                        <span>{t('dashboard.welcome.activity.noData')}</span>
+                      </span>
                     )}
                   </div>
                 </div>
@@ -885,6 +900,7 @@ export function DashboardPage() {
                 ) : filteredEmpty && showMode === 'archived' && !deferredQuery.trim() ? (
                   <EmptyState
                     icon={<Archive size={22} weight="duotone" aria-hidden="true" />}
+                    doodle="box"
                     title={t('dashboard.welcome.empty.archivedTitle')}
                     description={t('dashboard.welcome.empty.archivedDesc')}
                   />
@@ -969,7 +985,10 @@ export function DashboardPage() {
                         ))
                       )}
                       {!nextUpLoading && scopedNextUp && scopedNextUp.length === 0 && filteredSorted.length === 0 && (
-                        <p className="welcome-queue-empty">{t('dashboard.welcome.queue.empty')}</p>
+                        <p className="welcome-queue-empty">
+                          <DoodleIllustration variant="empty" size={64} />
+                          <span>{t('dashboard.welcome.queue.empty')}</span>
+                        </p>
                       )}
                     </div>
                     <WelcomeProjectList>
@@ -1028,6 +1047,7 @@ export function DashboardPage() {
           blockReason={tour.step === 1 && teamsEmpty ? 'team' : tour.step === 2 && teamProjectsEmpty ? 'project' : null}
         />
       )}
+      <IntegrationAnnounceSheet projectId={newestTeamProjectId} />
     </div>
   );
 }

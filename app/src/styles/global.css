@@ -2653,18 +2653,10 @@ html[data-theme='light'] .splash-bg {
 .auth-brand {
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: center;
   padding: 40px 48px;
   border-right: 1px solid var(--border-hairline);
   background: var(--bg-elevated);
-}
-
-.auth-brand-mark {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-weight: 600;
-  font-size: 16px;
 }
 
 .auth-brand h1 {
@@ -2680,9 +2672,10 @@ html[data-theme='light'] .splash-bg {
   max-width: 42ch;
 }
 
-.auth-brand-foot {
-  color: var(--text-muted);
-  font-size: 12px;
+.auth-brand-art {
+  margin: 0 auto;
+  width: 100%;
+  max-width: 460px;
 }
 
 .auth-form-wrap {
@@ -2768,7 +2761,7 @@ html[data-theme='light'] .splash-bg {
     max-width: none;
   }
 
-  .auth-brand-foot {
+  .auth-brand-art {
     display: none;
   }
 }
@@ -18941,6 +18934,44 @@ h4[id] {
   min-height: 28px;
 }
 
+/* Doodle art slots (Batch 2): centered welcome art + popover head row.
+   Spacing ikut tangga space-* (8/12/4); tanpa warna/hex baru. */
+.tour-wizard-art {
+  align-self: center;
+  margin-top: 8px;
+  margin-bottom: 4px;
+}
+
+.tour-popover-head--with-art {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.tour-popover-head--with-art .tour-popover-title {
+  margin-bottom: 0;
+}
+
+/* Per-feature steps (Batch 3): art-on-top rhythm like the welcome modal —
+   64px art centered above the title. Keeps the 320px popover since the
+   card re-measures itself (TourPopover ResizeObserver). */
+.tour-popover-head--feature {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.tour-popover-head--feature .tour-popover-title {
+  margin-bottom: 0;
+}
+
+.tour-popover-art {
+  margin-bottom: 8px;
+}
+
 /* Tour overlay: body-level dim with per-target cutout holes. Holes have no
    overlay pixels, so clicks pass straight to the real glowing button —
    immune to stacking contexts and overflow clipping. Clicks on the dim
@@ -21313,6 +21344,51 @@ html[data-theme='light'] .back-btn:hover {
 @media (max-width: 640px) {
   .consent-backdrop { padding: 12px; }
   .consent-actions .consent-btn { min-height: 44px; }
+}
+
+/* Integration announce bottom sheet (Opsi B — pola ConsentBanner) */
+.announce-backdrop {
+  position: fixed; inset: 0; z-index: 60;
+  display: flex; align-items: flex-end; justify-content: center; padding: 16px;
+}
+.announce-sheet {
+  width: min(560px, 100%);
+  background: var(--bg-elevated); border: 1px solid var(--border-strong);
+  border-radius: 16px; box-shadow: var(--shadow-raised); padding: 16px;
+}
+.announce-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.announce-art { flex-shrink: 0; }
+.announce-copy { min-width: 0; flex: 1; }
+.announce-heading { font-size: 15px; margin: 0 0 4px; }
+.announce-desc { margin: 0; font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
+.announce-close { flex-shrink: 0; }
+.announce-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.announce-actions .announce-btn { flex: 1; min-height: 40px; }
+@media (max-width: 640px) {
+  .announce-backdrop { padding: 12px; }
+  .announce-actions .announce-btn { min-height: 44px; }
+}
+
+/* ShellBanner — global top-of-layout alert bar (slot shell di atas topbar).
+ * Nada -> var(--status-*); lead tebal 13px, message redup 12px. */
+.sbanner {
+  display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+  padding: 8px 16px; font-size: 13px;
+  border-bottom: 1px solid var(--border-hairline);
+}
+.sbanner-warn { background: var(--status-warn-dim); color: var(--status-warn); }
+.sbanner-danger { background: var(--status-danger-dim); color: var(--status-danger); }
+.sbanner-info { background: var(--status-info-dim); color: var(--status-info); }
+.sbanner-success { background: var(--status-success-dim); color: var(--status-success); }
+.sbanner-icon { display: inline-flex; flex-shrink: 0; }
+.sbanner-copy { display: flex; flex-direction: column; gap: 2px; min-width: 200px; flex: 1; }
+.sbanner-lead { font-weight: 700; }
+.sbanner-message { font-size: 12px; opacity: 0.85; }
+.sbanner-actions { display: flex; gap: 8px; margin-left: auto; }
+.sbanner-actions .sbanner-btn { min-height: 32px; }
+@media (max-width: 640px) {
+  .sbanner-actions { width: 100%; margin-left: 0; }
+  .sbanner-actions .sbanner-btn { flex: 1; min-height: 44px; }
 }
 
 /* 404 */

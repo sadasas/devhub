@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowSquareOut, Receipt, Trash } from '@phosphor-icons/react';
+import { ArrowSquareOut, Trash } from '@phosphor-icons/react';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
@@ -9,6 +9,7 @@ import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { DataErrorState } from '../../components/DataErrorState';
+import { DoodleIllustration } from '../../components/DoodleIllustration';
 import { Skeleton } from '../../components/Skeleton';
 import { formatDateAdmin } from '../../lib/format';
 import { BillingLedger } from './BillingLedger';
@@ -131,9 +132,7 @@ export function PaymentHistoryPage() {
       ) : payments?.length === 0 ? (
         <BillingLedger>
           <div className="billing-empty">
-            <div className="billing-empty-icon" aria-hidden="true">
-              <Receipt size={22} weight="duotone" />
-            </div>
+            <DoodleIllustration variant="receipt" tone="soft-cream" size={140} />
             <h2 className="billing-empty-title">{t('billing.empty.title')}</h2>
             <p className="billing-empty-desc">{t('billing.empty.desc')}</p>
             <Button variant="secondary" size="sm" onClick={() => navigate('/pricing')}>

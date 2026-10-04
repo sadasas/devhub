@@ -261,6 +261,8 @@ export function PublicProjectPage() {
           <div className="page-empty">
             <EmptyState
               icon={<Columns size={22} />}
+              doodle="not-found"
+              doodleTone="soft-blue"
               title={t('public.notFound.title')}
               description={t('public.notFound.desc')}
             />

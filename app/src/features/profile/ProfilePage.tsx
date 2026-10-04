@@ -26,6 +26,7 @@ import { Avatar } from '../../components/Avatar';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
 import { DataErrorState } from '../../components/DataErrorState';
+import { DoodleIllustration } from '../../components/DoodleIllustration';
 import { InlineError } from '../../components/InlineError';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 import { LinkButton } from '../../components/LinkButton';
@@ -309,7 +310,10 @@ export function ProfilePage() {
                   </div>
                 </div>
               ) : teams.length === 0 ? (
-                <p className="profile-panel-empty">{t('profile.noTeams')}</p>
+                <p className="profile-panel-empty">
+                  <DoodleIllustration variant="empty" size={64} />
+                  <span>{t('profile.noTeams')}</span>
+                </p>
               ) : (
                 <ul className="profile-collection-list">
                   {teams.slice(0, 5).map((team) => (
@@ -348,7 +352,10 @@ export function ProfilePage() {
                   </div>
                 </div>
               ) : projects.length === 0 ? (
-                <p className="profile-panel-empty">{t('profile.noProjects')}</p>
+                <p className="profile-panel-empty">
+                  <DoodleIllustration variant="empty" size={64} />
+                  <span>{t('profile.noProjects')}</span>
+                </p>
               ) : (
                 <ul className="profile-collection-list">
                   {projects.slice(0, 5).map((project) => (

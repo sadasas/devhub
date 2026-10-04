@@ -1,14 +1,13 @@
-import { Plus, UploadSimple, MagnifyingGlass, Users } from '@phosphor-icons/react';
+import { Plus, UploadSimple } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../../components/Button';
+import { DoodleIllustration } from '../../components/DoodleIllustration';
 
 export function WelcomeEmptyNoTeam({ onCreateTeam }: { onCreateTeam: () => void }) {
   const { t } = useTranslation('account');
   return (
     <div className="welcome-empty-strip" role="status" aria-live="polite">
-      <span className="welcome-empty-icon" aria-hidden="true">
-        <Users size={22} weight="duotone" />
-      </span>
+      <DoodleIllustration variant="empty" size={64} />
       <h3 className="welcome-empty-title">{t('dashboard.welcome.empty.noTeamTitle')}</h3>
       <p className="welcome-empty-desc">{t('dashboard.welcome.empty.noTeamDesc')}</p>
       <div className="welcome-empty-actions">
@@ -32,9 +31,7 @@ export function WelcomeEmptyNoProject({
   const { t } = useTranslation('account');
   return (
     <div className="welcome-empty-strip" role="status">
-      <span className="welcome-empty-icon" aria-hidden="true">
-        <Plus size={22} weight="duotone" />
-      </span>
+      <DoodleIllustration variant="empty" size={64} />
       <h3 className="welcome-empty-title">{teamName ? t('dashboard.welcome.empty.noProjectIn', { name: teamName }) : t('dashboard.welcome.empty.noProjectTitle')}</h3>
       <p className="welcome-empty-desc">{t('dashboard.welcome.empty.noProjectDesc')}</p>
       <div className="welcome-empty-actions">
@@ -55,9 +52,7 @@ export function WelcomeEmptyNoResult({ query, onClear }: { query: string; onClea
   const { t } = useTranslation('account');
   return (
     <div className="welcome-empty-strip welcome-empty-strip-muted" role="status">
-      <span className="welcome-empty-icon" aria-hidden="true">
-        <MagnifyingGlass size={22} aria-hidden="true" />
-      </span>
+      <DoodleIllustration variant="not-found" tone="soft-blue" size={64} />
       <h3 className="welcome-empty-title">{t('dashboard.welcome.empty.noResultTitle', { query })}</h3>
       <p className="welcome-empty-desc">{t('dashboard.welcome.empty.noResultDesc')}</p>
       <div className="welcome-empty-actions">

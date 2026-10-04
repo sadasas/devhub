@@ -133,6 +133,7 @@ export function TestsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
       {tests.length === 0 ? (
         <EmptyState
           icon={<CheckSquare size={22} />}
+          doodle="checklist"
           title={t('tests.emptyTitle')}
           description={t('tests.emptyDesc')}
           action={

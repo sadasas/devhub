@@ -83,6 +83,7 @@ export function InvitesPage() {
             <div className="page-empty">
               <EmptyState
                 icon={<Envelope size={22} weight="duotone" />}
+                doodle="envelope"
                 title={t('teams.invites.emptyTitle')}
                 description={t('teams.invites.emptyDescription')}
               />

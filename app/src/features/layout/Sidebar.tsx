@@ -23,6 +23,7 @@ import { useProjects } from '../../state/projects-context';
 import { useTeams } from '../../state/teams-context';
 import { useAuth } from '../../state/auth-context';
 import { Button } from '../../components/Button';
+import { DoodleIllustration } from '../../components/DoodleIllustration';
 import { FE_LIMITS } from '../../lib/limits';
 import { Skeleton } from '../../components/Skeleton';
 import { Avatar } from '../../components/Avatar';
@@ -586,6 +587,7 @@ export function Sidebar({ activeTeamId, onCreateTeam, onNavigate }: SidebarProps
               {orderedActive.length === 0 ? (
                 lowerQuery ? (
                   <div className="sidebar-empty">
+                    <DoodleIllustration variant="not-found" tone="soft-blue" size={52} />
                     <p>{t('sidebar.noMatches', { query: filterQuery })}</p>
                     <Button variant="ghost" size="sm" onClick={() => setFilterQuery('')}>
                       {t('sidebar.clearFilter')}
@@ -593,6 +595,7 @@ export function Sidebar({ activeTeamId, onCreateTeam, onNavigate }: SidebarProps
                   </div>
                 ) : (
                   <div className="sidebar-project-empty">
+                    <DoodleIllustration variant="empty" size={52} />
                     <span>{t('sidebar.noProjectsYet')}</span>{' '}
                   </div>
                 )
