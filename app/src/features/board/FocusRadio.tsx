@@ -364,6 +364,7 @@ export function FocusRadio() {
           </Button>
           </Tooltip>
           {(draft.trim() !== '' || searched) && (
+            <Tooltip title={t('board.focus.radioClearSearch') as string}>
             <button
               type="button"
               className="btn btn-ghost btn-sm btn-icon"
@@ -372,6 +373,7 @@ export function FocusRadio() {
             >
               <X size={14} aria-hidden="true" />
             </button>
+            </Tooltip>
           )}
         </div>
       </form>
@@ -537,6 +539,7 @@ export function FocusRadio() {
               >
                 {v.title}
               </button>
+              <Tooltip title={t('board.focus.radioRemove', { title: v.title, defaultValue: v.title }) as string}>
               <button
                 type="button"
                 className="btn btn-ghost btn-sm btn-icon"
@@ -545,6 +548,7 @@ export function FocusRadio() {
               >
                 <X size={12} aria-hidden="true" />
               </button>
+              </Tooltip>
             </li>
           ))}
         </ul>

@@ -27,7 +27,7 @@ const appDir = path.resolve(root, '..');
 const srcDir = path.join(appDir, 'src');
 
 // Tutup/dismiss (×) — aria-label wajib, tooltip visual opsional (§9).
-// Entri eksplisit file+label (10 situs, 9 entri — chat menaungi 2 tombol);
+// Entri eksplisit file+label (11 situs, 10 entri — chat menaungi 2 tombol);
 // tambah hanya via keputusan tercatat.
 export const ALLOWLIST = [
   { file: 'src/components/BottomSheet.tsx', label: 'action.close' },
@@ -40,6 +40,8 @@ export const ALLOWLIST = [
   // Dismiss toast (×): menutup toast, bukan aksi — aria-label wajib (lihat
   // keputusan §9: tutup/dismiss dikecualikan).
   { file: 'src/features/project/ArchiveUndoToast.tsx', label: 'archiveToast.dismiss' },
+  // Dismiss pengumuman integrasi (×) — sama dikecualikan §9.
+  { file: 'src/components/IntegrationAnnounceSheet.tsx', label: 'announce.integrations.close' },
   // Present-exit ERD: Tooltip menelan Esc pertama (konflik tiered-Esc, terbukti test) — title= native dipertahankan.
   { file: 'src/features/schema/ERDCanvasMode.tsx', label: 'schema.canvas.exitPresent' },
 ];

@@ -11,11 +11,7 @@ import { Input } from '../../components/Input';
 import { PasswordToggle } from '../../components/PasswordToggle';
 import { InlineError } from '../../components/InlineError';
 import { DataErrorState } from '../../components/DataErrorState';
-<<<<<<< HEAD
-=======
-import { Logo } from '../../components/Logo';
 import { FE_LIMITS } from '../../lib/limits';
->>>>>>> sadasas/fix
 
 export function ResetPasswordPage() {
   const { t } = useTranslation('account');

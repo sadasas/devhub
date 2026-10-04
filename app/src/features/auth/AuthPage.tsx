@@ -1,11 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { useNavigate } from 'react-router';
-<<<<<<< HEAD
-import { ArrowRight, Eye, EyeSlash, GithubLogo, GoogleLogo } from '@phosphor-icons/react';
-=======
-import { ArrowRight, TerminalWindow, GithubLogo, GoogleLogo } from '@phosphor-icons/react';
->>>>>>> sadasas/fix
+import { ArrowRight, GithubLogo, GoogleLogo } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { ApiError } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
@@ -13,11 +9,7 @@ import { useAuth } from '../../state/auth-context';
 import { Button } from '../../components/Button';
 import { AuthHeroArt } from './AuthHeroArt';
 import { Input } from '../../components/Input';
-<<<<<<< HEAD
-=======
 import { PasswordToggle } from '../../components/PasswordToggle';
-import { Logo } from '../../components/Logo';
->>>>>>> sadasas/fix
 import { Skeleton } from '../../components/Skeleton';
 import { InlineError } from '../../components/InlineError';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
