@@ -62,6 +62,7 @@ export function FocusRadio() {
     containerRef,
     ensureReady,
     search,
+    clearSearch,
     playAt,
     toggle,
     next,
@@ -143,6 +144,9 @@ export function FocusRadio() {
     const video = results[i];
     if (!video) return;
     const qi = enqueue(video);
+    // Done browsing → dismiss results back to the queue view.
+    clearSearch();
+    setDraft('');
     const tr = await playAt(qi);
     if (tr) track('radio_play', { videoId: tr.videoId });
   };
@@ -152,6 +156,14 @@ export function FocusRadio() {
     if (!video) return;
     enqueue(video);
     track('radio_queue_add', { videoId: video.videoId });
+    // Done browsing → dismiss results back to the queue view.
+    clearSearch();
+    setDraft('');
+  };
+
+  const onClear = () => {
+    setDraft('');
+    clearSearch();
   };
 
   const onRemove = (i: number) => {
@@ -174,6 +186,10 @@ export function FocusRadio() {
     if (tr) track('radio_prev', { videoId: tr.videoId });
   };
 
+  // Mutually exclusive views: results XOR queue. Searching (or showing
+  // results) hides the queue + now playing; clearing returns to them.
+  const showResults = searching || searched;
+
   const panelBody = (
     <div>
       <form onSubmit={submitSearch} role="search">
@@ -190,6 +206,17 @@ export function FocusRadio() {
           <Button variant="secondary" size="sm" type="submit" disabled={!draft.trim() || searching} aria-label={t('board.focus.radioSearchButton') as string}>
             <MagnifyingGlass size={14} aria-hidden="true" />
           </Button>
+          {(draft.trim() !== '' || searched) && (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm btn-icon"
+              onClick={onClear}
+              aria-label={t('board.focus.radioClearSearch') as string}
+              title={t('board.focus.radioClearSearch') as string}
+            >
+              <X size={14} aria-hidden="true" />
+            </button>
+          )}
         </div>
       </form>
       {!searched && !searching && (
@@ -197,6 +224,8 @@ export function FocusRadio() {
           {t('board.focus.radioSearchHint')}
         </p>
       )}
+      {showResults && (
+      <>
       {searching && (
         <div role="status" aria-label={t('board.focus.radioSearching') as string} style={{ margin: '8px 0 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
           {[0, 1, 2].map((k) => (
@@ -282,6 +311,9 @@ export function FocusRadio() {
           ))}
         </ul>
       )}
+      </>)}
+      {!showResults && (
+      <>
       <hr className="sheet-divider" aria-hidden="true" />
       <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 8px' }}>
         {t('board.focus.radioQueueTitle')}
@@ -445,6 +477,7 @@ export function FocusRadio() {
           </p>
         </div>
       )}
+      </>)}
     </div>
   );
 

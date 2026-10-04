@@ -114,14 +114,78 @@ describe('FocusRadio', () => {
     expect(trackMock).not.toHaveBeenCalled();
   });
 
-  it('searches without touching the queue, then plays a picked track', async () => {
+  it('shows only results while searching (queue hidden)', async () => {
+    let resolveSearch!: (v: { results: YoutubeVideo[]; cached: boolean }) => void;
+    searchMock.mockImplementationOnce(
+      () =>
+        new Promise<{ results: YoutubeVideo[]; cached: boolean }>((resolve) => {
+          resolveSearch = resolve;
+        }),
+    );
+    render(<FocusRadio />);
+    fireEvent.click(screen.getByRole('button', { name: 'Radio' }));
+    expect(screen.getByText('Queue')).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Search YouTube songs'), { target: { value: 'lofi' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+    // Queue + now playing hidden, skeleton in their place.
+    expect(screen.queryByText('Queue')).toBeNull();
+    expect(screen.queryByText('Now playing')).toBeNull();
+    expect(screen.getByText('Searching…')).toBeTruthy();
+    await act(async () => {
+      resolveSearch({ results: [VID('a')], cached: false });
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    // Results view still exclusive: queue stays hidden until dismissed.
+    expect(screen.getByText('Title a')).toBeTruthy();
+    expect(screen.queryByText('Queue')).toBeNull();
+  });
+
+  it('clears stale results when a new search starts', async () => {
+    searchMock.mockResolvedValueOnce({ results: [VID('old')], cached: false });
+    let resolveSecond!: (v: { results: YoutubeVideo[]; cached: boolean }) => void;
+    searchMock.mockImplementationOnce(
+      () =>
+        new Promise<{ results: YoutubeVideo[]; cached: boolean }>((resolve) => {
+          resolveSecond = resolve;
+        }),
+    );
+    render(<FocusRadio />);
+    fireEvent.click(screen.getByRole('button', { name: 'Radio' }));
+    fireEvent.change(screen.getByLabelText('Search YouTube songs'), { target: { value: 'first' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    expect(screen.getByText('Title old')).toBeTruthy();
+    fireEvent.change(screen.getByLabelText('Search YouTube songs'), { target: { value: 'second' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+    expect(screen.queryByText('Title old')).toBeNull();
+    expect(screen.getByText('Searching…')).toBeTruthy();
+    await act(async () => {
+      resolveSecond({ results: [VID('new')], cached: false });
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    expect(screen.getByText('Title new')).toBeTruthy();
+  });
+
+  it('× dismisses results back to the queue view', async () => {
+    render(<FocusRadio />);
+    fireEvent.click(screen.getByRole('button', { name: 'Radio' }));
+    await searchLofi();
+    expect(screen.getByText('Title a')).toBeTruthy();
+    expect(screen.queryByText('Queue')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Clear results' }));
+    expect(screen.queryByText('Title a')).toBeNull();
+    expect(screen.getByText('Queue')).toBeTruthy();
+    expect(screen.getByText('Queue is empty — add from search results')).toBeTruthy();
+    expect((screen.getByLabelText('Search YouTube songs') as HTMLInputElement).value).toBe('');
+  });
+
+  it('playing a result dismisses to the queue view and plays', async () => {
     const players = installYTMock();
     render(<FocusRadio />);
     fireEvent.click(screen.getByRole('button', { name: 'Radio' }));
     await searchLofi();
-    expect(trackMock).toHaveBeenCalledWith('radio_search');
-    // Row only — queue is still empty, pill still shows "Radio".
-    expect(screen.getAllByText('Title a')).toHaveLength(1);
     await act(async () => {
       const p = (async () => {
         fireEvent.click(screen.getByRole('button', { name: 'Play Title a' }));
@@ -132,20 +196,21 @@ describe('FocusRadio', () => {
     });
     expect(players[0]!.loadVideoById).toHaveBeenCalledWith('a');
     expect(trackMock).toHaveBeenCalledWith('radio_play', { videoId: 'a' });
+    // Results view dismissed: the result play button is gone.
+    expect(screen.queryByRole('button', { name: 'Add Title a to queue' })).toBeNull();
     expect(screen.getByText('Now playing')).toBeTruthy();
-    // Pill + result row + queue row + now playing.
-    expect(screen.getAllByText('Title a')).toHaveLength(4);
+    expect(screen.getAllByText('Title a')).toHaveLength(3);
   });
 
-  it('adds results to the queue without playing', async () => {
+  it('adding a result dismisses to the queue without playing', async () => {
     render(<FocusRadio />);
     fireEvent.click(screen.getByRole('button', { name: 'Radio' }));
     await searchLofi();
     fireEvent.click(screen.getByRole('button', { name: 'Add Title b to queue' }));
     expect(trackMock).toHaveBeenCalledWith('radio_queue_add', { videoId: 'b' });
-    const q = queueList();
-    expect(within(q).getByText('Title b')).toBeTruthy();
-    // Nothing started playing.
+    // Dismissed: the results row (and its play button) is gone.
+    expect(screen.queryByRole('button', { name: 'Play Title b' })).toBeNull();
+    expect(within(queueList()).getByText('Title b')).toBeTruthy();
     expect(screen.getByText('Pick a song to start')).toBeTruthy();
     expect(trackMock).not.toHaveBeenCalledWith('radio_play', expect.anything());
   });
@@ -191,35 +256,6 @@ describe('FocusRadio', () => {
     });
     expect(screen.getByRole('alert')).toBeTruthy();
     expect(screen.getByText('YouTube search quota exhausted, try again tomorrow')).toBeTruthy();
-  });
-
-  it('clears stale results and shows a skeleton while searching', async () => {
-    searchMock.mockResolvedValueOnce({ results: [VID('old')], cached: false });
-    let resolveSecond!: (v: { results: YoutubeVideo[]; cached: boolean }) => void;
-    searchMock.mockImplementationOnce(
-      () =>
-        new Promise<{ results: YoutubeVideo[]; cached: boolean }>((resolve) => {
-          resolveSecond = resolve;
-        }),
-    );
-    render(<FocusRadio />);
-    fireEvent.click(screen.getByRole('button', { name: 'Radio' }));
-    fireEvent.change(screen.getByLabelText('Search YouTube songs'), { target: { value: 'first' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Search' }));
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 0));
-    });
-    expect(screen.getByText('Title old')).toBeTruthy();
-    // Second search starts: old results gone, skeleton in their place.
-    fireEvent.change(screen.getByLabelText('Search YouTube songs'), { target: { value: 'second' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Search' }));
-    expect(screen.queryByText('Title old')).toBeNull();
-    expect(screen.getByText('Searching…')).toBeTruthy();
-    await act(async () => {
-      resolveSecond({ results: [VID('new')], cached: false });
-      await new Promise((r) => setTimeout(r, 0));
-    });
-    expect(screen.getByText('Title new')).toBeTruthy();
   });
 
   it('shows an adblock notice when playback is blocked but keeps skipping', async () => {

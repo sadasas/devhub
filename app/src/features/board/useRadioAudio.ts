@@ -353,6 +353,15 @@ export function useRadioAudio() {
 
   const clearError = useCallback(() => setError(null), []);
 
+  /**
+   * Dismiss the results view (back to the queue view). Queue, index and
+   * playback are untouched.
+   */
+  const clearSearch = useCallback(() => {
+    setResults([]);
+    setSearched(false);
+  }, []);
+
   /** Pause + tear down the player (panel closed). Idempotent. */
   const release = useCallback(() => {
     pause();
@@ -378,6 +387,7 @@ export function useRadioAudio() {
     containerRef,
     ensureReady,
     search,
+    clearSearch,
     playAt,
     toggle,
     pause,

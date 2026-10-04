@@ -104,6 +104,27 @@ describe('useRadioAudio', () => {
     expect(result.current.playing).toBe(false);
   });
 
+  it('clearSearch dismisses results without touching queue or playback', async () => {
+    searchMock.mockResolvedValue({ results: [VID('a')], cached: false });
+    const { result } = renderHook(() => useRadioAudio());
+    attachContainer(result);
+    await act(async () => {
+      await result.current.search('lofi');
+    });
+    act(() => {
+      result.current.enqueue(VID('b'));
+    });
+    expect(result.current.results).toHaveLength(1);
+    expect(result.current.searched).toBe(true);
+    act(() => {
+      result.current.clearSearch();
+    });
+    expect(result.current.results).toEqual([]);
+    expect(result.current.searched).toBe(false);
+    expect(result.current.queue.map((v) => v.videoId)).toEqual(['b']);
+    expect(result.current.playing).toBe(false);
+  });
+
   it('ignores blank queries without touching the API', async () => {
     const { result } = renderHook(() => useRadioAudio());
     attachContainer(result);

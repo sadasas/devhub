@@ -769,6 +769,6 @@ export const api = {
     ),
   youtubeSearch: (q: string) =>
     request<{ results: YoutubeVideo[]; cached: boolean }>(
-      `/integrations/youtube/search?q=${encodeURIComponent(q)}&maxResults=5`,
+      `/integrations/youtube/search?q=${encodeURIComponent(q)}&maxResults=10`,
     ),
 };
