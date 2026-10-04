@@ -54,6 +54,7 @@ const VID = (id: string): YoutubeVideo => ({
 });
 
 import { useRadioAudio } from './useRadioAudio';
+import { __resetAdblockCacheForTests } from './youtube-radio';
 
 /** The hook needs a mounted container like the real panel provides. */
 function attachContainer(result: { current: { containerRef: { current: HTMLDivElement | null } } }) {
@@ -72,10 +73,17 @@ beforeEach(() => {
   window.localStorage.clear();
   searchMock.mockReset();
   installYTMock();
+  __resetAdblockCacheForTests();
+  // Default: no blocker (probe resolves). Overridden per adblock test.
+  vi.stubGlobal(
+    'fetch',
+    vi.fn().mockResolvedValue({}),
+  );
 });
 
 afterEach(() => {
   Reflect.deleteProperty(window as unknown as Record<string, unknown>, 'YT');
+  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -311,6 +319,73 @@ describe('useRadioAudio', () => {
     });
     expect(result.current.error).toBe('player');
     expect(result.current.playing).toBe(false);
+  });
+
+  it('sets an adblock notice when the probe is blocked but keeps skipping', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockRejectedValue(new Error('blocked by client')),
+    );
+    const players = installYTMock();
+    const { result } = renderHook(() => useRadioAudio());
+    attachContainer(result);
+    act(() => {
+      result.current.enqueue(VID('a'));
+      result.current.enqueue(VID('b'));
+    });
+    await act(async () => {
+      const p = result.current.playAt(0);
+      await new Promise((r) => setTimeout(r, 0));
+      players[0]!.__events.onReady?.({ target: players[0] });
+      await p;
+    });
+    act(() => {
+      players[0]!.__events.onError?.({ data: 150 });
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    expect(result.current.notice).toBe('adblock');
+    expect(result.current.index).toBe(1);
+    expect(players[0]!.loadVideoById).toHaveBeenCalledWith('b');
+    // Notice clears once the next track actually plays.
+    act(() => {
+      players[0]!.__events.onStateChange?.({ data: 1, target: players[0] });
+    });
+    expect(result.current.notice).toBeNull();
+  });
+
+  it('does not blame adblock when offline', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockRejectedValue(new Error('offline')),
+    );
+    Object.defineProperty(window.navigator, 'onLine', { value: false, configurable: true });
+    try {
+      const players = installYTMock();
+      const { result } = renderHook(() => useRadioAudio());
+      attachContainer(result);
+      act(() => {
+        result.current.enqueue(VID('a'));
+        result.current.enqueue(VID('b'));
+      });
+      await act(async () => {
+        const p = result.current.playAt(0);
+        await new Promise((r) => setTimeout(r, 0));
+        players[0]!.__events.onReady?.({ target: players[0] });
+        await p;
+      });
+      act(() => {
+        players[0]!.__events.onError?.({ data: 150 });
+      });
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+      expect(result.current.notice).toBeNull();
+      expect(result.current.index).toBe(1);
+    } finally {
+      Object.defineProperty(window.navigator, 'onLine', { value: true, configurable: true });
+    }
   });
 
   it('persists volume and applies it live', async () => {

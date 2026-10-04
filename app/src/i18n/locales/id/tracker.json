@@ -197,6 +197,7 @@
       "radioSearchLabel": "Cari lagu YouTube",
       "radioSearchButton": "Cari",
       "radioSearchPlaceholder": "Cari lagu…",
+      "radioSearching": "Mencari…",
       "radioSearchHint": "Hasil jadi antrean — diputar otomatis berurutan",
       "radioNoResults": "Tidak ada hasil",
       "radioNowPlaying": "Sedang diputar",
@@ -211,8 +212,8 @@
       "radioQueueAdd": "Tambah {{title}} ke antrean",
       "radioQueueTitle": "Antrean",
       "radioQueueEmpty": "Antrean kosong — tambah dari hasil pencarian",
-      "radioMoveUp": "Pindah ke atas",
-      "radioMoveDown": "Pindah ke bawah",
+      "radioAdblock": "Pemutaran diblokir pemblokir iklan",
+      "radioAdblockHint": "Jeda untuk situs ini, atau coba lagu lain",
       "radioRemove": "Hapus {{title}}",
       "propsHide": "Sembunyikan",
       "propsShow": "Tampilkan"

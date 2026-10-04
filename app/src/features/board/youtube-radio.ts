@@ -43,7 +43,6 @@ declare global {
 }
 
 let apiPromise: Promise<YTNamespace> | null = null;
-
 /** Resolve the IFrame API, injecting the script tag once. Never hangs. */
 export function loadYouTubeIframeAPI(): Promise<YTNamespace> {
   if (typeof window === 'undefined') return Promise.reject(new Error('no window'));
@@ -206,4 +205,52 @@ export async function createRadioPlayer(
     },
   };
   return handle;
+}
+
+let adblockCache: { at: number; blocked: boolean } | null = null;
+const ADBLOCK_CACHE_MS = 60 * 1000;
+const ADBLOCK_TIMEOUT_MS = 4000;
+// The exact ad endpoint observed failing (blocked CORS, status null) when
+// label/monetized tracks die behind adblockers/strict ETP.
+const ADBLOCK_PROBE_URL = 'https://googleads.g.doubleclick.net/pagead/id';
+
+/**
+ * Best-effort adblock detection, run ONLY after a playback error (never on
+ * load): a network-level failure with the browser online implies a blocker;
+ * offline implies unknown (false). Cached 60s. One tiny no-cors request —
+ * not tracking.
+ */
+export async function detectAdblock(): Promise<boolean> {
+  try {
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) return false;
+  } catch {
+    /* ignore */
+  }
+  const now = Date.now();
+  if (adblockCache && now - adblockCache.at < ADBLOCK_CACHE_MS) return adblockCache.blocked;
+  const ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timer = ctrl
+    ? setTimeout(() => {
+        try {
+          ctrl.abort();
+        } catch {
+          /* ignore */
+        }
+      }, ADBLOCK_TIMEOUT_MS)
+    : null;
+  try {
+    await fetch(ADBLOCK_PROBE_URL, { mode: 'no-cors', cache: 'no-store', signal: ctrl?.signal });
+    adblockCache = { at: now, blocked: false };
+    return false;
+  } catch {
+    adblockCache = { at: now, blocked: true };
+    return true;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
+/** Test seam: clear the adblock probe cache. */
+export function __resetAdblockCacheForTests(): void {
+  adblockCache = null;
 }

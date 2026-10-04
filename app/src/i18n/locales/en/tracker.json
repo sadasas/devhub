@@ -197,6 +197,7 @@
       "radioSearchLabel": "Search YouTube songs",
       "radioSearchButton": "Search",
       "radioSearchPlaceholder": "Search songs…",
+      "radioSearching": "Searching…",
       "radioSearchHint": "Results become the queue — plays through automatically",
       "radioNoResults": "No results",
       "radioNowPlaying": "Now playing",
@@ -211,8 +212,8 @@
       "radioQueueAdd": "Add {{title}} to queue",
       "radioQueueTitle": "Queue",
       "radioQueueEmpty": "Queue is empty — add from search results",
-      "radioMoveUp": "Move up",
-      "radioMoveDown": "Move down",
+      "radioAdblock": "Playback blocked by an ad blocker",
+      "radioAdblockHint": "Pause it for this site, or try another song",
       "radioRemove": "Remove {{title}}",
       "propsHide": "Hide",
       "propsShow": "Show"

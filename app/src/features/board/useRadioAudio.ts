@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../../lib/api';
 import type { YoutubeVideo } from '../../lib/types';
-import { createRadioPlayer, type RadioPlayerHandle } from './youtube-radio';
+import { createRadioPlayer, detectAdblock, type RadioPlayerHandle } from './youtube-radio';
 
 const VOLUME_KEY = 'devhub.focus.musicVolume';
 const DEFAULT_VOLUME = 0.7;
@@ -48,6 +48,8 @@ export function useRadioAudio() {
     typeof window === 'undefined' ? DEFAULT_VOLUME : readStoredVolume(),
   );
   const [error, setError] = useState<RadioErrorKind | null>(null);
+  /** Informative adblock notice (playback continues via auto-skip). */
+  const [notice, setNotice] = useState<'adblock' | null>(null);
 
   const playerRef = useRef<RadioPlayerHandle | null>(null);
   const creatingRef = useRef<Promise<RadioPlayerHandle> | null>(null);
@@ -143,21 +145,35 @@ export function useRadioAudio() {
     }
     handle.onState((s) => {
       if (epoch !== epochRef.current) return;
-      if (s === 'playing') setPlaying(true);
-      else if (s === 'paused') setPlaying(false);
+      if (s === 'playing') {
+        setPlaying(true);
+        setNotice(null);
+      } else if (s === 'paused') setPlaying(false);
       else if (s === 'ended') advanceRef.current();
     });
     handle.onError(() => {
       if (epoch !== epochRef.current) return;
       // Unplayable track (embedding-restricted, ad-blocked, removed):
-      // skip forward like a radio instead of dead-ending the UI.
-      const next = indexRef.current + 1;
-      if (next < queueRef.current.length && playerRef.current) {
-        advanceRef.current();
-      } else {
-        setError('player');
-        setPlaying(false);
-      }
+      // probe for a blocker, then skip forward like a radio. The error box
+      // only appears when nothing is left to advance to.
+      const firedAt = epochRef.current;
+      void (async () => {
+        let blocked = false;
+        try {
+          blocked = await detectAdblock();
+        } catch {
+          blocked = false;
+        }
+        if (firedAt !== epochRef.current) return;
+        if (blocked) setNotice('adblock');
+        const next = indexRef.current + 1;
+        if (next < queueRef.current.length && playerRef.current) {
+          advanceRef.current();
+        } else {
+          setError('player');
+          setPlaying(false);
+        }
+      })();
     });
     playerRef.current = handle;
     return true;
@@ -303,6 +319,8 @@ export function useRadioAudio() {
     if (!query) return [];
     setSearching(true);
     setError(null);
+    // Drop stale results immediately so the skeleton replaces them, not time-travels beside them.
+    setResults([]);
     try {
       const res = await api.youtubeSearch(query);
       setResults(res.results);
@@ -355,6 +373,7 @@ export function useRadioAudio() {
     volume,
     setVolume,
     error,
+    notice,
     clearError,
     containerRef,
     ensureReady,

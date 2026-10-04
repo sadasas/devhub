@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createRadioPlayer, loadYouTubeIframeAPI } from './youtube-radio';
+import {
+  __resetAdblockCacheForTests,
+  createRadioPlayer,
+  detectAdblock,
+  loadYouTubeIframeAPI,
+} from './youtube-radio';
 
 interface MockEvents {
   onReady?: (e: { target: unknown }) => void;
@@ -128,5 +133,42 @@ describe('youtube-radio (YT IFrame wrapper)', () => {
     const ready = creating.then((h) => h);
     players[0]!.__events.onReady?.({ target: players[0] });
     await ready;
+  });
+});
+
+describe('detectAdblock (post-error probe only)', () => {
+  afterEach(() => {
+    __resetAdblockCacheForTests();
+    vi.unstubAllGlobals();
+    vi.restoreAllMocks();
+  });
+
+  it('reports blocked on network failure while online', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockRejectedValue(new Error('blocked by client')),
+    );
+    await expect(detectAdblock()).resolves.toBe(true);
+  });
+
+  it('reports clear when the probe succeeds', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({}),
+    );
+    await expect(detectAdblock()).resolves.toBe(false);
+  });
+
+  it('never blames adblock when offline', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockRejectedValue(new Error('offline')),
+    );
+    Object.defineProperty(window.navigator, 'onLine', { value: false, configurable: true });
+    try {
+      await expect(detectAdblock()).resolves.toBe(false);
+    } finally {
+      Object.defineProperty(window.navigator, 'onLine', { value: true, configurable: true });
+    }
   });
 });

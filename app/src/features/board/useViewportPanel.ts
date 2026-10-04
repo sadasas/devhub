@@ -8,10 +8,9 @@ export interface ViewportPanelPos {
 
 /**
  * Viewport-clamped popover position below an anchor (PresenceChip pattern,
- * left-aligned): panel's left edge follows the anchor's left edge, clamped to
- * `8..vw-8-width`; `top = anchor.bottom + 6`; width capped at `vw-24`.
- * Keeps small panels (timer, radio) exactly under their pill buttons without
- * clipping at viewport edges. Recomputed on resize.
+ * centered): panel centered under the button (`anchor.centerX - width/2`),
+ * clamped to `8..vw-8-width` so it never clips at edges; `top = anchor.bottom
+ * + 8` keeps a clear gap. Width capped at `vw-24`. Recomputed on resize.
  */
 export function useViewportPanel<T extends HTMLElement>(
   anchorRef: RefObject<T | null>,
@@ -19,7 +18,7 @@ export function useViewportPanel<T extends HTMLElement>(
 ): ViewportPanelPos {
   const compute = useCallback((): ViewportPanelPos => {
     const fallback = (vw: number): ViewportPanelPos => ({
-      top: 6,
+      top: 8,
       left: 8,
       width: Math.max(0, Math.min(width, vw - 24)),
     });
@@ -30,8 +29,8 @@ export function useViewportPanel<T extends HTMLElement>(
     const r = el.getBoundingClientRect();
     const w = Math.max(0, Math.min(width, vw - 24));
     return {
-      top: r.bottom + 6,
-      left: Math.max(8, Math.min(r.left, vw - 8 - w)),
+      top: r.bottom + 8,
+      left: Math.max(8, Math.min(r.left + r.width / 2 - w / 2, vw - 8 - w)),
       width: w,
     };
   }, [anchorRef, width]);
@@ -39,7 +38,7 @@ export function useViewportPanel<T extends HTMLElement>(
   const [pos, setPos] = useState<ViewportPanelPos>(() =>
     typeof window === 'undefined'
       ? { top: 0, left: 0, width }
-      : { top: 6, left: 8, width: Math.max(0, Math.min(width, window.innerWidth - 24)) },
+      : { top: 8, left: 8, width: Math.max(0, Math.min(width, window.innerWidth - 24)) },
   );
 
   useEffect(() => {

@@ -86,6 +86,7 @@ beforeEach(() => {
 
 afterEach(() => {
   Reflect.deleteProperty(window as unknown as Record<string, unknown>, 'YT');
+  vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
 
@@ -162,23 +163,6 @@ describe('FocusRadio', () => {
     expect(within(queueList()).getByText('Title b')).toBeTruthy();
   });
 
-  it('reorders the queue with up/down buttons', async () => {
-    render(<FocusRadio />);
-    fireEvent.click(screen.getByRole('button', { name: 'Radio' }));
-    await searchLofi();
-    fireEvent.click(screen.getByRole('button', { name: 'Add Title a to queue' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Add Title b to queue' }));
-    const q = () => queueList();
-    const order = () =>
-      Array.from(q().querySelectorAll('li')).map((li) => li.textContent ?? '');
-    expect(order()[0]).toContain('Title a');
-    // Move b (index 1) up → b first.
-    const upButtons = within(q()).getAllByRole('button', { name: 'Move up' });
-    fireEvent.click(upButtons[1]!);
-    expect(trackMock).toHaveBeenCalledWith('radio_queue_move', { videoId: 'b', to: 0 });
-    expect(order()[0]).toContain('Title b');
-  });
-
   it('reorders the queue with drag and drop', async () => {
     render(<FocusRadio />);
     fireEvent.click(screen.getByRole('button', { name: 'Radio' }));
@@ -207,5 +191,63 @@ describe('FocusRadio', () => {
     });
     expect(screen.getByRole('alert')).toBeTruthy();
     expect(screen.getByText('YouTube search quota exhausted, try again tomorrow')).toBeTruthy();
+  });
+
+  it('clears stale results and shows a skeleton while searching', async () => {
+    searchMock.mockResolvedValueOnce({ results: [VID('old')], cached: false });
+    let resolveSecond!: (v: { results: YoutubeVideo[]; cached: boolean }) => void;
+    searchMock.mockImplementationOnce(
+      () =>
+        new Promise<{ results: YoutubeVideo[]; cached: boolean }>((resolve) => {
+          resolveSecond = resolve;
+        }),
+    );
+    render(<FocusRadio />);
+    fireEvent.click(screen.getByRole('button', { name: 'Radio' }));
+    fireEvent.change(screen.getByLabelText('Search YouTube songs'), { target: { value: 'first' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    expect(screen.getByText('Title old')).toBeTruthy();
+    // Second search starts: old results gone, skeleton in their place.
+    fireEvent.change(screen.getByLabelText('Search YouTube songs'), { target: { value: 'second' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+    expect(screen.queryByText('Title old')).toBeNull();
+    expect(screen.getByText('Searching…')).toBeTruthy();
+    await act(async () => {
+      resolveSecond({ results: [VID('new')], cached: false });
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    expect(screen.getByText('Title new')).toBeTruthy();
+  });
+
+  it('shows an adblock notice when playback is blocked but keeps skipping', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockRejectedValue(new Error('blocked by client')),
+    );
+    searchMock.mockResolvedValue({ results: [VID('a'), VID('b')], cached: false });
+    const players = installYTMock();
+    render(<FocusRadio />);
+    fireEvent.click(screen.getByRole('button', { name: 'Radio' }));
+    await searchLofi();
+    await act(async () => {
+      const p = (async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Play Title a' }));
+      })();
+      await new Promise((r) => setTimeout(r, 0));
+      players[0]!.__events.onReady?.({ target: players[0] });
+      await p;
+    });
+    act(() => {
+      players[0]!.__events.onError?.({ data: 150 });
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    // Skipped to b AND told the user why.
+    expect(players[0]!.loadVideoById).toHaveBeenCalledWith('b');
+    expect(screen.getByText('Playback blocked by an ad blocker')).toBeTruthy();
   });
 });

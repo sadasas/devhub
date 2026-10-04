@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  CaretDown,
-  CaretUp,
   DotsSixVertical,
   MagnifyingGlass,
   MusicNote,
@@ -60,6 +58,7 @@ export function FocusRadio() {
     current,
     playing,
     error,
+    notice,
     containerRef,
     ensureReady,
     search,
@@ -199,9 +198,18 @@ export function FocusRadio() {
         </p>
       )}
       {searching && (
-        <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '8px 0 0' }} role="status">
-          …
-        </p>
+        <div role="status" aria-label={t('board.focus.radioSearching') as string} style={{ margin: '8px 0 0', display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {[0, 1, 2].map((k) => (
+            <div key={k} aria-hidden="true" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ width: 48, height: 36, borderRadius: 6, background: 'var(--bg-inset)', flexShrink: 0 }} />
+              <span style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ display: 'block', height: 12, borderRadius: 4, background: 'var(--bg-inset)', width: '70%' }} />
+                <span style={{ display: 'block', height: 10, borderRadius: 4, background: 'var(--bg-inset)', width: '40%', marginTop: 6 }} />
+              </span>
+            </div>
+          ))}
+          <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{t('board.focus.radioSearching')}</span>
+        </div>
       )}
       {searched && !searching && results.length === 0 && (
         <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '8px 0 0' }}>
@@ -209,7 +217,7 @@ export function FocusRadio() {
         </p>
       )}
       {results.length > 0 && (
-        <ul style={{ listStyle: 'none', margin: '8px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <ul style={{ listStyle: 'none', margin: '8px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 216, overflowY: 'auto' }}>
           {results.map((r, i) => (
             <li key={r.videoId} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               {r.thumbnailUrl ? (
@@ -283,7 +291,7 @@ export function FocusRadio() {
           {t('board.focus.radioQueueEmpty')}
         </p>
       ) : (
-        <ul aria-label={t('board.focus.radioQueueTitle') as string} style={{ listStyle: 'none', margin: '0 0 8px', padding: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <ul aria-label={t('board.focus.radioQueueTitle') as string} style={{ listStyle: 'none', margin: '0 0 8px', padding: 0, display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 224, overflowY: 'auto' }}>
           {queue.map((v, i) => (
             <li
               key={v.videoId}
@@ -340,24 +348,6 @@ export function FocusRadio() {
                 title={v.title}
               >
                 {v.title}
-              </button>
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm btn-icon"
-                onClick={() => onMove(i, i - 1)}
-                disabled={i <= 0}
-                aria-label={t('board.focus.radioMoveUp') as string}
-              >
-                <CaretUp size={12} aria-hidden="true" />
-              </button>
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm btn-icon"
-                onClick={() => onMove(i, i + 1)}
-                disabled={i + 1 >= queue.length}
-                aria-label={t('board.focus.radioMoveDown') as string}
-              >
-                <CaretDown size={12} aria-hidden="true" />
               </button>
               <button
                 type="button"
@@ -447,6 +437,14 @@ export function FocusRadio() {
           <InlineError>{t(errorMessageKey(error))}</InlineError>
         </div>
       )}
+      {notice === 'adblock' && (
+        <div style={{ marginTop: 8 }}>
+          <InlineError>{t('board.focus.radioAdblock')}</InlineError>
+          <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--text-muted)' }}>
+            {t('board.focus.radioAdblockHint')}
+          </p>
+        </div>
+      )}
     </div>
   );
 
@@ -522,6 +520,8 @@ export function FocusRadio() {
             top: panelPos.top,
             left: panelPos.left,
             width: panelPos.width,
+            maxHeight: 'min(680px, calc(100vh - 140px))',
+            overflowY: 'auto',
             zIndex: 'var(--z-overlay)',
             padding: 12,
           }}
