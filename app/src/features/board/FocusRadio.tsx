@@ -217,16 +217,17 @@ export function FocusRadio() {
             aria-label={t('board.focus.radioSearchLabel') as string}
             style={{ flex: 1, minWidth: 0 }}
           />
+          <Tooltip title={t('board.focus.radioSearchButton') as string}>
           <Button variant="secondary" size="sm" type="submit" disabled={!draft.trim() || searching} aria-label={t('board.focus.radioSearchButton') as string}>
             <MagnifyingGlass size={14} aria-hidden="true" />
           </Button>
+          </Tooltip>
           {(draft.trim() !== '' || searched) && (
             <button
               type="button"
               className="btn btn-ghost btn-sm btn-icon"
               onClick={onClear}
               aria-label={t('board.focus.radioClearSearch') as string}
-              title={t('board.focus.radioClearSearch') as string}
             >
               <X size={14} aria-hidden="true" />
             </button>
@@ -438,18 +439,20 @@ export function FocusRadio() {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 8 }}>
             <span style={{ position: 'relative', display: 'inline-flex' }}>
+              <Tooltip title={t('board.focus.radioShuffle') as string}>
               <button
                 type="button"
                 className="btn btn-ghost btn-sm btn-icon"
                 onClick={onShuffle}
                 disabled={queue.length <= 1}
                 aria-label={t('board.focus.radioShuffle') as string}
-                title={t('board.focus.radioShuffle') as string}
                 style={{ color: 'var(--text-muted)' }}
               >
                 <Shuffle size={14} aria-hidden="true" />
               </button>
+              </Tooltip>
             </span>
+            <Tooltip title={t('board.focus.radioPrev') as string}>
             <button
               type="button"
               className="btn btn-ghost btn-sm btn-icon"
@@ -459,6 +462,8 @@ export function FocusRadio() {
             >
               <SkipBack size={14} aria-hidden="true" />
             </button>
+            </Tooltip>
+            <Tooltip title={(playing ? t('board.focus.timerPause') : t('board.focus.timerPlay')) as string}>
             <button
               type="button"
               className="btn btn-ghost btn-sm btn-icon"
@@ -475,6 +480,8 @@ export function FocusRadio() {
             >
               {playing ? <Pause size={14} aria-hidden="true" /> : <Play size={14} aria-hidden="true" />}
             </button>
+            </Tooltip>
+            <Tooltip title={t('board.focus.radioNext') as string}>
             <button
               type="button"
               className="btn btn-ghost btn-sm btn-icon"
@@ -484,21 +491,24 @@ export function FocusRadio() {
             >
               <SkipForward size={14} aria-hidden="true" />
             </button>
+            </Tooltip>
             <span style={{ position: 'relative', display: 'inline-flex' }}>
+              <Tooltip title={t('board.focus.radioRepeat') as string}>
               <button
                 type="button"
                 className="btn btn-ghost btn-sm btn-icon"
                 onClick={onRepeatToggle}
                 aria-label={t('board.focus.radioRepeat') as string}
-                title={t('board.focus.radioRepeat') as string}
                 aria-pressed={repeat}
                 style={repeat ? { color: 'var(--accent)' } : { color: 'var(--text-muted)' }}
               >
                 <Repeat size={14} aria-hidden="true" />
               </button>
+              </Tooltip>
               {repeat && (
                 <span
                   aria-hidden="true"
+                  data-testid="repeat-dot"
                   style={{
                     position: 'absolute',
                     left: '50%',
@@ -577,6 +587,7 @@ export function FocusRadio() {
             {current?.title ?? radioLabel}
           </span>
         </button>
+        <Tooltip title={(playing ? t('board.focus.timerPause') : t('board.focus.timerPlay')) as string}>
         <button
           type="button"
           className="btn btn-ghost btn-sm btn-icon focus-radio-toggle"
@@ -594,6 +605,7 @@ export function FocusRadio() {
         >
           {playing ? <Pause size={12} aria-hidden="true" /> : <Play size={12} aria-hidden="true" />}
         </button>
+        </Tooltip>
       </div>
       {coarse ? (
         <BottomSheet open={panelOpen} title={radioLabel} onClose={() => setPanelOpen(false)}>

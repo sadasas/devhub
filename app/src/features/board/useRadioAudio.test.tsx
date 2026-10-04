@@ -57,15 +57,15 @@ import { useRadioAudio } from './useRadioAudio';
 import { __resetAdblockCacheForTests } from './youtube-radio';
 
 /** The hook needs a mounted container like the real panel provides. */
+const attachedDivs: HTMLDivElement[] = [];
 function attachContainer(result: { current: { containerRef: { current: HTMLDivElement | null } } }) {
   act(() => {
-    result.current.containerRef.current = document.createElement('div');
-  });
-}
-
-async function tick() {
-  await act(async () => {
-    await new Promise((r) => setTimeout(r, 0));
+    const el = document.createElement('div');
+    // Must be attached: ensureReady rejects detached containers
+    // (same guard that fixes the close-race warning in production).
+    document.body.appendChild(el);
+    attachedDivs.push(el);
+    result.current.containerRef.current = el;
   });
 }
 
@@ -85,6 +85,7 @@ afterEach(() => {
   Reflect.deleteProperty(window as unknown as Record<string, unknown>, 'YT');
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
+  for (const el of attachedDivs.splice(0)) el.remove();
 });
 
 describe('useRadioAudio', () => {
@@ -224,7 +225,9 @@ describe('useRadioAudio', () => {
     });
     expect(moved).toBe(true);
     expect(result.current.queue.map((v) => v.videoId)).toEqual(['b', 'c', 'a']);
-    expect(result.current.index).toBe(0);
+    // The cursor follows the moved item: reorder must never silently
+    // reselect `current` (staying at 0 would flip it from 'a' to 'b').
+    expect(result.current.index).toBe(2);
     act(() => {
       moved = result.current.move(1, 1);
     });
@@ -327,8 +330,12 @@ describe('useRadioAudio', () => {
       await p;
     });
     // Middle-track error (ad-blocked / embedding-restricted): auto-advance, no error box.
+    // (The probe is async — flush before asserting.)
     act(() => {
       players[0]!.__events.onError?.({ data: 150 });
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
     });
     expect(result.current.index).toBe(1);
     expect(players[0]!.loadVideoById).toHaveBeenCalledWith('b');
@@ -337,6 +344,9 @@ describe('useRadioAudio', () => {
     // Last-track error: nowhere to go → error box.
     act(() => {
       players[0]!.__events.onError?.({ data: 150 });
+    });
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
     });
     expect(result.current.error).toBe('player');
     expect(result.current.playing).toBe(false);

@@ -250,11 +250,11 @@ function TimerSheetBody({
       )}
       <hr className="sheet-divider" aria-hidden="true" />
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 16 }}>
+        <Tooltip title={running ? (t('board.focus.timerPause') as string) : (t('board.focus.timerPlay') as string)}>
         <button
           type="button"
           onClick={onPlay}
           aria-label={running ? (t('board.focus.timerPause') as string) : (t('board.focus.timerPlay') as string)}
-          title={running ? (t('board.focus.timerPause') as string) : (t('board.focus.timerPlay') as string)}
           style={{
             width: 64,
             height: 64,
@@ -270,12 +270,13 @@ function TimerSheetBody({
         >
           {running ? <Pause size={22} aria-hidden="true" /> : <Play size={22} aria-hidden="true" />}
         </button>
+        </Tooltip>
+        <Tooltip title={t('board.focus.timerReset') as string}>
         <button
           type="button"
           onClick={onReset}
           disabled={!showReset}
           aria-label={t('board.focus.timerReset') as string}
-          title={t('board.focus.timerReset') as string}
           style={{
             width: 44,
             height: 44,
@@ -292,6 +293,7 @@ function TimerSheetBody({
         >
           <ArrowCounterClockwise size={18} aria-hidden="true" />
         </button>
+        </Tooltip>
       </div>
     </div>
   );

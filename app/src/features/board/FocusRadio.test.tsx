@@ -208,10 +208,10 @@ describe('FocusRadio', () => {
     await searchLofi();
     fireEvent.click(screen.getByRole('button', { name: 'Add Title b to queue' }));
     expect(trackMock).toHaveBeenCalledWith('radio_queue_add', { videoId: 'b' });
-    // Dismissed: the results row (and its play button) is gone.
-    expect(screen.queryByRole('button', { name: 'Play Title b' })).toBeNull();
+    // Dismissed: the results row (add button) is gone; the queue row remains.
+    expect(screen.queryByRole('button', { name: 'Add Title b to queue' })).toBeNull();
     expect(within(queueList()).getByText('Title b')).toBeTruthy();
-    expect(screen.getByText('Pick a song to start')).toBeTruthy();
+    expect(screen.getByText('Now playing')).toBeTruthy();
     expect(trackMock).not.toHaveBeenCalledWith('radio_play', expect.anything());
   });
 
@@ -220,6 +220,8 @@ describe('FocusRadio', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Radio' }));
     await searchLofi();
     fireEvent.click(screen.getByRole('button', { name: 'Add Title a to queue' }));
+    // Auto-dismissed back to the queue view — search again to add more.
+    await searchLofi();
     fireEvent.click(screen.getByRole('button', { name: 'Add Title b to queue' }));
     expect(within(queueList()).getByText('Title a')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'Remove Title a' }));
@@ -233,6 +235,7 @@ describe('FocusRadio', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Radio' }));
     await searchLofi();
     fireEvent.click(screen.getByRole('button', { name: 'Add Title a to queue' }));
+    await searchLofi();
     fireEvent.click(screen.getByRole('button', { name: 'Add Title b to queue' }));
     const rows = queueList().querySelectorAll('li');
     expect(rows).toHaveLength(2);
@@ -241,7 +244,7 @@ describe('FocusRadio', () => {
     fireEvent.dragOver(rows[1]!);
     fireEvent.drop(rows[1]!);
     expect(trackMock).toHaveBeenCalledWith('radio_queue_move', { videoId: 'a', to: 1 });
-    const order = Array.from(queueList().querySelectorAll('li')).map((li) => li.textContent ?? '');
+    const order = () => Array.from(queueList().querySelectorAll('li')).map((li) => li.textContent ?? '');
     expect(order()[0]).toContain('Title b');
   });
 
@@ -276,6 +279,9 @@ describe('FocusRadio', () => {
       players[0]!.__events.onReady?.({ target: players[0] });
       await p;
     });
+    // Queue is [a] — add b (re-search first: adds auto-dismiss) so the error can skip forward.
+    await searchLofi();
+    fireEvent.click(screen.getByRole('button', { name: 'Add Title b to queue' }));
     act(() => {
       players[0]!.__events.onError?.({ data: 150 });
     });
@@ -302,13 +308,11 @@ describe('FocusRadio', () => {
     });
     const repeatBtn = screen.getByRole('button', { name: 'Repeat queue' });
     expect(repeatBtn.getAttribute('aria-pressed')).toBe('false');
-    expect(repeatBtn.querySelector('span[aria-hidden]')).toBeNull();
+    expect(screen.queryByTestId('repeat-dot')).toBeNull();
     fireEvent.click(repeatBtn);
     expect(trackMock).toHaveBeenCalledWith('radio_repeat', { on: true });
     expect(screen.getByRole('button', { name: 'Repeat queue' }).getAttribute('aria-pressed')).toBe('true');
-    expect(
-      screen.getByRole('button', { name: 'Repeat queue' }).querySelector('span[aria-hidden]'),
-    ).not.toBeNull();
+    expect(screen.getByTestId('repeat-dot')).toBeTruthy();
     expect(window.localStorage.getItem('devhub.focus.radioRepeat')).toBe('1');
     fireEvent.click(screen.getByRole('button', { name: 'Repeat queue' }));
     expect(trackMock).toHaveBeenCalledWith('radio_repeat', { on: false });
@@ -320,16 +324,13 @@ describe('FocusRadio', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Radio' }));
     await searchLofi();
     fireEvent.click(screen.getByRole('button', { name: 'Add Title a to queue' }));
+    await searchLofi();
     fireEvent.click(screen.getByRole('button', { name: 'Add Title b to queue' }));
-    // Play a so there is a current track, then shuffle.
-    fireEvent.click(screen.getByRole('button', { name: 'Play Title a' }));
-    await act(async () => {
-      await new Promise((r) => setTimeout(r, 0));
-    });
+    // Queue is [a, b] with a current — shuffle keeps it first.
     fireEvent.click(screen.getByRole('button', { name: 'Shuffle queue' }));
     expect(trackMock).toHaveBeenCalledWith('radio_shuffle');
-    const order = Array.from(queueList().querySelectorAll('li')).map((li) => li.textContent ?? '');
-    expect(order).toHaveLength(2);
+    const order = () => Array.from(queueList().querySelectorAll('li')).map((li) => li.textContent ?? '');
+    expect(order()).toHaveLength(2);
     expect(order()[0]).toContain('Title a');
   });
 });
