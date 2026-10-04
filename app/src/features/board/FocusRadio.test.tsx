@@ -132,8 +132,8 @@ describe('FocusRadio', () => {
     expect(players[0]!.loadVideoById).toHaveBeenCalledWith('a');
     expect(trackMock).toHaveBeenCalledWith('radio_play', { videoId: 'a' });
     expect(screen.getByText('Now playing')).toBeTruthy();
-    // Pill + result row + now playing.
-    expect(screen.getAllByText('Title a')).toHaveLength(3);
+    // Pill + result row + queue row + now playing.
+    expect(screen.getAllByText('Title a')).toHaveLength(4);
   });
 
   it('adds results to the queue without playing', async () => {
@@ -196,7 +196,7 @@ describe('FocusRadio', () => {
     expect(order()[0]).toContain('Title b');
   });
 
-  it('shows quota errors with a synth fallback hint', async () => {
+  it('shows quota errors', async () => {
     searchMock.mockRejectedValue(Object.assign(new Error('q'), { code: 'YOUTUBE_QUOTA_EXHAUSTED' }));
     render(<FocusRadio />);
     fireEvent.click(screen.getByRole('button', { name: 'Radio' }));

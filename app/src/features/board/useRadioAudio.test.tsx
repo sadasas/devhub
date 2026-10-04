@@ -283,12 +283,13 @@ describe('useRadioAudio', () => {
     expect(result.current.playing).toBe(false);
   });
 
-  it('surfaces player errors', async () => {
+  it('skips unplayable tracks and only errors when nothing is left', async () => {
     const players = installYTMock();
     const { result } = renderHook(() => useRadioAudio());
     attachContainer(result);
     act(() => {
       result.current.enqueue(VID('a'));
+      result.current.enqueue(VID('b'));
     });
     await act(async () => {
       const p = result.current.playAt(0);
@@ -296,6 +297,15 @@ describe('useRadioAudio', () => {
       players[0]!.__events.onReady?.({ target: players[0] });
       await p;
     });
+    // Middle-track error (ad-blocked / embedding-restricted): auto-advance, no error box.
+    act(() => {
+      players[0]!.__events.onError?.({ data: 150 });
+    });
+    expect(result.current.index).toBe(1);
+    expect(players[0]!.loadVideoById).toHaveBeenCalledWith('b');
+    expect(result.current.error).toBeNull();
+    expect(result.current.playing).toBe(true);
+    // Last-track error: nowhere to go → error box.
     act(() => {
       players[0]!.__events.onError?.({ data: 150 });
     });

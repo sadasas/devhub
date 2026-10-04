@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { renderHook } from '@testing-library/react';
 import { useViewportPanel } from './useViewportPanel';
 
@@ -21,6 +21,30 @@ describe('useViewportPanel', () => {
     const ref = { current: null as HTMLButtonElement | null };
     const { result } = renderHook(() => useViewportPanel(ref, 360));
     expect(result.current).toEqual({ top: 6, left: 8, width: 360 });
+  });
+
+  it('left-aligns under wide anchors instead of right-aligning', () => {
+    const anchor = document.createElement('button');
+    document.body.appendChild(anchor);
+    vi.spyOn(anchor, 'getBoundingClientRect').mockReturnValue({
+      x: 340,
+      y: 50,
+      width: 160,
+      height: 32,
+      top: 50,
+      right: 500,
+      bottom: 82,
+      left: 340,
+      toJSON: () => ({}),
+    });
+    const ref = { current: anchor as HTMLButtonElement | null };
+    const { result } = renderHook(() => useViewportPanel(ref, 340));
+    // Panel's left edge follows the anchor's left (340) — right-aligning
+    // would give anchor.right - width = 160 (the reported offset bug).
+    expect(result.current.left).toBe(340);
+    expect(result.current.top).toBe(88);
+    expect(result.current.width).toBe(340);
+    anchor.remove();
   });
 
   it('caps width on narrow viewports', () => {

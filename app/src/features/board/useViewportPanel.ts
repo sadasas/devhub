@@ -7,10 +7,11 @@ export interface ViewportPanelPos {
 }
 
 /**
- * Viewport-clamped popover position below an anchor (PresenceChip pattern):
- * `left` clamped to `8..vw-8-width`, `top = anchor.bottom + 6`, width capped
- * at `vw-24`. Keeps small panels (timer, radio) inside the viewport when the
- * pill sits off-center or the window is narrow. Recomputed on resize.
+ * Viewport-clamped popover position below an anchor (PresenceChip pattern,
+ * left-aligned): panel's left edge follows the anchor's left edge, clamped to
+ * `8..vw-8-width`; `top = anchor.bottom + 6`; width capped at `vw-24`.
+ * Keeps small panels (timer, radio) exactly under their pill buttons without
+ * clipping at viewport edges. Recomputed on resize.
  */
 export function useViewportPanel<T extends HTMLElement>(
   anchorRef: RefObject<T | null>,
@@ -30,7 +31,7 @@ export function useViewportPanel<T extends HTMLElement>(
     const w = Math.max(0, Math.min(width, vw - 24));
     return {
       top: r.bottom + 6,
-      left: Math.max(8, Math.min(r.right - w, vw - 8 - w)),
+      left: Math.max(8, Math.min(r.left, vw - 8 - w)),
       width: w,
     };
   }, [anchorRef, width]);

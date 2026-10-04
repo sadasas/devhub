@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import {
-  ArrowSquareOut,
   CaretDown,
   CaretUp,
   DotsSixVertical,
@@ -16,6 +15,8 @@ import {
 import { useTranslation } from 'react-i18next';
 import { Button } from '../../components/Button';
 import { BottomSheet } from '../../components/BottomSheet';
+import { Tooltip } from '../../components/Tooltip';
+import { InlineError } from '../../components/InlineError';
 import { track } from '../../lib/analytics';
 import { useViewportPanel } from './useViewportPanel';
 import { useRadioAudio, type RadioErrorKind } from './useRadioAudio';
@@ -30,8 +31,6 @@ function errorMessageKey(kind: RadioErrorKind): string {
       return 'board.focus.radioError';
   }
 }
-
-const youtubeMusicUrl = (videoId: string) => `https://music.youtube.com/watch?v=${videoId}`;
 
 /**
  * Song radio pill + panel (YouTube embeds): search becomes the queue,
@@ -251,15 +250,17 @@ export function FocusRadio() {
                   {r.channelTitle}
                 </span>
               </span>
+              <Tooltip title={t('board.focus.radioQueueAdd', { title: r.title, defaultValue: r.title }) as string}>
               <button
                 type="button"
                 className="btn btn-ghost btn-sm btn-icon"
                 onClick={() => onEnqueue(i)}
                 aria-label={t('board.focus.radioQueueAdd', { title: r.title, defaultValue: r.title }) as string}
-                title={t('board.focus.radioQueueAdd', { title: r.title, defaultValue: r.title }) as string}
               >
                 <Plus size={12} aria-hidden="true" />
               </button>
+              </Tooltip>
+              <Tooltip title={t('board.focus.radioPlayTitle', { title: r.title, defaultValue: r.title }) as string}>
               <button
                 type="button"
                 className="btn btn-ghost btn-sm btn-icon"
@@ -268,16 +269,7 @@ export function FocusRadio() {
               >
                 <Play size={12} aria-hidden="true" />
               </button>
-              <a
-                href={youtubeMusicUrl(r.videoId)}
-                target="_blank"
-                rel="noreferrer"
-                aria-label={t('board.focus.radioOpenInYouTube', { title: r.title }) as string}
-                title={t('board.focus.radioOpenInYouTube', { title: r.title }) as string}
-                style={{ display: 'inline-flex', color: 'var(--text-muted)' }}
-              >
-                <ArrowSquareOut size={14} aria-hidden="true" />
-              </a>
+              </Tooltip>
             </li>
           ))}
         </ul>
@@ -451,9 +443,8 @@ export function FocusRadio() {
         </p>
       )}
       {error && (
-        <div role="alert" style={{ marginTop: 8, fontSize: 12, color: 'var(--status-danger)' }}>
-          <p style={{ margin: '0 0 4px' }}>{t(errorMessageKey(error))}</p>
-          <p style={{ margin: 0, color: 'var(--text-muted)' }}>{t('board.focus.radioTrySynth')}</p>
+        <div style={{ marginTop: 8 }}>
+          <InlineError>{t(errorMessageKey(error))}</InlineError>
         </div>
       )}
     </div>

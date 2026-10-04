@@ -28,7 +28,9 @@ function errorKindOf(err: unknown): RadioErrorKind {
 
 /**
  * Song radio over official YouTube embeds: search (via our backend proxy),
- * an explicit user-managed queue with auto-advance, and an audio-only player.
+ * an explicit user-managed queue with auto-advance (track end AND player
+ * error — e.g. ad-blocked or embedding-restricted videos are skipped, the
+ * error box only appears when nothing is playable), and an audio-only player.
  * Search metadata flows through the backend; media streams directly
  * browser↔Google.
  *
@@ -74,6 +76,29 @@ export function useRadioAudio() {
     lastVideoRef.current = null;
   }, []);
 
+  /** Advance to the next queue entry (shared by ended + error paths). */
+  const advanceRef = useRef<() => void>(() => {});
+  const advance = useCallback(() => {
+    const next = indexRef.current + 1;
+    if (next < queueRef.current.length) {
+      const track = queueRef.current[next];
+      if (track && playerRef.current) {
+        indexRef.current = next;
+        setIndex(next);
+        lastVideoRef.current = track.videoId;
+        try {
+          playerRef.current.playTrack(track.videoId);
+        } catch {
+          /* player errors route through onError */
+        }
+        setPlaying(true);
+        return;
+      }
+    }
+    setPlaying(false);
+  }, []);
+  advanceRef.current = advance;
+
   /** Create the player if needed (safe to call on panel open). */
   const ensureReady = useCallback(async (): Promise<boolean> => {
     const epoch = epochRef.current;
@@ -117,31 +142,22 @@ export function useRadioAudio() {
       return false;
     }
     handle.onState((s) => {
+      if (epoch !== epochRef.current) return;
       if (s === 'playing') setPlaying(true);
       else if (s === 'paused') setPlaying(false);
-      else if (s === 'ended') {
-        const next = indexRef.current + 1;
-        if (next < queueRef.current.length) {
-          const track = queueRef.current[next];
-          if (track) {
-            indexRef.current = next;
-            setIndex(next);
-            lastVideoRef.current = track.videoId;
-            try {
-              handle.playTrack(track.videoId);
-            } catch {
-              /* ignore */
-            }
-            setPlaying(true);
-          }
-        } else {
-          setPlaying(false);
-        }
-      }
+      else if (s === 'ended') advanceRef.current();
     });
     handle.onError(() => {
-      setError('player');
-      setPlaying(false);
+      if (epoch !== epochRef.current) return;
+      // Unplayable track (embedding-restricted, ad-blocked, removed):
+      // skip forward like a radio instead of dead-ending the UI.
+      const next = indexRef.current + 1;
+      if (next < queueRef.current.length && playerRef.current) {
+        advanceRef.current();
+      } else {
+        setError('player');
+        setPlaying(false);
+      }
     });
     playerRef.current = handle;
     return true;
@@ -242,7 +258,6 @@ export function useRadioAudio() {
       const removed = q[i] ?? null;
       if (!removed) return null;
       const wasCurrent = i === indexRef.current;
-      const wasPlaying = wasCurrent && playerRef.current != null;
       const nextQueue = q.filter((_, j) => j !== i);
       let idx = indexRef.current;
       if (i < idx) idx -= 1;
@@ -253,7 +268,8 @@ export function useRadioAudio() {
       setQueue(nextQueue);
       if (wasCurrent) {
         lastVideoRef.current = null;
-        if (wasPlaying) pause();
+        if (playerRef.current) pause();
+        else setPlaying(false);
       }
       return removed;
     },
