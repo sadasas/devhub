@@ -5,9 +5,8 @@ import { Archive, CaretLeft, Check, Copy, GearSix, PencilSimple, PlugsConnected,
 import type { Project } from '../../lib/types';
 import { useCopyFeedback } from '../../hooks/useCopyFeedback';
 import { Button } from '../../components/Button';
-import { Input } from '../../components/Input';
 import { Badge } from '../../components/Badge';
-import { Section } from '../../components/Section';
+import { Section, SettingsRowGroup } from '../../components/Section';
 import { EditGeneralModal } from './EditGeneralModal';
 import { GCalSettings } from '../integrations/GCalSettings';
 import { GitHubSettings } from '../integrations/GitHubSettings';
@@ -133,48 +132,65 @@ function GeneralSection({ project, canEditMeta }: { project: Project; canEditMet
         ) : undefined}
       >
       <div className="dashboard__settings-read-name">{project.name}</div>
-      <div className="dashboard__settings-id-row">
-        <div className="dashboard__settings-id-field">
-          <Input label={t('settings.idLabel', { defaultValue: 'Project ID' })} value={project.id} readOnly />
-        </div>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          className="dashboard__settings-copy"
-          leftIcon={copied ? <Check size={14} weight="bold" aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
-          onClick={() => void copy(project.id)}
-          aria-live="polite"
-          aria-label={copied ? t('settings.copied', { defaultValue: 'Copied' }) : t('settings.copyId', { defaultValue: 'Copy ID' })}
-        >
-          {copied ? t('settings.copied', { defaultValue: 'Copied' }) : t('settings.copyId', { defaultValue: 'Copy ID' })}
-        </Button>
-      </div>
-      <div className="dashboard__settings-read-meta-block">
-        <p className="dashboard__settings-read-key">
-          {t('settings.teamLabel', { defaultValue: 'Team' })}
-        </p>
-        <p className="dashboard__settings-team-status">
-          <span>{project.teamName}</span>
-          <span aria-hidden="true" className="dashboard__settings-team-status-sep">·</span>
-          <span className="sr-only">{t('settings.statusLabel', { defaultValue: 'Status' })}: </span>
-          <Badge tone={project.status === 'archived' ? 'warn' : 'success'} dot>
-            {project.status === 'archived'
-              ? t('settings.statusArchived', { defaultValue: 'Archived' })
-              : t('settings.statusActive', { defaultValue: 'Active' })}
-          </Badge>
-        </p>
-      </div>
-      <div className="dashboard__settings-read-desc-block">
-        <p className="dashboard__settings-read-key">
-          {t('settings.descLabel', { defaultValue: 'Description' })}
-        </p>
-        {desc ? (
-          <p className="dashboard__settings-read-desc">{desc}</p>
-        ) : (
-          <span className="detail-empty">—</span>
-        )}
-      </div>
+      {/* Nilai read-only ikut pola settings-row kanonik Profile
+          (dt kiri / dd kanan + mono + aksi), bukan Input readOnly. */}
+      <dl className="settings-rows">
+        <SettingsRowGroup>
+          <div className="settings-row">
+            <dt>{t('settings.idLabel', { defaultValue: 'Project ID' })}</dt>
+            <dd className="settings-row-value">
+              <span className="settings-mono" title={project.id} style={{ overflowWrap: 'anywhere' }}>
+                {project.id}
+              </span>
+              <span className="settings-row-actions">
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  leftIcon={copied ? <Check size={14} weight="bold" aria-hidden="true" /> : <Copy size={14} aria-hidden="true" />}
+                  onClick={() => void copy(project.id)}
+                  aria-live="polite"
+                  aria-label={copied ? t('settings.copied', { defaultValue: 'Copied' }) : t('settings.copyId', { defaultValue: 'Copy ID' })}
+                >
+                  {copied ? t('settings.copied', { defaultValue: 'Copied' }) : t('settings.copyId', { defaultValue: 'Copy ID' })}
+                </Button>
+              </span>
+              {copied && (
+                <span className="field-helper field-helper--micro" role="status" aria-live="polite">
+                  {t('settings.copied', { defaultValue: 'Copied' })}
+                </span>
+              )}
+            </dd>
+          </div>
+        </SettingsRowGroup>
+        <SettingsRowGroup>
+          <div className="settings-row">
+            <dt>{t('settings.teamLabel', { defaultValue: 'Team' })}</dt>
+            <dd>
+              <span>{project.teamName}</span>
+              <span aria-hidden="true" className="dashboard__settings-team-status-sep">·</span>
+              <span className="sr-only">{t('settings.statusLabel', { defaultValue: 'Status' })}: </span>
+              <Badge tone={project.status === 'archived' ? 'warn' : 'success'} dot>
+                {project.status === 'archived'
+                  ? t('settings.statusArchived', { defaultValue: 'Archived' })
+                  : t('settings.statusActive', { defaultValue: 'Active' })}
+              </Badge>
+            </dd>
+          </div>
+        </SettingsRowGroup>
+        <SettingsRowGroup>
+          <div className="settings-row">
+            <dt>{t('settings.descLabel', { defaultValue: 'Description' })}</dt>
+            <dd>
+              {desc ? (
+                <span className="dashboard__settings-read-desc">{desc}</span>
+              ) : (
+                <span className="detail-empty">—</span>
+              )}
+            </dd>
+          </div>
+        </SettingsRowGroup>
+      </dl>
       {!canEditMeta && (
         <p className="dashboard__settings-helper">
           {t('settings.readonly', { defaultValue: 'Only owners and admins can edit project settings.' })}

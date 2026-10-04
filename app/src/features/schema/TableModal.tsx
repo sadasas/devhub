@@ -11,6 +11,7 @@ import { canAutoincrement, isPlainIndex, isUniqueIndex, togglePlainIndex, toggle
 import { ActivityList } from '../../components/ActivityList';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
+import { Tooltip } from '../../components/Tooltip';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { DetailEmpty } from '../../components/DetailList';
 import { InlineError } from '../../components/InlineError';
@@ -307,6 +308,7 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                             maxLength={FE_LIMITS.COLUMN_COMMENT}
                             onChange={(e) => updateColumn(c.id, { comment: e.target.value })}
                           />
+                          <Tooltip title={t('schema.table.deleteColAria', { name: c.name || t('schema.table.fbUnnamed') })}>
                           <Button
                             variant="danger"
                             size="sm"
@@ -316,6 +318,7 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
                           >
                             <Trash size={13} aria-hidden="true" />
                           </Button>
+                          </Tooltip>
                         </div>
                       ))}
                       {table.columns.length === 0 && <p className="field-helper">{t('schema.table.noColumnsYetEdit')}</p>}

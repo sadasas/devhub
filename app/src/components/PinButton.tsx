@@ -1,4 +1,5 @@
 import { PushPin } from '@phosphor-icons/react';
+import { Tooltip } from './Tooltip';
 
 interface PinButtonProps {
   pinned: boolean;
@@ -9,12 +10,12 @@ interface PinButtonProps {
 
 export function PinButton({ pinned, label, onToggle, className }: PinButtonProps) {
   return (
+    <Tooltip title={`${pinned ? 'Unpin' : 'Pin'} ${label}`}>
     <button
       type="button"
       className={`btn btn-ghost btn-sm btn-icon pin-btn${pinned ? ' pin-btn-active' : ''}${className ? ` ${className}` : ''}`}
       aria-pressed={pinned}
       aria-label={`${pinned ? 'Unpin' : 'Pin'} ${label}`}
-      title={pinned ? 'Unpin' : 'Pin'}
       onClick={(e) => {
         e.stopPropagation();
         const btn = e.currentTarget;
@@ -26,7 +27,8 @@ export function PinButton({ pinned, label, onToggle, className }: PinButtonProps
         if (e.detail !== 0) btn.blur();
       }}
     >
-      <PushPin size={13} weight={pinned ? 'fill' : 'regular'} aria-hidden="true" />
+        <PushPin size={13} weight={pinned ? 'fill' : 'regular'} aria-hidden="true" />
     </button>
+    </Tooltip>
   );
 }

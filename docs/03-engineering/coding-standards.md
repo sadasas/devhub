@@ -167,6 +167,7 @@ dokumen token yang menang (Living Rule §5).
 - Responsive: breakpoints sm 640 / md 768 / lg 1024 / xl 1280; dashboards degrade to single column below md.
 - No `h-screen`; use `min-height: 100dvh` for shells.
 - No pure black/white (`#000`/`#fff`); surfaces from token scale.
+- Hidden action / icon hint baru WAJIB mekanisme kanonik [Design Tokens §10c](design-tokens.md#10c-hidden-actions--icon-hints-okt-2026) — reveal `:hover` + `:focus-within`, `@media (hover: none)` selalu tampak, TANPA `display:none`/`visibility:hidden`; icon-only + `<Tooltip>` + `aria-label`.
 
 ---
 

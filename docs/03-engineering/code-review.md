@@ -51,10 +51,12 @@ Every PR or merge to `main` is reviewed against:
 
 ### 3.4 UI/UX (when touching UI)
 - [ ] Uses design-system primitives + tokens (no raw hex/spacing) — token baru ikut update `design-tokens.md` di PR yang sama (Living Rule)
+- [ ] Shadow: `shadow-raised`/`inset-highlight` hanya overlay/sheet (§8) — selektor in-flow (kartu/chip/selected) wajib `box-shadow: none` + seleksi `accent-dim`
 - [ ] Guard hijau: `npm run guard:css` tanpa temuan baru (`scripts/guard-css-classes.mjs`)
 - [ ] Portal/menu/select: dropdown/kalender via portal; `RowMenu` kebab + `stopPropagation`; `SearchableSelect` tanpa emit saat mount (ada regression test)
 - [ ] i18n parity: string baru ada di EN + ID (`defaultNS: common` untuk aksi umum via `common:`); EN byte-identik dengan copy semula
 - [ ] Keyboard operable; focus visible
+- [ ] Hidden action/hint (bila ada): mekanisme kanonik §10c — `:hover` + `:focus-within` reveal, `hover:none` tampak, tanpa `display:none`/`visibility:hidden`, icon-only + `<Tooltip>`
 - [ ] Contrast AA; `prefers-reduced-motion` honored
 - [ ] Loading (skeleton), empty, and error states present
 - [ ] Mono font for numbers/IDs

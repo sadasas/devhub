@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, CheckCircle, Eye, EyeSlash, Key } from '@phosphor-icons/react';
+import { Check, CheckCircle, Key } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
@@ -8,36 +8,13 @@ import { InlineError } from '../../components/InlineError';
 import { Input } from '../../components/Input';
 import { Modal } from '../../components/Modal';
 import { ModalFooter } from '../../components/ModalFooter';
+import { PasswordToggle } from '../../components/PasswordToggle';
 import { FE_LIMITS } from '../../lib/limits';
 import { useAuth } from '../../state/auth-context';
 
 interface ChangePasswordModalProps {
   open: boolean;
   onClose: () => void;
-}
-
-function PasswordToggle({
-  show,
-  onToggle,
-}: {
-  show: boolean;
-  onToggle: () => void;
-}) {
-  const { t } = useTranslation('account');
-  return (
-    <button
-      type="button"
-      className="password-toggle"
-      aria-label={show ? t('profile.passwordToggle.hide') : t('profile.passwordToggle.show')}
-      onClick={onToggle}
-    >
-      {show ? (
-        <EyeSlash size={14} weight="bold" aria-hidden="true" />
-      ) : (
-        <Eye size={14} weight="bold" aria-hidden="true" />
-      )}
-    </button>
-  );
 }
 
 export function ChangePasswordModal({ open, onClose }: ChangePasswordModalProps) {

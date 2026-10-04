@@ -3,8 +3,8 @@
 // di desktop — pembaca layar punya aria-label, pengguna sighted tidak.
 // Keputusan: docs/03-engineering/design-tokens.md §9 adalah satu-satunya
 // sumber kebenaran. Guard ini mewarnai (warn-first, exit 0) bila:
-//   1. Tombol <button> mentah berkela `btn-icon` di luar rentang
-//      <Tooltip>…</Tooltip> yang seimbang, dan
+//   1. Tombol <button> mentah maupun komponen <Button> berkela `btn-icon`
+//      di luar rentang <Tooltip>…</Tooltip> yang seimbang, dan
 //   2. Tombol itu tidak terdaftar di ALLOWLIST di bawah.
 // Aturan §9 (pengetatan 2026-09-29): komponen <Tooltip> WAJIB — native
 // `title=` telanjang (tanpa pembungkus Tooltip) adalah TEMUAN, bukan lolos.
@@ -27,7 +27,7 @@ const appDir = path.resolve(root, '..');
 const srcDir = path.join(appDir, 'src');
 
 // Tutup/dismiss (×) — aria-label wajib, tooltip visual opsional (§9).
-// Entri eksplisit file+label (9 situs, 8 entri — chat menaungi 2 tombol);
+// Entri eksplisit file+label (10 situs, 9 entri — chat menaungi 2 tombol);
 // tambah hanya via keputusan tercatat.
 export const ALLOWLIST = [
   { file: 'src/components/BottomSheet.tsx', label: 'action.close' },
@@ -37,13 +37,20 @@ export const ALLOWLIST = [
   { file: 'src/features/project/ProjectChatWidget.tsx', label: 'chat.closeAria' },
   { file: 'src/features/whiteboard/WhiteboardEditorShell.tsx', label: 'whiteboard.canvas.dismissCap' },
   { file: 'src/features/schema/ERDCanvasMode.tsx', label: 'schema.canvas.close' },
+  // Dismiss toast (×): menutup toast, bukan aksi — aria-label wajib (lihat
+  // keputusan §9: tutup/dismiss dikecualikan).
+  { file: 'src/features/project/ArchiveUndoToast.tsx', label: 'archiveToast.dismiss' },
   // Present-exit ERD: Tooltip menelan Esc pertama (konflik tiered-Esc, terbukti test) — title= native dipertahankan.
   { file: 'src/features/schema/ERDCanvasMode.tsx', label: 'schema.canvas.exitPresent' },
 ];
 
 const TOOLTIP_OPEN_RE = /<Tooltip(?=[\s>])/g;
 const TOOLTIP_CLOSE_RE = /<\/Tooltip\s*>/g;
-const BUTTON_OPEN_RE = /<button\b/g;
+// 2026-10-04: pindai JUGA komponen <Button> (kapital) — 25 situs btn-icon
+// lolos sebelumnya karena hanya <button> mentah yang dipindai (audit
+// Tooltip menyeluruh). Keterbatasan: className via variabel (bukan literal
+// btn-icon di tag) tetap tak terdeteksi statis.
+const BUTTON_OPEN_RE = /<button\b|<Button\b/g;
 
 // Parser fix 2026-09-29: tag pembuka <button> dipindai PENUH dari `<button`
 // sampai `>` penutup tag sambil menghormati quotes (' " `), kedalaman

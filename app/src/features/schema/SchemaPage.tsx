@@ -1249,6 +1249,7 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
                           </div>
                           <span className="data-row-props">
                             {canEditEffective && (
+                              <Tooltip title={t('schema.page.deleteRelationAria', { label: isViewing ? relationLabelDisplay(r) : relationLabelCurrent(r) })}>
                               <Button
                                 variant="danger"
                                 size="sm"
@@ -1258,6 +1259,7 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
                               >
                                 <Trash size={13} aria-hidden="true" />
                               </Button>
+                              </Tooltip>
                             )}
                           </span>
                         </div>
@@ -1322,6 +1324,7 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
             <div className="versions-section">
               <div className="data-list-header versions-header">
                 <div className="versions-title-row">
+                  <Tooltip title={versionsCollapsed ? t('schema.versionsExpand', { defaultValue: 'Expand versions' }) : t('schema.versionsMinimize', { defaultValue: 'Minimize versions' })}>
                   <Button
                     variant="ghost"
                     size="sm"
@@ -1330,10 +1333,10 @@ export function SchemaPage({ unreadIds, projectName = '' }: { unreadIds?: Readon
                     aria-expanded={!versionsCollapsed}
                     aria-controls="versions-list"
                     onClick={() => setVersionsCollapsed((v) => !v)}
-                    title={versionsCollapsed ? t('schema.versionsExpandShort', { defaultValue: 'Expand' }) : t('schema.versionsMinimizeShort', { defaultValue: 'Minimize' })}
                   >
                     <CaretRight size={13} aria-hidden="true" />
                   </Button>
+                  </Tooltip>
                   <span className="data-list-count">{t('schema.versionsHeading')}</span>
                 </div>
                 <div className="versions-actions-row">

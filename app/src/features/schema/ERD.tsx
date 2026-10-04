@@ -354,19 +354,28 @@ export function ERD({
     };
   }, []);
 
-  /** Ronde 3: tooltip selalu di KANAN elemen, flip ke kiri bila mentok, tetap clamp(). */
+  /** Ronde 3: tooltip selalu di KANAN elemen, flip ke kiri bila mentok, tetap clamp().
+   * Ronde 5: juga flip vertikal (di atas baris bila bawah mentok) + clamp bawah;
+   * kiri di-clamp 8px agar tak lolos layar saat tabel menempel tepi kiri. */
   const placeRightOrFlip = useCallback(
     (anchorRightSx: number, anchorLeftSx: number, anchorSy: number) => {
-      const { w } = containerSize();
-      const TIP_W = 280;
+      const { w, h } = containerSize();
+      const TIP_W = 300;
+      const TIP_H = 190;
       const GAP_PX = 12;
       let sx = anchorRightSx + GAP_PX;
       if (sx + TIP_W + 8 > w) {
         sx = anchorLeftSx - TIP_W - GAP_PX;
       }
+      sx = Math.max(8, sx);
+      let sy = anchorSy - 10;
+      if (sy + TIP_H + 8 > h) {
+        sy = anchorSy - TIP_H - GAP_PX;
+      }
+      sy = Math.max(8, Math.min(sy, Math.max(8, h - TIP_H - 8)));
       return {
         sx: Math.round(sx * 10) / 10,
-        sy: Math.round((anchorSy - 10) * 10) / 10,
+        sy: Math.round(sy * 10) / 10,
       };
     },
     [containerSize],
@@ -405,18 +414,15 @@ export function ERD({
     [],
   );
 
-  /** Show the column tooltip: near the cursor on hover, table-edge anchored on keyboard focus. */
+  /** Show the column tooltip: SELALU table-edge anchored (placeRightOrFlip),
+   * baik hover maupun fokus keyboard. Sengaja TIDAK ikut kursor: tooltip yang
+   * menempel kursor menutupi daftar kolom yang sedang dibaca (pointer-events
+   * none pula sehingga tak bisa disingkirkan). Ronde 5 2026-10-04. */
   const showColTip = useCallback(
-    (tableId: string, columnId: string, cursor?: { x: number; y: number } | null) => {
+    (tableId: string, columnId: string) => {
       const l = layoutRef.current.find((item) => item.table.id === tableId);
       const idx = l?.table.columns.findIndex((c) => c.id === columnId) ?? -1;
       if (!l || idx < 0) return;
-      if (cursor) {
-        const placed = placeNearCursor(cursor.x, cursor.y);
-        setRelTip(null);
-        setColTip({ tableId, columnId, sx: placed.sx, sy: placed.sy });
-        return;
-      }
       const v = viewRef.current;
       const worldY = l.y + HEADER_H + idx * ROW_H + ROW_H / 2;
       const rightSx = v.x + (l.x + TABLE_W) * v.s;
@@ -426,7 +432,7 @@ export function ERD({
       setRelTip(null);
       setColTip({ tableId, columnId, sx: placed.sx, sy: placed.sy });
     },
-    [placeRightOrFlip, placeNearCursor],
+    [placeRightOrFlip],
   );
 
   /** Ronde 3: relation tooltip — label + cardinality + onDelete di kanan garis.
@@ -1885,8 +1891,8 @@ export function ERD({
                       aria-label={`${c.name} ${c.type}${c.primaryKey ? ' PK' : ''}${c.nullable ? '' : ' NOT NULL'}`}
                       aria-describedby={tipActive ? 'erd-col-tip' : undefined}
                       data-connect-col={`${table.id}:${c.id}`}
-                      onMouseEnter={(e) => showColTip(table.id, c.id, cursorToCanvas(e.clientX, e.clientY))}
-                      onMouseMove={(e) => showColTip(table.id, c.id, cursorToCanvas(e.clientX, e.clientY))}
+                      onMouseEnter={() => showColTip(table.id, c.id)}
+                      onMouseMove={() => showColTip(table.id, c.id)}
                       onMouseLeave={() => setColTip(null)}
                       onFocus={() => showColTip(table.id, c.id)}
                       onBlur={() => setColTip(null)}
@@ -1961,8 +1967,8 @@ export function ERD({
           role="tooltip"
           className="erd-col-tip"
           style={{
-            left: `clamp(8px, ${tipAnchor.sx}px, calc(100% - 180px))`,
-            top: `clamp(8px, ${tipAnchor.sy}px, calc(100% - 90px))`,
+            left: `clamp(8px, ${tipAnchor.sx}px, max(8px, calc(100% - 308px)))`,
+            top: `clamp(8px, ${tipAnchor.sy}px, max(8px, calc(100% - 198px)))`,
           }}
         >
           {colTip && tipTable && tipCol ? (

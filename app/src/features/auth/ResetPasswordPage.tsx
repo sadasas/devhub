@@ -1,15 +1,17 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { ArrowRight, Eye, EyeSlash } from '@phosphor-icons/react';
+import { ArrowRight } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams, useNavigate } from 'react-router';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
+import { PasswordToggle } from '../../components/PasswordToggle';
 import { InlineError } from '../../components/InlineError';
 import { DataErrorState } from '../../components/DataErrorState';
 import { Logo } from '../../components/Logo';
+import { FE_LIMITS } from '../../lib/limits';
 
 export function ResetPasswordPage() {
   const { t } = useTranslation('account');
@@ -77,35 +79,18 @@ export function ResetPasswordPage() {
             <p className="auth-form-sub">{t('auth.forgot.resetSub', 'Choose a new password for your account.')}</p>
           </div>
 
-          <div style={{ position: 'relative' }}>
-            <Input
-              label={t('auth.field.password')}
-              type={show ? 'text' : 'password'}
-              autoComplete="new-password"
-              required
-              minLength={8}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              helper={t('auth.field.passwordRegisterHelper')}
-            />
-            <button
-              type="button"
-              aria-label={show ? t('profile.passwordToggle.hide') : t('profile.passwordToggle.show')}
-              onClick={() => setShow((v) => !v)}
-              style={{
-                position: 'absolute',
-                right: 12,
-                top: 34,
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                color: 'var(--text-muted)',
-                display: 'flex',
-              }}
-            >
-              {show ? <EyeSlash size={18} /> : <Eye size={18} />}
-            </button>
-          </div>
+          <Input
+            label={t('auth.field.password')}
+            type={show ? 'text' : 'password'}
+            autoComplete="new-password"
+            required
+            minLength={8}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            helper={t('auth.field.passwordRegisterHelper')}
+            className="input-with-slot"
+            rightSlot={<PasswordToggle show={show} onToggle={() => setShow((v) => !v)} />}
+          />
 
           <Input
             label={t('auth.field.confirmPassword')}
@@ -114,6 +99,9 @@ export function ResetPasswordPage() {
             required
             value={confirm}
             onChange={(e) => setConfirm(e.target.value)}
+            maxLength={FE_LIMITS.PASSWORD}
+            className="input-with-slot"
+            rightSlot={<PasswordToggle show={show} onToggle={() => setShow((v) => !v)} />}
           />
 
           {error && <InlineError>{error}</InlineError>}

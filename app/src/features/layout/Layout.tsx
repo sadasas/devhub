@@ -18,6 +18,8 @@ import { CreateTeamModal } from '../teams/CreateTeamModal';
 import { GitHubSetupGate } from '../integrations/GitHubSetupGate';
 import { ProjectChatWidget } from '../project/ProjectChatWidget';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
+import { ThemeSwitcher } from '../../components/ThemeSwitcher';
+import { LanguageSwitcher } from '../../components/LanguageSwitcher';
 
 const SIDEBAR_WIDTH_KEY = 'devhub:layout:sidebarWidth';
 const SIDEBAR_COLLAPSED_KEY = 'devhub:layout:sidebarCollapsed';
@@ -554,6 +556,10 @@ export function Layout() {
             >
               <MagnifyingGlass size={18} aria-hidden="true" />
             </button>
+            {/* Jalan pintas global tema + bahasa (keputusan §6 2026-10-04):
+                varian dropdown icon-only; Profile tetap rumah kanonik. */}
+            <ThemeSwitcher triggerClassName="topbar-btn" />
+            <LanguageSwitcher triggerClassName="topbar-btn" />
             {user && activeTeamId ? (
               <TopbarChatButton teamId={activeTeamId} open={chatOpen} isMobile={isMobileChat} />
             ) : null}

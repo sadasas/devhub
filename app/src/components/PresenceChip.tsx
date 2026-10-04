@@ -87,7 +87,7 @@ export function PresenceChip({ badgeOnly = false }: { badgeOnly?: boolean }) {
     <span className="presence-chip-wrap" ref={wrapRef}>
       <button
         type="button"
-        className={badgeOnly ? 'badge badge-info presence-chip presence-chip--badge' : 'badge badge-info presence-chip'}
+        className={badgeOnly ? 'presence-chip presence-chip--naked' : 'badge badge-info presence-chip'}
         data-testid="presence-chip"
         aria-haspopup="dialog"
         aria-expanded={open}
@@ -151,7 +151,9 @@ export function PresenceChip({ badgeOnly = false }: { badgeOnly?: boolean }) {
                 </span>
                 <span className="presence-popover-meta">
                   <span className="presence-popover-name">
-                    {u.name || t('presence.fallbackName')}
+                    <span className="presence-popover-name-text">
+                      {u.name || t('presence.fallbackName')}
+                    </span>
                     {user && u.userId === user.id ? (
                       <span className="presence-you">{t('presence.you')}</span>
                     ) : null}

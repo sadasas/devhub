@@ -48,6 +48,7 @@ import { ConfirmFooter } from '../../components/ConfirmFooter';
 import { SaveBanner } from '../../components/SaveBanner';
 import { StatusBanner } from '../../components/StatusBanner';
 import { ToastStack } from '../../components/ToastStack';
+import { Tooltip } from '../../components/Tooltip';
 import { Skeleton } from '../../components/Skeleton';
 import { ProjectSettingsSkeleton } from '../../components/PageSkeletons';
 import { SyncStatusChip } from '../../components/SyncStatusChip';
@@ -762,20 +763,22 @@ export function ProjectPage() {
               {!isMobileActions && <Badge tone={TEAM_ROLE[role].tone}>{TEAM_ROLE[role].label}</Badge>}
               <SyncStatusChip />
               {role !== 'viewer' && (
+                <Tooltip title={t('settings.title', { defaultValue: 'Project settings' })}>
                 <Button
                   variant="ghost"
                   size="sm"
                   className="btn-icon"
                   aria-label={t('settings.title', { defaultValue: 'Project settings' })}
-                  title={t('settings.title', { defaultValue: 'Project settings' })}
                   aria-pressed={isSettings}
                   onClick={openSettings}
                 >
                   <GearSix size={16} aria-hidden="true" />
                 </Button>
+                </Tooltip>
               )}
               {isAdmin &&
                 (isMobileActions ? (
+                  <Tooltip title={project.visibility === 'public' ? t('actions.sharePublic') : t('actions.sharePrivate')}>
                   <Button
                     variant="secondary"
                     size="sm"
@@ -783,11 +786,11 @@ export function ProjectPage() {
                     aria-label={
                       project.visibility === 'public' ? t('actions.sharePublic') : t('actions.sharePrivate')
                     }
-                    title={project.visibility === 'public' ? t('actions.sharePublic') : t('actions.sharePrivate')}
                     onClick={() => setShareOpen(true)}
                   >
                     <ShareNetwork size={16} aria-hidden="true" />
                   </Button>
+                  </Tooltip>
                 ) : (
                   <Button
                     variant="secondary"
@@ -799,6 +802,7 @@ export function ProjectPage() {
                   </Button>
                 ))}
               <div className="project-actions__mobile">
+                <Tooltip title={t('actions.menu')}>
                 <Button
                   variant="secondary"
                   size="sm"
@@ -811,6 +815,7 @@ export function ProjectPage() {
                 >
                   <DotsThreeVertical size={18} weight="bold" aria-hidden="true" />
                 </Button>
+                </Tooltip>
                 {actionsOpen && !isMobileActions && (
                   <div id="project-actions-menu" role="menu" className="more-dropdown project-actions__sheet">
                     <button type="button" role="menuitem" className="more-item" onClick={() => { setActionsOpen(false); void onExport(); }}>

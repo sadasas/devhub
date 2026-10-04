@@ -7,6 +7,11 @@ import { NewTaskModal } from './NewTaskModal';
 const mocks = vi.hoisted(() => ({
   dispatch: vi.fn(),
   setStatus: vi.fn(),
+  listMembers: vi.fn(),
+}));
+
+const mockAuth = vi.hoisted(() => ({
+  user: null as { id: string; email: string; displayName?: string | null } | null,
 }));
 
 vi.mock('../../state/project-context', () => ({
@@ -19,6 +24,25 @@ vi.mock('../../state/project-context', () => ({
     teamId: mockCtx.teamId,
   }),
 }));
+
+vi.mock('../../state/auth-context', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../state/auth-context')>();
+  return { ...actual, useOptionalAuth: () => ({ user: mockAuth.user }) };
+});
+
+vi.mock('../../lib/api', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../lib/api')>();
+  return {
+    ...actual,
+    api: {
+      ...actual.api,
+      listMembers: (teamId: string) => {
+        const result = mocks.listMembers(teamId);
+        return result instanceof Promise ? result : Promise.resolve([]);
+      },
+    },
+  };
+});
 
 const MILESTONE_A = '44444444-4444-4444-8444-444444444444';
 const MILESTONE_B = '99999999-9999-4999-8999-999999999999';
@@ -258,6 +282,42 @@ describe('NewTaskModal staged attachments', () => {
         }),
       }),
     );
+  });
+});
+
+describe('NewTaskModal assignee picker', () => {
+  const ME = 'a0000000-0000-4000-8000-000000000001';
+  const OTHER = 'a0000000-0000-4000-8000-000000000002';
+
+  beforeEach(() => {
+    mocks.dispatch.mockReset();
+    mocks.listMembers.mockReset();
+    mocks.listMembers.mockResolvedValue([
+      { id: ME, email: 'proxy-test@devhub.dev', displayName: 'Proxy Test', role: 'owner', joinedAt: '2026-08-01T00:00:00.000Z' },
+      { id: OTHER, email: 'other@devhub.dev', displayName: 'Other Member', role: 'member', joinedAt: '2026-08-01T00:00:00.000Z' },
+    ]);
+    mockAuth.user = { id: ME, email: 'proxy-test@devhub.dev', displayName: 'Proxy Test' };
+    mockCtx = { projectId: 'p1', teamId: 't1' };
+    mockState = makeState([]);
+  });
+
+  afterEach(() => {
+    mockAuth.user = null;
+    mockCtx = {};
+    vi.restoreAllMocks();
+  });
+
+  it('offers "Assign to me" exactly once without a duplicate current-user row', async () => {
+    renderModal();
+    fireEvent.click(screen.getByRole('button', { name: 'Assignee' }));
+    const assignToMe = await screen.findByRole('option', { name: /Assign to me/ });
+    expect(assignToMe).toBeTruthy();
+    expect(screen.getAllByRole('option', { name: /Assign to me/ })).toHaveLength(1);
+    // Baris email/nama sendiri tidak boleh muncul lagi di daftar member.
+    expect(screen.queryByRole('option', { name: 'proxy-test@devhub.dev' })).toBeNull();
+    expect(screen.queryByRole('option', { name: 'Proxy Test' })).toBeNull();
+    // Anggota lain tetap tersedia.
+    expect(screen.getByRole('option', { name: 'Other Member' })).toBeTruthy();
   });
 });
 

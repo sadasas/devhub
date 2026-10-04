@@ -221,6 +221,11 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
     },
     [setSearchParams],
   );
+  const workbenchTabsRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const active = workbenchTabsRef.current?.querySelector<HTMLElement>('.tab-active');
+    active?.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
+  }, [tab]);
   const tabWorkspaceRef = useRef<HTMLButtonElement>(null);
   const tabDocsRef = useRef<HTMLButtonElement>(null);
   const handleModeKeyDown = useCallback(
@@ -287,6 +292,44 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
     API_COLLECTION_SORT_SPECS.find((s) => s.key === effectiveCollectionSort.key) ?? null;
   const endpointSortSpec =
     API_ENDPOINT_SORT_SPECS.find((s) => s.key === effectiveEndpointSort.key) ?? null;
+
+  // Default selection: begitu data ada, pilih endpoint pertama sesuai urutan
+  // sidebar (sort aktif) — panel kanan jangan default "No endpoint selected".
+  // Deep link (?entity=apiEndpoints|apiCollections) menang: bila param masih
+  // ada, effect deep-link (dideklarasi di atas) yang berhak memilih lebih dulu.
+  useEffect(() => {
+    if (selection !== null || !state) return;
+    const entityParam = searchParams.get('entity');
+    if (entityParam === 'apiEndpoints' || entityParam === 'apiCollections') return;
+    const colls = applySort(state.apiCollections, collectionSortSpec, effectiveCollectionSort.dir);
+    const epsSorted = (collectionId: string | null) =>
+      applySort(
+        state.apiEndpoints.filter((e) => e.collectionId === collectionId),
+        endpointSortSpec,
+        effectiveEndpointSort.dir,
+      );
+    for (const c of colls) {
+      const first = epsSorted(c.id)[0];
+      if (first) {
+        setSelection({ type: 'endpoint', id: first.id });
+        return;
+      }
+    }
+    const firstUngrouped = epsSorted(null)[0];
+    if (firstUngrouped) {
+      setSelection({ type: 'endpoint', id: firstUngrouped.id });
+      return;
+    }
+    if (colls[0]) setSelection({ type: 'collection', id: colls[0].id });
+  }, [
+    selection,
+    state,
+    searchParams,
+    collectionSortSpec,
+    effectiveCollectionSort.dir,
+    endpointSortSpec,
+    effectiveEndpointSort.dir,
+  ]);
 
   if (error) {
     return <DataErrorState error={loadError ?? error} onRetry={retryLoad} />;
@@ -628,16 +671,17 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
           {isNarrow ? (
             <div className="api-toolbar-actions">
               {mode === 'workspace' && (
+                <Tooltip title={t('api.drawer.title')}>
                 <Button
                   variant="ghost"
                   size="sm"
                   className="btn-icon"
                   aria-label={t('api.drawer.title')}
-                  title={t('api.drawer.title')}
                   onClick={() => setDrawerOpen(true)}
                 >
                   <ListBullets size={16} aria-hidden="true" />
                 </Button>
+                </Tooltip>
               )}
               <ApiOverflowMenu
                 canEdit={canEdit}
@@ -823,6 +867,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                     <div key={c.id} className="api-tree-group">
                       <div
                         className={`api-tree-group-label ${selection?.type === 'collection' && selection.id === c.id ? 'api-tree-item-selected' : ''}`}
+                        onClick={() => setSelection({ type: 'collection', id: c.id })}
                       >
                         <button
                           type="button"
@@ -839,11 +884,9 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                             aria-hidden="true"
                           />
                         </button>
-                        <button
-                          type="button"
-                          className="api-tree-group-select"
-                          onClick={() => setSelection({ type: 'collection', id: c.id })}
-                        >
+                        {/* Tanpa onClick sendiri: click (mouse & keyboard Enter/Space)
+                            bubble ke div induk — satu handler, satu kali set. */}
+                        <button type="button" className="api-tree-group-select">
                           <Folder size={14} className="api-tree-folder" aria-hidden="true" />
                           <span className="api-tree-item-title">{highlightMatch(c.name, query)}</span>
                           <span className="api-tree-count">{endpointCount(c.id)}</span>
@@ -859,7 +902,10 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                             className="api-tree-actions"
                             aria-label={t('api.tree.deleteCollectionNamed', { name: c.name })}
                             title={t('api.tree.deleteCollection')}
-                            onClick={() => setDeleteTarget({ kind: 'collection', id: c.id, name: c.name })}
+                            onClick={(ev) => {
+                              ev.stopPropagation();
+                              setDeleteTarget({ kind: 'collection', id: c.id, name: c.name });
+                            }}
                           >
                             <Trash size={14} aria-hidden="true" />
                           </button>
@@ -871,13 +917,12 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                             <div
                               key={e.id}
                               className={`api-tree-item ${selection?.type === 'endpoint' && selection.id === e.id ? 'api-tree-item-selected' : ''}`}
+                              onClick={() => setSelection({ type: 'endpoint', id: e.id })}
                             >
                               <div className="api-tree-item-main">
-                                <button
-                                  type="button"
-                                  className="api-tree-item-select"
-                                  onClick={() => setSelection({ type: 'endpoint', id: e.id })}
-                                >
+                                {/* Tanpa onClick sendiri: click (mouse & keyboard) bubble
+                                    ke div `.api-tree-item` — baris path/padding ikut klik. */}
+                                <button type="button" className="api-tree-item-select">
                                   <ApiMethodChip method={e.method} />
                                   <span className="api-tree-item-title">{highlightMatch(e.name, query)}</span>
                                   {unreadIds?.has(e.id) && (
@@ -892,7 +937,10 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                                     className="api-tree-actions"
                                     aria-label={t('api.tree.deleteEndpointNamed', { name: e.name })}
                                     title={t('api.tree.deleteEndpoint')}
-                                    onClick={() => setDeleteTarget({ kind: 'endpoint', id: e.id, name: e.name })}
+                                    onClick={(ev) => {
+                                      ev.stopPropagation();
+                                      setDeleteTarget({ kind: 'endpoint', id: e.id, name: e.name });
+                                    }}
                                   >
                                     <Trash size={14} aria-hidden="true" />
                                   </button>
@@ -934,13 +982,11 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                           <div
                             key={e.id}
                             className={`api-tree-item ${selection?.type === 'endpoint' && selection.id === e.id ? 'api-tree-item-selected' : ''}`}
+                            onClick={() => setSelection({ type: 'endpoint', id: e.id })}
                           >
                             <div className="api-tree-item-main">
-                              <button
-                                type="button"
-                                className="api-tree-item-select"
-                                onClick={() => setSelection({ type: 'endpoint', id: e.id })}
-                              >
+                              {/* Tanpa onClick sendiri: click bubble ke div `.api-tree-item`. */}
+                              <button type="button" className="api-tree-item-select">
                                 <ApiMethodChip method={e.method} />
                                 <span className="api-tree-item-title">{highlightMatch(e.name, query)}</span>
                                 {unreadIds?.has(e.id) && (
@@ -955,7 +1001,10 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                                   className="api-tree-actions"
                                   aria-label={t('api.tree.deleteEndpointNamed', { name: e.name })}
                                   title={t('api.tree.deleteEndpoint')}
-                                  onClick={() => setDeleteTarget({ kind: 'endpoint', id: e.id, name: e.name })}
+                                  onClick={(ev) => {
+                                    ev.stopPropagation();
+                                    setDeleteTarget({ kind: 'endpoint', id: e.id, name: e.name });
+                                  }}
                                 >
                                   <Trash size={14} aria-hidden="true" />
                                 </button>
@@ -1023,12 +1072,12 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                       aria-label={t('api.workbench.pathAria')}
                       onChange={(e) => updateMethodPath({ path: e.target.value })}
                     />
+                    <Tooltip title={copied ? t('api.workbench.copied') : t('api.workbench.copyPath')}>
                     <Button
                       variant="ghost"
                       size="sm"
                       className="btn-icon"
                       aria-label={copied ? t('api.workbench.copied') : t('api.workbench.copyPath')}
-                      title={copied ? t('api.workbench.copied') : t('api.workbench.copyPath')}
                       leftIcon={
                         copied ? (
                           <Check size={13} weight="bold" aria-hidden="true" />
@@ -1038,6 +1087,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                       }
                       onClick={() => void copy(selectedEp.path)}
                     />
+                    </Tooltip>
                   </div>
                 </div>
 
@@ -1072,7 +1122,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                     }}
                   />
 
-                  <div className="tabs mt-4" role="tablist" aria-label={t('api.workbench.tabsAria')}>
+                  <div ref={workbenchTabsRef} className="tabs mt-4" role="tablist" aria-label={t('api.workbench.tabsAria')}>
                     {(['headers', 'params', 'body', 'responses'] as ApiTab[]).map((tabId) => (
                       <button
                         key={tabId}
@@ -1136,6 +1186,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                               onChange={(e) => updateHeader(i, { description: e.target.value })}
                             />
                           </div>
+                          <Tooltip title={t('api.header.remove')}>
                           <Button
                             variant="danger"
                             size="sm"
@@ -1144,6 +1195,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                             leftIcon={<Trash size={14} aria-hidden="true" />}
                             onClick={() => updateEp({ headers: selectedEp.headers.filter((_, idx) => idx !== i) })}
                           />
+                          </Tooltip>
                         </div>
                       ))}
                       {selectedEp.headers.length === 0 && (
@@ -1214,6 +1266,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                               onChange={(e) => updateParam(i, { description: e.target.value })}
                             />
                           </div>
+                          <Tooltip title={t('api.param.remove')}>
                           <Button
                             variant="danger"
                             size="sm"
@@ -1222,6 +1275,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                             leftIcon={<Trash size={14} aria-hidden="true" />}
                             onClick={() => updateEp({ params: selectedEp.params.filter((_, idx) => idx !== i) })}
                           />
+                          </Tooltip>
                         </div>
                       ))}
                       {selectedEp.params.length === 0 && <p className="api-rows-empty">{t('api.param.empty')}</p>}
@@ -1290,6 +1344,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                                 onChange={(e) => updateResponse(i, { contentType: e.target.value })}
                               />
                             </div>
+                            <Tooltip title={t('api.response.remove')}>
                             <Button
                               variant="danger"
                               size="sm"
@@ -1298,6 +1353,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                               leftIcon={<Trash size={14} aria-hidden="true" />}
                               onClick={() => updateEp({ responses: selectedEp.responses.filter((_, idx) => idx !== i) })}
                             />
+                            </Tooltip>
                           </div>
                           <Input
                             label={t('api.workbench.description')}
@@ -1340,15 +1396,16 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
               <>
                 {canEdit && (
                   <div className="api-read-actions">
+                    <Tooltip title={t('api.tree.deleteEndpointNamed', { name: selectedEp.name })}>
                     <Button
                       variant="danger"
                       size="sm"
                       className="btn-icon"
                       aria-label={t('api.tree.deleteEndpointNamed', { name: selectedEp.name })}
-                      title={t('api.tree.deleteEndpoint')}
                       leftIcon={<Trash size={14} aria-hidden="true" />}
                       onClick={() => setDeleteTarget({ kind: 'endpoint', id: selectedEp.id, name: selectedEp.name })}
                     />
+                    </Tooltip>
                     <Button
                       variant="primary"
                       size="sm"
