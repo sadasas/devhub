@@ -1105,6 +1105,7 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
                 maxLength={LIMITS.TASK_DESCRIPTION}
                 rows={4}
                 variant="bare"
+                hideHead={variant === 'page'}
                 previewToggle
                 embedAttachments={{ projectId, attachments: task.attachments ?? [] }}
               />
@@ -1146,7 +1147,7 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
               <div style={{ marginTop: 8 }}>
                 {subtasks.length === 0 && !canEdit && <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>—</span>}
                 {subtasks.length > 0 && (
-                <div style={{ paddingLeft: 16, borderLeft: '1px solid var(--border-hairline)' }}>
+                <div style={variant === 'page' ? { marginTop: 8 } : { paddingLeft: 16, borderLeft: '1px solid var(--border-hairline)' }}>
                 {subtasks.map((ss, i) => {
                   const chip = taskDueChip(ss);
                   const sm = ss.assigneeId ? members.find((m) => m.id === ss.assigneeId) : undefined;
@@ -1211,7 +1212,7 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
                 )}
                 {canEdit && (
                   subAdding ? (
-                    <div ref={subCardRef} style={{ marginTop: 4, border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-card)', background: 'var(--bg-inset)', overflow: 'hidden' }}>
+                    <div ref={subCardRef} style={variant === 'page' ? { marginTop: 4 } : { marginTop: 4, border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-card)', background: 'var(--bg-inset)', overflow: 'hidden' }}>
                       <div style={{ padding: '6px 12px 0' }}>
                         <textarea
                           ref={subTitleRef}

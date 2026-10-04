@@ -375,7 +375,7 @@ diperbolehkan (turunan, bukan warna baru). Sistem forced-colors
 | text | primary/secondary/muted/on-accent | §2 baseline kontras |
 | border | hairline/strong | §7 |
 | accent | accent/hover/pressed/dim + accent-ring + text-on-accent | Aksi primer, fokus, link |
-| focus | bg-focus + accent-focus/hover/pressed | Halaman Focus Mode desain-baru 2026-10: bg krem + CTA hijau (pill gabungan, tab timer, preset aktif, transport play). Light: `#faf8f3`/`#2f7d5a`; dark: `#141311`/`#57a37e` |
+| focus | accent-focus/hover/pressed | Halaman Focus Mode desain-baru 2026-10: CTA hijau (pill gabungan, tab timer, preset aktif, transport play). Light: `#2f7d5a`; dark: `#57a37e` |
 | semantic | status-danger/warn/success/info + *-dim + *-soft | Makna status saja |
 | chart | chart-1..6 (turunan status) | Grafik; BUKAN hex acak |
 | method | method-get/post/put/patch/delete/options + *-dim | Badge metode API |

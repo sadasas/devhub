@@ -3598,28 +3598,34 @@ html[data-theme='light'] .splash-bg {
   border-bottom-color: var(--border-hairline);
 }
 
-/* Focus Mode desain baru: bg krem halaman + pill gabungan timer/radio.
-   Satu wadah .focus-combined (border tunggal); separuh timer & radio
-   menempel tanpa border sendiri; toggle timer hijau di urutan pertama. */
-.page:has(.focus-topbar) {
-  background: var(--bg-focus);
-}
-/* Focus page = satu kolom ala wireframe: aside disembunyikan (Status +
-   Prioritas dirender inline di kolom utama), konten max 720px tengah. */
-.page:has(.focus-topbar) .detail-grid {
+/* Focus Mode desain baru: pill gabungan timer/radio + satu kolom.
+   TANPA :has() — topbar adalah anak pertama .page, jadi semua aturan
+   memakai sibling topbar ~ grid (jalan di semua browser). */
+.focus-topbar ~ .detail-grid {
   grid-template-columns: minmax(0, 720px);
   justify-content: center;
 }
-.page:has(.focus-topbar) .detail-side {
+.focus-topbar ~ .detail-grid > .detail-side {
   display: none;
 }
 /* Judul 28px tebal + baris Created disembunyikan (tak ada di wireframe). */
-.page:has(.focus-topbar) .composer-title,
-.page:has(.focus-topbar) .detail-title {
+.focus-topbar ~ .detail-grid .composer-title,
+.focus-topbar ~ .detail-grid .detail-title {
   font-size: 28px;
   font-weight: 700;
 }
-.page:has(.focus-topbar) .detail-created {
+.focus-topbar ~ .detail-grid .detail-created {
+  display: none;
+}
+/* Ritme ala wireframe: header seksi tanpa margin (gap kolom yang mengatur),
+   meta/badges lama disembunyikan total (diganti baris meta). */
+.focus-topbar ~ .detail-grid .detail-main {
+  gap: 20px;
+}
+.focus-topbar ~ .detail-grid .detail-subtitle {
+  margin: 0;
+}
+.focus-topbar ~ .detail-grid .focus-badges {
   display: none;
 }
 .focus-combined {
