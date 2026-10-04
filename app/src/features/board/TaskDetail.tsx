@@ -1047,6 +1047,21 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
               </h3>
             )}
             {titleEmpty && <InlineError>{t('issues.modal.titleRequired')}</InlineError>}
+            {variant === 'page' && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 10px', borderRadius: 'var(--radius-pill)', background: 'var(--status-info-dim)', color: 'var(--status-info)', fontSize: 11, fontWeight: 600 }}>
+                  {TASK_PRIORITY[task.priority].label}
+                </span>
+                {(task.startDate || task.dueDate) && (
+                  <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                    {task.startDate ? `${t('board.taskModal.startDateLabel')} – ${formatDate(task.startDate)}` : formatDate(task.dueDate!)}
+                  </span>
+                )}
+                {focusDueChip.tone === 'danger' && (
+                  <span className={`task-due task-due-${focusDueChip.tone}`} title={focusDueChip.title}>{focusDueChip.label}</span>
+                )}
+              </div>
+            )}
             <div className="detail-created" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 13 }}>
               {task.assigneeId && (() => {
                 const am = members.find((m) => m.id === task.assigneeId);

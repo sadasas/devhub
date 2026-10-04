@@ -3613,6 +3613,15 @@ html[data-theme='light'] .splash-bg {
 .page:has(.focus-topbar) .detail-side {
   display: none;
 }
+/* Judul 28px tebal + baris Created disembunyikan (tak ada di wireframe). */
+.page:has(.focus-topbar) .composer-title,
+.page:has(.focus-topbar) .detail-title {
+  font-size: 28px;
+  font-weight: 700;
+}
+.page:has(.focus-topbar) .detail-created {
+  display: none;
+}
 .focus-combined {
   display: inline-flex;
   align-items: center;
