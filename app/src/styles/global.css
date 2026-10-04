@@ -3632,6 +3632,20 @@ html[data-theme='light'] .splash-bg {
   border-left: 1px solid var(--border-hairline);
   padding-left: 6px !important;
 }
+.focus-combined .focus-timer-toggle:not(.is-done),
+.focus-combined .focus-radio-toggle {
+  width: 32px !important;
+  height: 32px !important;
+}
+/* Tombol Selesai halaman focus = hijau desain baru (bukan teal primer). */
+.btn.focus-topbar-done {
+  background: var(--accent-focus);
+  border-color: transparent;
+  color: var(--text-on-accent);
+}
+.btn.focus-topbar-done:hover {
+  background: var(--accent-focus-hover);
+}
 /* Tab underline popover timer (ganti segmented): teks + garis hijau aktif. */
 .focus-mode-tab {
   background: none;

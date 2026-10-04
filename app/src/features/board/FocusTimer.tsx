@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Check, Pause, PencilSimple, Play, Timer } from '@phosphor-icons/react';
+import { Check, Pause, PencilSimple, Play } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../../components/Button';
 import { BottomSheet } from '../../components/BottomSheet';
@@ -451,7 +451,6 @@ export function FocusTimer() {
             background: 'transparent',
           }}
         >
-          <Timer size={14} aria-hidden="true" style={{ color: 'var(--text-muted)' }} />
           {display}
         </button>
         <Tooltip title={finished ? (t('board.focus.timerFinished') as string) : running ? (t('board.focus.timerPause') as string) : (t('board.focus.timerPlay') as string)}>

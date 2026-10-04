@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import {
   DotsSixVertical,
   MagnifyingGlass,
-  MusicNote,
   Pause,
   Play,
   Plus,
@@ -218,7 +217,7 @@ export function FocusRadio() {
         <>
           <div style={{ marginBottom: 8 }}>
             <p
-              style={{ fontSize: 13, fontWeight: 600, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              style={{ fontSize: 15, fontWeight: 600, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
               title={current.title}
             >
               {current.title}
@@ -345,9 +344,9 @@ export function FocusRadio() {
             </span>
             <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{t('board.focus.radioAutoAdvance')}</span>
           </button>
-          <hr className="sheet-divider" aria-hidden="true" />
         </>
       )}
+      <div style={{ marginTop: current ? 12 : 0 }}>
       <form onSubmit={submitSearch} role="search">
         <div style={{ display: 'flex', gap: 8 }}>
           <input
@@ -376,6 +375,7 @@ export function FocusRadio() {
           )}
         </div>
       </form>
+      </div>
       {!searched && !searching && (
         <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '8px 0 0' }}>
           {t('board.focus.radioSearchHint')}
@@ -471,8 +471,7 @@ export function FocusRadio() {
       </>)}
       {!showResults && (
       <>
-      <hr className="sheet-divider" aria-hidden="true" />
-      <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 8px' }}>
+      <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', margin: '12px 0 8px' }}>
         {t('board.focus.radioQueueTitle')}
       </p>
       {queue.length === 0 ? (
@@ -606,12 +605,23 @@ export function FocusRadio() {
             gap: 6,
             border: 0,
             background: 'transparent',
-            maxWidth: 160,
+            maxWidth: 190,
           }}
         >
-          <MusicNote size={14} aria-hidden="true" style={{ color: 'var(--text-muted)', flexShrink: 0 }} />
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-            {current?.title ?? radioLabel}
+          <span aria-hidden="true" style={{ display: 'inline-flex', alignItems: 'flex-end', gap: 2, flexShrink: 0 }}>
+            <span style={{ width: 3, height: 10, background: 'var(--accent-focus)' }} />
+            <span style={{ width: 3, height: 14, background: 'var(--accent-focus)' }} />
+            <span style={{ width: 3, height: 7, background: 'var(--accent-focus)' }} />
+          </span>
+          <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', lineHeight: 1.3, overflow: 'hidden', minWidth: 0 }}>
+            <span style={{ fontWeight: 600, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
+              {current?.title ?? radioLabel}
+            </span>
+            {current && (
+              <span style={{ fontSize: 10, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%' }}>
+                {current.channelTitle}
+              </span>
+            )}
           </span>
         </button>
         <Tooltip title={(playing ? t('board.focus.timerPause') : t('board.focus.timerPlay')) as string}>

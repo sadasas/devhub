@@ -614,7 +614,7 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
                 size="md"
                 leftIcon={<CheckCircle size={14} aria-hidden="true" />}
                 onClick={() => { track('focus_mark_done', { source: 'bottombar' }); changeStatus('done', 'suggest'); }}
-                style={{ width: '100%', background: 'var(--status-success)', color: 'var(--text-on-accent)' }}
+                style={{ width: '100%', background: 'var(--accent-focus)', color: 'var(--text-on-accent)' }}
               >
                 {t('board.taskModal.focusMarkDone')}
               </Button>
