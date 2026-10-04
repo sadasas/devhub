@@ -286,4 +286,50 @@ describe('FocusRadio', () => {
     expect(players[0]!.loadVideoById).toHaveBeenCalledWith('b');
     expect(screen.getByText('Playback blocked by an ad blocker')).toBeTruthy();
   });
+
+  it('toggles repeat with accent state, dot, event and persistence', async () => {
+    const players = installYTMock();
+    render(<FocusRadio />);
+    fireEvent.click(screen.getByRole('button', { name: 'Radio' }));
+    await searchLofi();
+    await act(async () => {
+      const p = (async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Play Title a' }));
+      })();
+      await new Promise((r) => setTimeout(r, 0));
+      players[0]!.__events.onReady?.({ target: players[0] });
+      await p;
+    });
+    const repeatBtn = screen.getByRole('button', { name: 'Repeat queue' });
+    expect(repeatBtn.getAttribute('aria-pressed')).toBe('false');
+    expect(repeatBtn.querySelector('span[aria-hidden]')).toBeNull();
+    fireEvent.click(repeatBtn);
+    expect(trackMock).toHaveBeenCalledWith('radio_repeat', { on: true });
+    expect(screen.getByRole('button', { name: 'Repeat queue' }).getAttribute('aria-pressed')).toBe('true');
+    expect(
+      screen.getByRole('button', { name: 'Repeat queue' }).querySelector('span[aria-hidden]'),
+    ).not.toBeNull();
+    expect(window.localStorage.getItem('devhub.focus.radioRepeat')).toBe('1');
+    fireEvent.click(screen.getByRole('button', { name: 'Repeat queue' }));
+    expect(trackMock).toHaveBeenCalledWith('radio_repeat', { on: false });
+    expect(screen.getByRole('button', { name: 'Repeat queue' }).getAttribute('aria-pressed')).toBe('false');
+  });
+
+  it('shuffles keeping the current track first', async () => {
+    render(<FocusRadio />);
+    fireEvent.click(screen.getByRole('button', { name: 'Radio' }));
+    await searchLofi();
+    fireEvent.click(screen.getByRole('button', { name: 'Add Title a to queue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add Title b to queue' }));
+    // Play a so there is a current track, then shuffle.
+    fireEvent.click(screen.getByRole('button', { name: 'Play Title a' }));
+    await act(async () => {
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Shuffle queue' }));
+    expect(trackMock).toHaveBeenCalledWith('radio_shuffle');
+    const order = Array.from(queueList().querySelectorAll('li')).map((li) => li.textContent ?? '');
+    expect(order).toHaveLength(2);
+    expect(order()[0]).toContain('Title a');
+  });
 });

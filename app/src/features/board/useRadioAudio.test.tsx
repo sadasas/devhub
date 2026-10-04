@@ -450,4 +450,101 @@ describe('useRadioAudio', () => {
     unmount();
     expect(players[0]!.destroy).toHaveBeenCalledTimes(1);
   });
+
+  it('repeat wraps around at the end of the queue', async () => {
+    const players = installYTMock();
+    const { result } = renderHook(() => useRadioAudio());
+    attachContainer(result);
+    act(() => {
+      result.current.enqueue(VID('a'));
+      result.current.enqueue(VID('b'));
+    });
+    let repeatOn = false;
+    act(() => {
+      repeatOn = result.current.toggleRepeat();
+    });
+    expect(repeatOn).toBe(true);
+    expect(result.current.repeat).toBe(true);
+    expect(window.localStorage.getItem('devhub.focus.radioRepeat')).toBe('1');
+    await act(async () => {
+      const p = result.current.playAt(1);
+      await new Promise((r) => setTimeout(r, 0));
+      players[0]!.__events.onReady?.({ target: players[0] });
+      await p;
+    });
+    act(() => {
+      players[0]!.__events.onStateChange?.({ data: 0, target: players[0] });
+    });
+    expect(result.current.index).toBe(0);
+    expect(players[0]!.loadVideoById).toHaveBeenCalledWith('a');
+    expect(result.current.playing).toBe(true);
+    act(() => {
+      repeatOn = result.current.toggleRepeat();
+    });
+    expect(repeatOn).toBe(false);
+    expect(window.localStorage.getItem('devhub.focus.radioRepeat')).toBe('0');
+  });
+
+  it('shuffle randomizes keeping the current track first', () => {
+    const { result } = renderHook(() => useRadioAudio());
+    attachContainer(result);
+    act(() => {
+      result.current.enqueue(VID('a'));
+      result.current.enqueue(VID('b'));
+      result.current.enqueue(VID('c'));
+      result.current.enqueue(VID('d'));
+    });
+    let shuffled = false;
+    act(() => {
+      shuffled = result.current.shuffleQueue();
+    });
+    expect(shuffled).toBe(true);
+    const ids = result.current.queue.map((v) => v.videoId);
+    expect(ids[0]).toBe('a');
+    expect([...ids].sort()).toEqual(['a', 'b', 'c', 'd']);
+    expect(result.current.index).toBe(0);
+  });
+
+  it('shuffle is a no-op on tiny queues', () => {
+    const { result } = renderHook(() => useRadioAudio());
+    attachContainer(result);
+    let shuffled = true;
+    act(() => {
+      shuffled = result.current.shuffleQueue();
+    });
+    expect(shuffled).toBe(false);
+    act(() => {
+      result.current.enqueue(VID('a'));
+      shuffled = result.current.shuffleQueue();
+    });
+    expect(shuffled).toBe(false);
+  });
+
+  it('error streak terminates a fully broken looping queue', async () => {
+    const players = installYTMock();
+    const { result } = renderHook(() => useRadioAudio());
+    attachContainer(result);
+    act(() => {
+      result.current.enqueue(VID('a'));
+      result.current.enqueue(VID('b'));
+      result.current.toggleRepeat();
+    });
+    await act(async () => {
+      const p = result.current.playAt(0);
+      await new Promise((r) => setTimeout(r, 0));
+      players[0]!.__events.onReady?.({ target: players[0] });
+      await p;
+    });
+    // a errors → b, b errors → wraps to a, a errors → streak exceeds → box.
+    for (let k = 0; k < 3; k++) {
+      act(() => {
+        players[0]!.__events.onError?.({ data: 150 });
+      });
+      await act(async () => {
+        await new Promise((r) => setTimeout(r, 0));
+      });
+    }
+    expect(result.current.error).toBe('player');
+    expect(result.current.playing).toBe(false);
+  });
 });

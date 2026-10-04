@@ -202,6 +202,8 @@
       "radioError": "Radio failed to load",
       "radioNext": "Next",
       "radioPrev": "Previous",
+      "radioRepeat": "Repeat queue",
+      "radioShuffle": "Shuffle queue",
       "radioPlayTitle": "Play {{title}}",
       "radioPickHint": "Pick a song to start",
       "radioQueueAdd": "Add {{title}} to queue",

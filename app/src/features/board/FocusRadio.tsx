@@ -6,6 +6,8 @@ import {
   Pause,
   Play,
   Plus,
+  Repeat,
+  Shuffle,
   SkipBack,
   SkipForward,
   X,
@@ -71,6 +73,9 @@ export function FocusRadio() {
     removeAt,
     move,
     release,
+    repeat,
+    toggleRepeat,
+    shuffleQueue,
   } = useRadioAudio();
   const dragFromRef = useRef<number | null>(null);
 
@@ -184,6 +189,15 @@ export function FocusRadio() {
   const onPrev = async () => {
     const tr = await prev();
     if (tr) track('radio_prev', { videoId: tr.videoId });
+  };
+
+  const onRepeatToggle = () => {
+    const on = toggleRepeat();
+    track('radio_repeat', { on });
+  };
+
+  const onShuffle = () => {
+    if (shuffleQueue()) track('radio_shuffle');
   };
 
   // Mutually exclusive views: results XOR queue. Searching (or showing
@@ -422,7 +436,20 @@ export function FocusRadio() {
               <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 0' }}>{current.channelTitle}</p>
             </div>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 8 }}>
+            <span style={{ position: 'relative', display: 'inline-flex' }}>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm btn-icon"
+                onClick={onShuffle}
+                disabled={queue.length <= 1}
+                aria-label={t('board.focus.radioShuffle') as string}
+                title={t('board.focus.radioShuffle') as string}
+                style={{ color: 'var(--text-muted)' }}
+              >
+                <Shuffle size={14} aria-hidden="true" />
+              </button>
+            </span>
             <button
               type="button"
               className="btn btn-ghost btn-sm btn-icon"
@@ -457,6 +484,34 @@ export function FocusRadio() {
             >
               <SkipForward size={14} aria-hidden="true" />
             </button>
+            <span style={{ position: 'relative', display: 'inline-flex' }}>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm btn-icon"
+                onClick={onRepeatToggle}
+                aria-label={t('board.focus.radioRepeat') as string}
+                title={t('board.focus.radioRepeat') as string}
+                aria-pressed={repeat}
+                style={repeat ? { color: 'var(--accent)' } : { color: 'var(--text-muted)' }}
+              >
+                <Repeat size={14} aria-hidden="true" />
+              </button>
+              {repeat && (
+                <span
+                  aria-hidden="true"
+                  style={{
+                    position: 'absolute',
+                    left: '50%',
+                    bottom: 1,
+                    transform: 'translateX(-50%)',
+                    width: 4,
+                    height: 4,
+                    borderRadius: '50%',
+                    background: 'var(--accent)',
+                  }}
+                />
+              )}
+            </span>
           </div>
         </div>
       ) : (

@@ -4,6 +4,7 @@ import type { YoutubeVideo } from '../../lib/types';
 import { createRadioPlayer, detectAdblock, type RadioPlayerHandle } from './youtube-radio';
 
 const VOLUME_KEY = 'devhub.focus.musicVolume';
+const REPEAT_KEY = 'devhub.focus.radioRepeat';
 const DEFAULT_VOLUME = 0.7;
 
 function readStoredVolume(): number {
@@ -48,6 +49,14 @@ export function useRadioAudio() {
     typeof window === 'undefined' ? DEFAULT_VOLUME : readStoredVolume(),
   );
   const [error, setError] = useState<RadioErrorKind | null>(null);
+  /** Loop-all toggle (persisted). Shuffle is one-shot — no mode state. */
+  const [repeat, setRepeatState] = useState<boolean>(() => {
+    try {
+      return typeof window !== 'undefined' && window.localStorage.getItem(REPEAT_KEY) === '1';
+    } catch {
+      return false;
+    }
+  });
   /** Informative adblock notice (playback continues via auto-skip). */
   const [notice, setNotice] = useState<'adblock' | null>(null);
 
@@ -61,6 +70,11 @@ export function useRadioAudio() {
   const volumeRef = useRef(volume);
   volumeRef.current = volume;
   const lastVideoRef = useRef<string | null>(null);
+  const repeatRef = useRef(repeat);
+  repeatRef.current = repeat;
+  // Consecutive error-skips without a successful play. Guards repeat loops:
+  // a fully broken queue must terminate in the error box, not spin forever.
+  const errorStreakRef = useRef(0);
   // Generation counter: bumped on every release/unmount so late async
   // continuations (player ready arriving after close) stay silent instead of
   // calling a detached player ("not attached to the DOM").
@@ -81,25 +95,67 @@ export function useRadioAudio() {
   /** Advance to the next queue entry (shared by ended + error paths). */
   const advanceRef = useRef<() => void>(() => {});
   const advance = useCallback(() => {
-    const next = indexRef.current + 1;
-    if (next < queueRef.current.length) {
-      const track = queueRef.current[next];
-      if (track && playerRef.current) {
-        indexRef.current = next;
-        setIndex(next);
-        lastVideoRef.current = track.videoId;
-        try {
-          playerRef.current.playTrack(track.videoId);
-        } catch {
-          /* player errors route through onError */
-        }
-        setPlaying(true);
+    const q = queueRef.current;
+    let next = indexRef.current + 1;
+    if (next >= q.length) {
+      if (!repeatRef.current || q.length === 0) {
+        setPlaying(false);
         return;
       }
+      next = 0; // loop-all: wrap around
+    }
+    const track = q[next];
+    if (track && playerRef.current) {
+      indexRef.current = next;
+      setIndex(next);
+      lastVideoRef.current = track.videoId;
+      try {
+        playerRef.current.playTrack(track.videoId);
+      } catch {
+        /* player errors route through onError */
+      }
+      setPlaying(true);
+      return;
     }
     setPlaying(false);
   }, []);
   advanceRef.current = advance;
+
+  const toggleRepeat = useCallback((): boolean => {
+    const nextVal = !repeatRef.current;
+    repeatRef.current = nextVal;
+    setRepeatState(nextVal);
+    try {
+      window.localStorage.setItem(REPEAT_KEY, nextVal ? '1' : '0');
+    } catch {
+      /* private mode etc. */
+    }
+    return nextVal;
+  }, []);
+
+  /**
+   * One-shot shuffle: randomize the queue keeping the current track first.
+   * Returns false when there is nothing to shuffle.
+   */
+  const shuffleQueue = useCallback((): boolean => {
+    const q = queueRef.current;
+    if (q.length <= 1) return false;
+    const currentId = q[indexRef.current]?.videoId ?? lastVideoRef.current;
+    const rest = q.filter((v) => v.videoId !== currentId);
+    for (let i = rest.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = rest[i]!;
+      rest[i] = rest[j]!;
+      rest[j] = tmp;
+    }
+    const head = q.find((v) => v.videoId === currentId) ?? q[0]!;
+    const nextQueue = [head, ...rest.filter((v) => v.videoId !== head.videoId)];
+    indexRef.current = 0;
+    setIndex(0);
+    queueRef.current = nextQueue;
+    setQueue(nextQueue);
+    return true;
+  }, []);
 
   /** Create the player if needed (safe to call on panel open). */
   const ensureReady = useCallback(async (): Promise<boolean> => {
@@ -148,6 +204,7 @@ export function useRadioAudio() {
       if (s === 'playing') {
         setPlaying(true);
         setNotice(null);
+        errorStreakRef.current = 0;
       } else if (s === 'paused') setPlaying(false);
       else if (s === 'ended') advanceRef.current();
     });
@@ -166,8 +223,16 @@ export function useRadioAudio() {
         }
         if (firedAt !== epochRef.current) return;
         if (blocked) setNotice('adblock');
-        const next = indexRef.current + 1;
-        if (next < queueRef.current.length && playerRef.current) {
+        // Consecutive-error guard (matters with repeat on): a fully broken
+        // queue must terminate in the error box, not spin forever.
+        errorStreakRef.current += 1;
+        const len = queueRef.current.length;
+        const hasNext = indexRef.current + 1 < len || (repeatRef.current && len > 0);
+        if (errorStreakRef.current > len && len > 0) {
+          errorStreakRef.current = 0;
+          setError('player');
+          setPlaying(false);
+        } else if (hasNext && playerRef.current) {
           advanceRef.current();
         } else {
           setError('player');
@@ -397,5 +462,8 @@ export function useRadioAudio() {
     removeAt,
     move,
     release,
+    repeat,
+    toggleRepeat,
+    shuffleQueue,
   };
 }
