@@ -319,6 +319,30 @@ describe('FocusRadio', () => {
     expect(screen.getByRole('button', { name: 'Repeat queue' }).getAttribute('aria-pressed')).toBe('false');
   });
 
+  it('toggles auto-advance with switch state, event and persistence', async () => {
+    const players = installYTMock();
+    render(<FocusRadio />);
+    fireEvent.click(screen.getByRole('button', { name: 'Radio' }));
+    await searchLofi();
+    await act(async () => {
+      const p = (async () => {
+        fireEvent.click(screen.getByRole('button', { name: 'Play Title a' }));
+      })();
+      await new Promise((r) => setTimeout(r, 0));
+      players[0]!.__events.onReady?.({ target: players[0] });
+      await p;
+    });
+    const autoSwitch = () => screen.getByRole('switch', { name: 'Auto-advance queue' });
+    expect(autoSwitch().getAttribute('aria-checked')).toBe('true');
+    fireEvent.click(autoSwitch());
+    expect(trackMock).toHaveBeenCalledWith('radio_autoadvance', { on: false });
+    expect(autoSwitch().getAttribute('aria-checked')).toBe('false');
+    expect(window.localStorage.getItem('devhub.focus.radioAutoAdvance')).toBe('0');
+    fireEvent.click(autoSwitch());
+    expect(trackMock).toHaveBeenCalledWith('radio_autoadvance', { on: true });
+    expect(autoSwitch().getAttribute('aria-checked')).toBe('true');
+  });
+
   it('shuffles keeping the current track first', async () => {
     render(<FocusRadio />);
     fireEvent.click(screen.getByRole('button', { name: 'Radio' }));

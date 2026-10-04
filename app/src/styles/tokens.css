@@ -37,6 +37,12 @@
   --accent-dim: rgba(93, 182, 155, 0.12);
   --accent-ring: rgba(93, 182, 155, 0.30);
 
+  /* Focus — hijau + krem halaman Focus Mode (desain baru 2026-10) */
+  --bg-focus: #141311;
+  --accent-focus: #57a37e;
+  --accent-focus-hover: #6ab28d;
+  --accent-focus-pressed: #478f6c;
+
   /* Semantic — all soft dusty, flat */
   --status-danger: #d67a7a;
   --status-danger-dim: rgba(214, 122, 122, 0.12);
@@ -200,6 +206,12 @@ html[data-theme='light'] {
   --accent-pressed: #3d7a60;
   --accent-dim: rgba(74, 139, 111, 0.10);
   --accent-ring: rgba(74, 139, 111, 0.20);
+
+  /* Focus — hijau + krem halaman Focus Mode (desain baru 2026-10) */
+  --bg-focus: #faf8f3;
+  --accent-focus: #2f7d5a;
+  --accent-focus-hover: #3a8f68;
+  --accent-focus-pressed: #276a4b;
 
   --status-danger: #b85c5c;
   --status-danger-dim: rgba(184, 92, 92, 0.10);

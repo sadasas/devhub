@@ -3598,6 +3598,57 @@ html[data-theme='light'] .splash-bg {
   border-bottom-color: var(--border-hairline);
 }
 
+/* Focus Mode desain baru: bg krem halaman + pill gabungan timer/radio.
+   Satu wadah .focus-combined (border tunggal); separuh timer & radio
+   menempel tanpa border sendiri; toggle timer hijau di urutan pertama. */
+.page:has(.focus-topbar) {
+  background: var(--bg-focus);
+}
+.focus-combined {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-pill);
+  background: var(--bg-base);
+  padding: 2px;
+  min-width: 0;
+}
+.focus-combined .focus-pill-half {
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+}
+.focus-combined .focus-timer-toggle:not(.is-done) {
+  order: -1;
+  background: var(--accent-focus) !important;
+  color: var(--text-on-accent) !important;
+  border: none !important;
+}
+.focus-combined .focus-timer-toggle.is-done {
+  order: -1;
+}
+.focus-combined .focus-radio {
+  border-left: 1px solid var(--border-hairline);
+  padding-left: 6px !important;
+}
+/* Tab underline popover timer (ganti segmented): teks + garis hijau aktif. */
+.focus-mode-tab {
+  background: none;
+  border: none;
+  padding: 4px 2px 8px;
+  margin-right: 16px;
+  font-size: 14px;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+.focus-mode-tab[aria-selected='true'] {
+  color: var(--text-primary);
+  font-weight: 600;
+  border-bottom-color: var(--accent-focus);
+}
+
 .topbar-btn {
   display: inline-flex;
   align-items: center;

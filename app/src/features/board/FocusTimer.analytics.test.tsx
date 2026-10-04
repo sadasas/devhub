@@ -55,7 +55,7 @@ describe('FocusTimer analytics', () => {
   it('fires timer_mode_switch with the new mode', () => {
     render(<FocusTimer />);
     openSheet();
-    fireEvent.click(screen.getByRole('button', { name: 'Stopwatch' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Stopwatch' }));
     expect(trackMock).toHaveBeenCalledWith('timer_mode_switch', { mode: 'up' });
   });
 

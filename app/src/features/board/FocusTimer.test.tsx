@@ -162,10 +162,10 @@ describe('FocusTimer', () => {
   it('edit affordance is hidden for stopwatch, running and finished', () => {
     renderTimer();
     openSheet();
-    fireEvent.click(screen.getByRole('button', { name: 'Stopwatch' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Stopwatch' }));
     expect(screen.queryByRole('button', { name: '00:00' })).toBeNull();
     expect(screen.queryByLabelText('Minutes')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Countdown' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Countdown' }));
     const firstPlay = screen.getAllByRole('button', { name: 'Play' })[0];
     expect(firstPlay).toBeTruthy();
     fireEvent.click(firstPlay!);
@@ -218,14 +218,25 @@ describe('FocusTimer', () => {
     expect(screen.getByText(SESSION_LABEL)).toBeTruthy();
     expect(screen.getByRole('button', { name: '25' }).getAttribute('aria-pressed')).toBe('true');
     expect(screen.getByRole('button', { name: '50' }).getAttribute('aria-pressed')).toBe('false');
-    fireEvent.click(screen.getByRole('button', { name: 'Stopwatch' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Stopwatch' }));
     for (const label of PRESETS) {
       expect(screen.queryByRole('button', { name: label })).toBeNull();
     }
     expect(screen.queryByText(SESSION_LABEL)).toBeNull();
     expect(sheet()).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Countdown' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Countdown' }));
     expect(screen.getByRole('button', { name: '50' })).toBeTruthy();
+  });
+
+  it('mode tabs reflect the active mode', () => {
+    mockMatchMedia(false);
+    renderTimer();
+    openPanel();
+    expect(screen.getByRole('tab', { name: 'Countdown' }).getAttribute('aria-selected')).toBe('true');
+    expect(screen.getByRole('tab', { name: 'Stopwatch' }).getAttribute('aria-selected')).toBe('false');
+    fireEvent.click(screen.getByRole('tab', { name: 'Stopwatch' }));
+    expect(screen.getByRole('tab', { name: 'Stopwatch' }).getAttribute('aria-selected')).toBe('true');
+    expect(screen.queryByRole('button', { name: '50' })).toBeNull();
   });
 
   it('preset 50 sets 50:00 without starting', () => {
@@ -345,7 +356,7 @@ describe('FocusTimer', () => {
     mockMatchMedia(false);
     renderTimer();
     openPanel();
-    fireEvent.click(screen.getByRole('button', { name: 'Stopwatch' }));
+    fireEvent.click(screen.getByRole('tab', { name: 'Stopwatch' }));
     expect(screen.queryByTestId('timer-edit-badge')).toBeNull();
   });
 

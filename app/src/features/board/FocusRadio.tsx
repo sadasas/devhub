@@ -75,6 +75,8 @@ export function FocusRadio() {
     release,
     repeat,
     toggleRepeat,
+    autoAdvance,
+    toggleAutoAdvance,
     shuffleQueue,
   } = useRadioAudio();
   const dragFromRef = useRef<number | null>(null);
@@ -200,12 +202,152 @@ export function FocusRadio() {
     if (shuffleQueue()) track('radio_shuffle');
   };
 
+  const onAutoAdvanceToggle = () => {
+    const on = toggleAutoAdvance();
+    track('radio_autoadvance', { on });
+  };
+
   // Mutually exclusive views: results XOR queue. Searching (or showing
   // results) hides the queue + now playing; clearing returns to them.
   const showResults = searching || searched;
 
   const panelBody = (
     <div>
+      <div ref={containerRef} aria-hidden="true" style={{ height: 0, overflow: 'hidden' }} />
+      {current && (
+        <>
+          <div style={{ marginBottom: 8 }}>
+            <p
+              style={{ fontSize: 13, fontWeight: 600, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              title={current.title}
+            >
+              {current.title}
+            </p>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 0' }}>{current.channelTitle}</p>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+            <span style={{ position: 'relative', display: 'inline-flex' }}>
+              <Tooltip title={t('board.focus.radioShuffle') as string}>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm btn-icon"
+                onClick={onShuffle}
+                disabled={queue.length <= 1}
+                aria-label={t('board.focus.radioShuffle') as string}
+                style={{ color: 'var(--text-muted)' }}
+              >
+                <Shuffle size={14} aria-hidden="true" />
+              </button>
+              </Tooltip>
+            </span>
+            <Tooltip title={t('board.focus.radioPrev') as string}>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm btn-icon"
+              onClick={() => void onPrev()}
+              disabled={index <= 0}
+              aria-label={t('board.focus.radioPrev') as string}
+            >
+              <SkipBack size={14} aria-hidden="true" />
+            </button>
+            </Tooltip>
+            <Tooltip title={(playing ? t('board.focus.timerPause') : t('board.focus.timerPlay')) as string}>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm btn-icon"
+              onClick={() => void onToggle()}
+              aria-label={(playing ? t('board.focus.timerPause') : t('board.focus.timerPlay')) as string}
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: '50%',
+                background: 'var(--accent-focus)',
+                color: 'var(--text-on-accent)',
+                border: 'none',
+              }}
+            >
+              {playing ? <Pause size={14} aria-hidden="true" /> : <Play size={14} aria-hidden="true" />}
+            </button>
+            </Tooltip>
+            <Tooltip title={t('board.focus.radioNext') as string}>
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm btn-icon"
+              onClick={() => void onNext()}
+              disabled={index + 1 >= queue.length}
+              aria-label={t('board.focus.radioNext') as string}
+            >
+              <SkipForward size={14} aria-hidden="true" />
+            </button>
+            </Tooltip>
+            <span style={{ position: 'relative', display: 'inline-flex' }}>
+              <Tooltip title={t('board.focus.radioRepeat') as string}>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm btn-icon"
+                onClick={onRepeatToggle}
+                aria-label={t('board.focus.radioRepeat') as string}
+                aria-pressed={repeat}
+                style={repeat ? { color: 'var(--accent)' } : { color: 'var(--text-muted)' }}
+              >
+                <Repeat size={14} aria-hidden="true" />
+              </button>
+              </Tooltip>
+              {repeat && (
+                <span
+                  aria-hidden="true"
+                  data-testid="repeat-dot"
+                  style={{
+                    position: 'absolute',
+                    left: '50%',
+                    bottom: 1,
+                    transform: 'translateX(-50%)',
+                    width: 4,
+                    height: 4,
+                    borderRadius: '50%',
+                    background: 'var(--accent)',
+                  }}
+                />
+              )}
+            </span>
+          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={autoAdvance}
+            onClick={onAutoAdvanceToggle}
+            aria-label={t('board.focus.radioAutoAdvance') as string}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'none', border: 'none', padding: 0, cursor: 'pointer', marginTop: 8 }}
+          >
+            <span
+              aria-hidden="true"
+              style={{
+                width: 36,
+                height: 20,
+                borderRadius: 'var(--radius-pill)',
+                background: autoAdvance ? 'var(--accent-focus)' : 'var(--border-strong)',
+                position: 'relative',
+                display: 'inline-block',
+                flexShrink: 0,
+              }}
+            >
+              <span
+                style={{
+                  position: 'absolute',
+                  top: 2,
+                  left: autoAdvance ? 18 : 2,
+                  width: 16,
+                  height: 16,
+                  borderRadius: 'var(--radius-pill)',
+                  background: 'var(--bg-base)',
+                }}
+              />
+            </span>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}>{t('board.focus.radioAutoAdvance')}</span>
+          </button>
+          <hr className="sheet-divider" aria-hidden="true" />
+        </>
+      )}
       <form onSubmit={submitSearch} role="search">
         <div style={{ display: 'flex', gap: 8 }}>
           <input
@@ -408,123 +550,7 @@ export function FocusRadio() {
           ))}
         </ul>
       )}
-      <hr className="sheet-divider" aria-hidden="true" />
-      <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 8px' }}>
-        {t('board.focus.radioNowPlaying')}
-      </p>
-      <div
-        ref={containerRef}
-        aria-hidden="true"
-        style={{ height: 0, overflow: 'hidden' }}
-      />
-      {current ? (
-        <div style={{ marginTop: 8 }}>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            {current.thumbnailUrl ? (
-              <img
-                src={current.thumbnailUrl}
-                alt={current.title}
-                width={56}
-                height={56}
-                loading="lazy"
-                style={{ borderRadius: 8, objectFit: 'cover', flexShrink: 0 }}
-              />
-            ) : null}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: 13, fontWeight: 600, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={current.title}>
-                {current.title}
-              </p>
-              <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 0' }}>{current.channelTitle}</p>
-            </div>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginTop: 8 }}>
-            <span style={{ position: 'relative', display: 'inline-flex' }}>
-              <Tooltip title={t('board.focus.radioShuffle') as string}>
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm btn-icon"
-                onClick={onShuffle}
-                disabled={queue.length <= 1}
-                aria-label={t('board.focus.radioShuffle') as string}
-                style={{ color: 'var(--text-muted)' }}
-              >
-                <Shuffle size={14} aria-hidden="true" />
-              </button>
-              </Tooltip>
-            </span>
-            <Tooltip title={t('board.focus.radioPrev') as string}>
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm btn-icon"
-              onClick={() => void onPrev()}
-              disabled={index <= 0}
-              aria-label={t('board.focus.radioPrev') as string}
-            >
-              <SkipBack size={14} aria-hidden="true" />
-            </button>
-            </Tooltip>
-            <Tooltip title={(playing ? t('board.focus.timerPause') : t('board.focus.timerPlay')) as string}>
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm btn-icon"
-              onClick={() => void onToggle()}
-              aria-label={(playing ? t('board.focus.timerPause') : t('board.focus.timerPlay')) as string}
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: '50%',
-                background: 'var(--text-primary)',
-                color: 'var(--bg-base)',
-                border: 'none',
-              }}
-            >
-              {playing ? <Pause size={14} aria-hidden="true" /> : <Play size={14} aria-hidden="true" />}
-            </button>
-            </Tooltip>
-            <Tooltip title={t('board.focus.radioNext') as string}>
-            <button
-              type="button"
-              className="btn btn-ghost btn-sm btn-icon"
-              onClick={() => void onNext()}
-              disabled={index + 1 >= queue.length}
-              aria-label={t('board.focus.radioNext') as string}
-            >
-              <SkipForward size={14} aria-hidden="true" />
-            </button>
-            </Tooltip>
-            <span style={{ position: 'relative', display: 'inline-flex' }}>
-              <Tooltip title={t('board.focus.radioRepeat') as string}>
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm btn-icon"
-                onClick={onRepeatToggle}
-                aria-label={t('board.focus.radioRepeat') as string}
-                aria-pressed={repeat}
-                style={repeat ? { color: 'var(--accent)' } : { color: 'var(--text-muted)' }}
-              >
-                <Repeat size={14} aria-hidden="true" />
-              </button>
-              </Tooltip>
-              {repeat && (
-                <span
-                  aria-hidden="true"
-                  data-testid="repeat-dot"
-                  style={{
-                    position: 'absolute',
-                    left: '50%',
-                    bottom: 1,
-                    transform: 'translateX(-50%)',
-                    width: 4,
-                    height: 4,
-                    borderRadius: '50%',
-                    background: 'var(--accent)',
-                  }}
-                />
-              )}
-            </span>
-          </div>
-        </div>
-      ) : (
+      {!current && (
         <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '8px 0 0' }}>
           {t('board.focus.radioPickHint')}
         </p>
@@ -551,6 +577,7 @@ export function FocusRadio() {
       <div
         role="group"
         aria-label={radioLabel}
+        className="focus-pill-half"
         style={{
           display: 'inline-flex',
           alignItems: 'center',

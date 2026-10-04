@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { createPortal } from 'react-dom';
-import { Trash, Clock, LinkSimple, FileText, CheckCircle, Plus, Circle, Flag, CalendarBlank, Tag, User, Rocket, ChartBar, ListChecks, PencilSimple, CaretLeft, GitBranch, LinkBreak, Crosshair } from '@phosphor-icons/react';
+import { Trash, Clock, LinkSimple, FileText, CheckCircle, Plus, Circle, Flag, CalendarBlank, Tag, User, Rocket, ChartBar, ListChecks, PencilSimple, CaretDown, CaretLeft, LinkBreak, Crosshair } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import {
   TASK_PRIORITY,
@@ -575,7 +575,7 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
               <CaretLeft size={14} aria-hidden="true" />
               <span className="focus-topbar-label">{t('board.focus.back')}</span>
             </button>
-            <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, justifySelf: 'center', minWidth: 0 }}>
+            <div className="focus-combined" style={{ display: 'inline-flex', alignItems: 'center', gap: 0, justifySelf: 'center', minWidth: 0 }}>
               <FocusTimer />
               <FocusRadio />
             </div>
@@ -1101,15 +1101,31 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
                 {t('board.taskModal.subtasksLabel', { defaultValue: 'Subtasks' })}
                 {subtasks.length > 0 && <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}> · {subDone}/{subtasks.length}</span>}
               </h4>
-              {canEdit && !task.parentTaskId && subtasks.length === 0 && !parentPicking && (
+              {canEdit && !task.parentTaskId && !parentPicking && (
+                <Tooltip
+                  title={
+                    subtasks.length > 0
+                      ? (t('board.taskModal.setParentDisabledHint', { defaultValue: 'Sudah punya subtask' }) as string)
+                      : (t('board.taskModal.setParent', { defaultValue: 'Make subtask of…' }) as string)
+                  }
+                >
+                <span style={{ display: 'inline-flex' }}>
                 <button
                   type="button"
                   onClick={() => setParentPicking(true)}
-                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 12, padding: 0, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 4 }}
+                  disabled={subtasks.length > 0}
+                  aria-label={
+                    subtasks.length > 0
+                      ? (t('board.taskModal.setParentDisabledHint', { defaultValue: 'Sudah punya subtask' }) as string)
+                      : (t('board.taskModal.setParent', { defaultValue: 'Make subtask of…' }) as string)
+                  }
+                  style={{ background: 'none', border: 'none', cursor: subtasks.length > 0 ? 'default' : 'pointer', color: 'var(--text-muted)', fontSize: 12, padding: 0, whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 4, opacity: subtasks.length > 0 ? 0.55 : 1 }}
                 >
-                  <GitBranch size={12} aria-hidden="true" />
+                  <CaretDown size={12} aria-hidden="true" />
                   {t('board.taskModal.setParent', { defaultValue: 'Make subtask of…' })}
                 </button>
+                </span>
+                </Tooltip>
               )}
               </div>
               <div style={{ marginTop: 8 }}>
@@ -1286,7 +1302,9 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
                             onChange={(v) => setSubPriority(v as TaskPriority | null)}
                           />
                         </span>
-                        <Button variant="primary" size="md" className="btn-icon" style={{ marginLeft: 'auto', flexShrink: 0 }} aria-label={t('board.taskModal.addSubtask', { defaultValue: 'New subtask…' })} onClick={() => { addSubtask(); }} disabled={!subDraft.trim()}><Plus size={16} aria-hidden="true" /></Button>
+                        {subDraft.trim() ? (
+                          <Button variant="primary" size="md" className="btn-icon" style={{ marginLeft: 'auto', flexShrink: 0 }} aria-label={t('board.taskModal.addSubtask', { defaultValue: 'New subtask…' })} onClick={() => { addSubtask(); }}><Plus size={16} aria-hidden="true" /></Button>
+                        ) : null}
                       </div>
                       {subRangeErr && <div style={{ padding: '0 12px 8px' }}><InlineError>{subRangeErr}</InlineError></div>}
                     </div>
@@ -1377,7 +1395,9 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
                       aria-label={t('board.taskModal.addChecklist', { defaultValue: 'New item…' })}
                       style={{ flex: 1, minWidth: 0 }}
                     />
-                    <Button variant="primary" size="md" className="btn-icon" aria-label={t('board.taskModal.addChecklist', { defaultValue: 'New item…' })} onClick={addCheck} disabled={!checkDraft.trim()}><Plus size={16} aria-hidden="true" /></Button>
+                    {checkDraft.trim() ? (
+                      <Button variant="primary" size="md" className="btn-icon" aria-label={t('board.taskModal.addChecklist', { defaultValue: 'New item…' })} onClick={addCheck}><Plus size={16} aria-hidden="true" /></Button>
+                    ) : null}
                   </div>
                 ) : (
                   <Button

@@ -87,29 +87,28 @@ function TimerSheetBody({
 
   return (
     <div>
-      <div style={{ display: 'flex', gap: 8 }}>
-        <Button
-          variant={mode === 'up' ? 'primary' : 'secondary'}
-          size="sm"
-          aria-pressed={mode === 'up'}
-          onClick={() => onChangeMode('up')}
-        >
-          {t('board.focus.timerStopwatch')}
-        </Button>
-        <Button
-          variant={mode === 'down' ? 'primary' : 'secondary'}
-          size="sm"
-          aria-pressed={mode === 'down'}
+      <div role="tablist" aria-label={t('board.focus.timerLabel') as string} style={{ display: 'flex', borderBottom: '1px solid var(--border-hairline)', marginBottom: 4 }}>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === 'down'}
+          className="focus-mode-tab"
           onClick={() => onChangeMode('down')}
         >
           {t('board.focus.timerCountdown')}
-        </Button>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={mode === 'up'}
+          className="focus-mode-tab"
+          onClick={() => onChangeMode('up')}
+        >
+          {t('board.focus.timerStopwatch')}
+        </button>
       </div>
       {showPresets && (
-        <div style={{ marginTop: 12 }}>
-          <p style={{ fontSize: 12, color: 'var(--text-muted)', textAlign: 'center', margin: '0 0 8px' }}>
-            {t('board.focus.timerSessionLength')}
-          </p>
+        <div style={{ marginTop: 8 }}>
           <div
             role="group"
             aria-label={t('board.focus.timerSessionLength') as string}
@@ -122,7 +121,11 @@ function TimerSheetBody({
                   key={min}
                   variant={active ? 'primary' : 'secondary'}
                   size="sm"
-                  style={{ flex: 1 }}
+                  style={
+                    active
+                      ? { flex: 1, background: 'var(--accent-focus)', borderColor: 'transparent', color: 'var(--text-on-accent)' }
+                      : { flex: 1 }
+                  }
                   aria-pressed={active}
                   onClick={() => onSetDuration(min * 60, 'preset')}
                 >
@@ -131,6 +134,9 @@ function TimerSheetBody({
               );
             })}
           </div>
+          <p style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', margin: '8px 0 0' }}>
+            {t('board.focus.timerMinutesCaption')}
+          </p>
         </div>
       )}
       {canEdit && editing ? (
@@ -246,7 +252,12 @@ function TimerSheetBody({
         </div>
       )}
       <div style={{ marginTop: 12 }}>
-        <Button variant="primary" size="md" style={{ width: '100%' }} onClick={onPlay}>
+        <Button
+          variant="primary"
+          size="md"
+          style={{ width: '100%', background: 'var(--accent-focus)', borderColor: 'transparent', color: 'var(--text-on-accent)' }}
+          onClick={onPlay}
+        >
           {running ? t('board.focus.timerPause') : t('board.focus.timerStartFocus')}
         </Button>
       </div>
@@ -339,7 +350,7 @@ export function FocusTimer() {
   const display = formatFocusTimer(displaySecs);
   const timerLabel = t('board.focus.timerLabel') as string;
   // Viewport-clamped popover (PresenceChip pattern) — never cut off at edges.
-  const panelPos = useViewportPanel(displayButtonRef, 280);
+  const panelPos = useViewportPanel(displayButtonRef, 300);
 
   const toggle = () => {
     if (finished) return;
@@ -409,6 +420,7 @@ export function FocusTimer() {
       <div
         role="group"
         aria-label={timerLabel}
+        className="focus-pill-half"
         style={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -445,7 +457,7 @@ export function FocusTimer() {
         <Tooltip title={finished ? (t('board.focus.timerFinished') as string) : running ? (t('board.focus.timerPause') as string) : (t('board.focus.timerPlay') as string)}>
         <button
           type="button"
-          className="btn btn-ghost btn-sm btn-icon focus-timer-toggle"
+          className={`btn btn-ghost btn-sm btn-icon focus-timer-toggle${finished ? ' is-done' : ''}`}
           onClick={finished ? reset : toggle}
           aria-label={finished ? (t('board.focus.timerFinished') as string) : running ? (t('board.focus.timerPause') as string) : (t('board.focus.timerPlay') as string)}
           style={

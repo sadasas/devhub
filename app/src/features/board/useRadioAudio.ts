@@ -5,6 +5,7 @@ import { createRadioPlayer, detectAdblock, type RadioPlayerHandle } from './yout
 
 const VOLUME_KEY = 'devhub.focus.musicVolume';
 const REPEAT_KEY = 'devhub.focus.radioRepeat';
+const AUTO_KEY = 'devhub.focus.radioAutoAdvance';
 const DEFAULT_VOLUME = 0.7;
 
 function readStoredVolume(): number {
@@ -59,6 +60,14 @@ export function useRadioAudio() {
   });
   /** Informative adblock notice (playback continues via auto-skip). */
   const [notice, setNotice] = useState<'adblock' | null>(null);
+  /** Auto-advance to the next track at end (persisted, default on). */
+  const [autoAdvance, setAutoAdvanceState] = useState<boolean>(() => {
+    try {
+      return typeof window === 'undefined' || window.localStorage.getItem(AUTO_KEY) !== '0';
+    } catch {
+      return true;
+    }
+  });
 
   const playerRef = useRef<RadioPlayerHandle | null>(null);
   const creatingRef = useRef<Promise<RadioPlayerHandle> | null>(null);
@@ -72,6 +81,8 @@ export function useRadioAudio() {
   const lastVideoRef = useRef<string | null>(null);
   const repeatRef = useRef(repeat);
   repeatRef.current = repeat;
+  const autoAdvanceRef = useRef(autoAdvance);
+  autoAdvanceRef.current = autoAdvance;
   // Consecutive error-skips without a successful play. Guards repeat loops:
   // a fully broken queue must terminate in the error box, not spin forever.
   const errorStreakRef = useRef(0);
@@ -127,6 +138,18 @@ export function useRadioAudio() {
     setRepeatState(nextVal);
     try {
       window.localStorage.setItem(REPEAT_KEY, nextVal ? '1' : '0');
+    } catch {
+      /* private mode etc. */
+    }
+    return nextVal;
+  }, []);
+
+  const toggleAutoAdvance = useCallback((): boolean => {
+    const nextVal = !autoAdvanceRef.current;
+    autoAdvanceRef.current = nextVal;
+    setAutoAdvanceState(nextVal);
+    try {
+      window.localStorage.setItem(AUTO_KEY, nextVal ? '1' : '0');
     } catch {
       /* private mode etc. */
     }
@@ -205,8 +228,11 @@ export function useRadioAudio() {
         setPlaying(true);
         setNotice(null);
         errorStreakRef.current = 0;
-      } else if (s === 'paused') setPlaying(false);
-      else if (s === 'ended') advanceRef.current();
+      }       else if (s === 'paused') setPlaying(false);
+      else if (s === 'ended') {
+        if (autoAdvanceRef.current) advanceRef.current();
+        else setPlaying(false);
+      }
     });
     handle.onError(() => {
       if (epoch !== epochRef.current) return;
@@ -464,6 +490,8 @@ export function useRadioAudio() {
     release,
     repeat,
     toggleRepeat,
+    autoAdvance,
+    toggleAutoAdvance,
     shuffleQueue,
   };
 }
