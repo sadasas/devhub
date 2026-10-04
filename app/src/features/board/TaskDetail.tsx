@@ -1303,8 +1303,15 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
                           />
                         </span>
                         {subDraft.trim() ? (
-                          <Button variant="primary" size="md" className="btn-icon" style={{ marginLeft: 'auto', flexShrink: 0 }} aria-label={t('board.taskModal.addSubtask', { defaultValue: 'New subtask…' })} onClick={() => { addSubtask(); }}><Plus size={16} aria-hidden="true" /></Button>
-                        ) : null}
+                          <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                          <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{t('board.taskModal.subAddHint')}</span>
+                          <Button variant="primary" size="md" className="btn-icon" aria-label={t('board.taskModal.addSubtask', { defaultValue: 'New subtask…' })} onClick={() => { addSubtask(); }}><Plus size={16} aria-hidden="true" /></Button>
+                          </span>
+                        ) : (
+                          <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
+                          <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{t('board.taskModal.subAddHint')}</span>
+                          </span>
+                        )}
                       </div>
                       {subRangeErr && <div style={{ padding: '0 12px 8px' }}><InlineError>{subRangeErr}</InlineError></div>}
                     </div>
@@ -1341,6 +1348,22 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
               {t('board.taskModal.checklistLabel', { defaultValue: 'Checklist' })}
               {checklist.length > 0 && <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}> · {checklist.filter((c) => c.done).length}/{checklist.length}</span>}
             </h4>
+            {checklist.length > 0 && (() => {
+              const doneCount = checklist.filter((c) => c.done).length;
+              const pct = Math.round((doneCount / checklist.length) * 100);
+              return (
+                <div
+                  role="progressbar"
+                  aria-valuenow={doneCount}
+                  aria-valuemin={0}
+                  aria-valuemax={checklist.length}
+                  aria-label={t('board.taskModal.checklistLabel', { defaultValue: 'Checklist' })}
+                  style={{ height: 4, borderRadius: 'var(--radius-pill)', background: 'var(--bg-inset)', marginTop: 8 }}
+                >
+                  <div style={{ width: `${pct}%`, height: '100%', borderRadius: 'var(--radius-pill)', background: 'var(--accent-focus)' }} />
+                </div>
+              );
+            })()}
             <div style={{ marginTop: 8 }}>
               {checklist.length === 0 && !canEdit && <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>—</span>}
               {checklist.map((c, i) => (
@@ -1411,6 +1434,19 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
                 )
               )}
             </div>
+            {variant === 'page' && (
+              <div style={{ marginTop: 12 }}>
+                <button
+                  type="button"
+                  className="btn btn-ghost btn-sm"
+                  onClick={() => setPropsOpen((v) => !v)}
+                  aria-expanded={propsOpen}
+                  style={{ paddingLeft: 0, fontSize: 12, color: 'var(--text-muted)', textDecoration: 'underline' }}
+                >
+                  {propsOpen ? t('board.taskModal.detailHideTask') : t('board.taskModal.detailShowTask')}
+                </button>
+              </div>
+            )}
 
             <AttachmentSection
               projectId={projectId}
