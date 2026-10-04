@@ -16,6 +16,8 @@ import { useProjects } from '../../state/projects-context';
 import { useAuth } from '../../state/auth-context';
 import { CreateTeamModal } from '../teams/CreateTeamModal';
 import { GitHubSetupGate } from '../integrations/GitHubSetupGate';
+import { ShellBanner } from '../../components/ShellBanner';
+import { daysUntil } from '../../lib/alert';
 import { ProjectChatWidget } from '../project/ProjectChatWidget';
 import { useFocusTrap } from '../../hooks/useFocusTrap';
 
@@ -25,9 +27,12 @@ const CHAT_WIDTH_KEY = 'devhub:layout:chatWidth';
 const CHAT_OPEN_PREFIX = 'devhub:layout:chatOpen:';
 const TOPBAR_CHAT_UNREAD_POLL_MS = 30_000;
 
-// Banner grace period verifikasi email (T6/T7): tampil untuk user lama yang
-// belum verified dan masih punya deadline. User baru (hard gate) tidak pernah
-// sampai sini tanpa verifikasi — mereka berhenti di AuthPage.
+// Banner grace period verifikasi email (T6/T7) — wrapper kasus di atas
+// ShellBanner generik: countdown dinamis + aksi kirim ulang. Tampil untuk
+// user lama yang belum verified dan masih punya deadline. Tanpa snooze
+// by design — banner reda hanya saat kondisi hilang (verified).
+// User baru (hard gate) tidak pernah sampai sini tanpa verifikasi —
+// mereka berhenti di AuthPage.
 function GraceBanner({ email, graceUntil }: { email: string; graceUntil: string }) {
   const { t, i18n } = useTranslation('account');
   const [resending, setResending] = useState(false);
@@ -42,6 +47,7 @@ function GraceBanner({ email, graceUntil }: { email: string; graceUntil: string 
   } catch {
     // pakai mentah bila gagal parse
   }
+  const days = daysUntil(graceUntil);
   async function onResend() {
     if (resending || resent) return;
     setResending(true);
@@ -54,31 +60,33 @@ function GraceBanner({ email, graceUntil }: { email: string; graceUntil: string 
       setResending(false);
     }
   }
+  const lead =
+    days === null || days === 0
+      ? t('auth.grace.leadToday', { defaultValue: 'Verifikasi email kamu — hari terakhir hari ini' })
+      : t('auth.grace.lead', {
+          count: days,
+          defaultValue: `Verifikasi email kamu — tersisa ${days} hari`,
+        });
   return (
-    <div
-      role="status"
-      style={{
-        padding: '8px 16px',
-        fontSize: 14,
-        background: 'var(--status-warn-soft)',
-        color: 'var(--status-warn)',
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        flexWrap: 'wrap',
-      }}
-    >
-      <span style={{ flex: 1, minWidth: 200 }}>
-        {t('auth.grace.banner', `Verifikasi email kamu sebelum ${date}, atau akun ini akan dikunci.`)}
-      </span>
-      <button type="button" className="btn btn-ghost btn-sm" onClick={onResend} disabled={resending || resent}>
-        {resent
-          ? t('auth.verify.resentShort', 'Link terkirim — cek inbox.')
+    <ShellBanner
+      tone="warn"
+      lead={lead}
+      message={t('auth.grace.message', {
+        date,
+        defaultValue: `Sebelum ${date}, atau akun ini akan dikunci.`,
+      })}
+      primary={{
+        label: resent
+          ? t('auth.verify.resentShort', { defaultValue: 'Link terkirim — cek inbox.' })
           : resending
-            ? t('auth.verify.resending', 'Sending...')
-            : t('auth.verify.resend', 'Resend verification link')}
-      </button>
-    </div>
+            ? t('auth.verify.resending', { defaultValue: 'Mengirim...' })
+            : t('auth.verify.resend', { defaultValue: 'Kirim ulang link verifikasi' }),
+        onClick: () => void onResend(),
+        busy: resending,
+        disabled: resending || resent,
+      }}
+      testId="grace-banner"
+    />
   );
 }
 

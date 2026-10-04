@@ -140,6 +140,7 @@ export function IssuesPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
       {issues.length === 0 ? (
         <EmptyState
           icon={<Bug size={22} />}
+          doodle="bug"
           title={t('issues.emptyTitle')}
           description={t('issues.emptyDesc')}
           action={

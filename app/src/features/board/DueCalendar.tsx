@@ -19,6 +19,7 @@ import { InlineError } from '../../components/InlineError';
 import { Modal } from '../../components/Modal';
 import { ModalFooter } from '../../components/ModalFooter';
 import { Button } from '../../components/Button';
+import { DoodleIllustration } from '../../components/DoodleIllustration';
 import { Input } from '../../components/Input';
 import { MonthPicker } from '../../components/MonthPicker';
 import { Tooltip } from '../../components/Tooltip';
@@ -986,7 +987,10 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
               </span>
             </div>
             {mobileSelectedTasks.length === 0 ? (
-              <p className="due-cal-mini-empty">{t('board.cal.emptyTitle')}</p>
+              <p className="due-cal-mini-empty">
+                <DoodleIllustration variant="calendar" size={64} />
+                <span>{t('board.cal.emptyTitle')}</span>
+              </p>
             ) : project ? (
               <ul className="due-cal-mini-cards">
                 {mobileSelectedTasks.map((task) => (

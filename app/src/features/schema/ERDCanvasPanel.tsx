@@ -1078,12 +1078,15 @@ export function ERDCanvasPanel({
           {versionsError ? (
             <EmptyState
               icon={<Warning size={22} />}
+              doodle="broken"
+              doodleTone="soft-cream"
               title={versionsError}
               description={t('schema.viewBanner.noSnapshotDesc')}
             />
           ) : versions.length === 0 ? (
             <EmptyState
               icon={<FloppyDisk size={22} />}
+              doodle="clock"
               title={t('schema.empty.versionsTitle')}
               description={t('schema.empty.versionsDesc')}
               action={

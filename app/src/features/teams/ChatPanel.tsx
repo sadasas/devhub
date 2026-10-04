@@ -637,6 +637,7 @@ return (
           <div className="page-empty">
             <EmptyState
               icon={<PaperPlaneTilt size={22} />}
+              doodle="bubble"
               title={t('teams.chat.emptyTitle')}
               description={t('teams.chat.emptyDescription')}
             />

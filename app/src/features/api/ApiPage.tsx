@@ -33,6 +33,7 @@ import { BottomSheet } from '../../components/BottomSheet';
 import { Button } from '../../components/Button';
 import { ActivityList } from '../../components/ActivityList';
 import { EmptyState } from '../../components/EmptyState';
+import { DoodleIllustration } from '../../components/DoodleIllustration';
 import { InlineError } from '../../components/InlineError';
 import { DataErrorState } from '../../components/DataErrorState';
 import { Input } from '../../components/Input';
@@ -582,6 +583,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
     <div className="api-main-empty">
       <EmptyState
         icon={<Plugs size={22} />}
+        doodle="nodes"
         title={t('api.empty.title')}
         description={t('api.empty.editorDesc')}
         action={
@@ -603,6 +605,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
     <div className="api-main-empty">
       <EmptyState
         icon={<Plugs size={22} />}
+        doodle="nodes"
         title={t('api.empty.title')}
         description={t('api.empty.viewerDesc')}
       />
@@ -796,11 +799,13 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
           {isNarrow && <div className="api-drawer-sort">{sortPair}</div>}
           <div className="api-sidebar-scroll">
             {collections.length === 0 && ungrouped.length === 0 ? (
-              <p className="api-sidebar-empty">
-                {t('api.sidebar.empty')}
-              </p>
+              <div className="api-sidebar-empty">
+                <DoodleIllustration variant="empty" size={52} />
+                <p>{t('api.sidebar.empty')}</p>
+              </div>
             ) : query && visibleCollections.length === 0 && visibleUngrouped.length === 0 ? (
               <div className="api-search-empty">
+                <DoodleIllustration variant="not-found" tone="soft-blue" size={52} />
                 <p className="api-sidebar-empty">
                   {t('api.sidebar.noResults', { query: search.trim() })}
                 </p>

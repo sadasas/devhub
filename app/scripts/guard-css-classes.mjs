@@ -116,7 +116,7 @@ export function findViolations(css) {
 export const SPACING_SCALE = new Set([0, 2, 4, 6, 8, 10, 12, 16, 20, 24, 32, 48].map(String));
 
 // Domain warna SAH pasal 8 (bukan drift) — dikecualikan dari warn.
-// - File: karya brand/ilustrasi tetap (Logo, DoodleIllustration).
+// - File: karya brand/ilustrasi tetap (Logo, DoodleIllustration, AuthHeroArt).
 // - Nilai: palet konten kanvas whiteboard + varian tooltip live+ter-test.
 //   Kemiripan dengan token UI adalah kebetulan (§8); hex fixture di luar
 //   daftar ini (mis. #8b5cf6/#22c55e di McpDocsPage) tetap di-warn sampai
@@ -124,6 +124,7 @@ export const SPACING_SCALE = new Set([0, 2, 4, 6, 8, 10, 12, 16, 20, 24, 32, 48]
 export const HEX_FILE_ALLOWLIST = new Set([
   'src/components/Logo.tsx',
   'src/components/DoodleIllustration.tsx',
+  'src/features/auth/AuthHeroArt.tsx',
 ]);
 
 export const HEX_VALUE_ALLOWLIST = new Set([

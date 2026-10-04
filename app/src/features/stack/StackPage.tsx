@@ -245,6 +245,7 @@ export function StackPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }) {
       {entries.length === 0 ? (
         <EmptyState
           icon={<Stack size={22} />}
+          doodle="layers"
           title={t('stack.emptyTitle')}
           description={t('stack.emptyDesc')}
           action={

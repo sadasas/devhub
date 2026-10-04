@@ -1,10 +1,5 @@
 {
   "auth": {
-    "brand": {
-      "title": "The memory of your projects.",
-      "subtitle": "Tasks, bugs, tech stack, database schema, ADRs and releases — everything your project needs, in one workspace.",
-      "footer": "Your data stays yours — export or import anytime."
-    },
     "form": {
       "loginTitle": "Sign in to DevHub",
       "registerTitle": "Create your account",
@@ -45,6 +40,18 @@
       "resetSub": "Choose a new password for your account.",
       "resetSubmit": "Update password",
       "resetSuccess": "Password updated — redirecting to login..."
+    },
+    "verify": {
+      "resend": "Resend verification link",
+      "resending": "Sending...",
+      "resentShort": "Link sent — check your inbox.",
+      "resent": "If that email exists and is unverified, a verification link has been sent."
+    },
+    "grace": {
+      "lead_one": "Verify your email — {{count}} day left",
+      "lead_other": "Verify your email — {{count}} days left",
+      "leadToday": "Verify your email — last day today",
+      "message": "Before {{date}}, or this account will be locked."
     }
   },
   "dashboard": {

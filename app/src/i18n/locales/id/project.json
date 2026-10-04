@@ -1050,7 +1050,7 @@
     },
     "welcome": {
       "title": "Selamat datang di DevHub",
-      "body": "Memori teknis untuk task, issue, dan keputusan. Tur 7 langkah ini menunjukkan jalan tercepat dari tim hingga rilis."
+      "body": "Memori teknis untuk task, issue, dan keputusan. Tur 14 langkah ini menunjukkan jalan tercepat dari tim hingga rilis."
     },
     "team": {
       "title": "Buat tim Anda",
@@ -1060,21 +1060,49 @@
       "title": "Buat project pertama",
       "body": "Project menampung board, issue, stack, schema, dan rilis. Buat satu untuk membuka seluruh workspace."
     },
-    "plan": {
-      "title": "Rencana: Board + Issue",
-      "body": "Pecah pekerjaan jadi task di Board (Alt+1) dan lacak bug di Issue (Alt+2). Shortcut N dijeda selama tur ini."
+    "board": {
+      "title": "Board: lacak pekerjaan",
+      "body": "Pecah pekerjaan jadi task di Board (Alt+1) — seret kartu dari Todo ke Done."
     },
-    "build": {
-      "title": "Bangun: Test + Stack + Schema",
-      "body": "Kunci kualitas dengan Test Case (Alt+3), catat versi di Stack (Alt+4), dan modelkan data di Schema (Alt+5)."
+    "issues": {
+      "title": "Issue: lacak setiap bug",
+      "body": "Catat bug di Issue (Alt+2) lengkap dengan severity dan langkah reproduksi."
     },
-    "decide": {
-      "title": "Putuskan: Keputusan + Rilis + API",
-      "body": "Catat ADR di Keputusan (Alt+6), kelompokkan pekerjaan di Rilis (Alt+7), dan dokumentasikan endpoint di API (Alt+8)."
+    "tests": {
+      "title": "Test: kunci kualitas",
+      "body": "Pasang Test Case (Alt+3) sebagai checklist pada task dan issue."
     },
-    "collab": {
-      "title": "Kolaborasi: Whiteboard + Ringkasan",
-      "body": "Sketsa alur di Whiteboard (Alt+9) dan pantau kesehatan di Ringkasan (Alt+0). Selesaikan di sini, atau ulangi kapan saja dari Bantuan."
+    "stack": {
+      "title": "Stack: ingat versi",
+      "body": "Catat setiap versi dependensi di Stack (Alt+4) agar tak ada upgrade yang hilang."
+    },
+    "schema": {
+      "title": "Schema: modelkan data",
+      "body": "Definisikan tabel dan relasi di Schema (Alt+5) lalu baca ERD visualnya."
+    },
+    "decisions": {
+      "title": "Keputusan: ingat alasannya",
+      "body": "Catat ADR di Keputusan (Alt+6) — opsi yang dipertimbangkan, keputusan, dan konsekuensi."
+    },
+    "releases": {
+      "title": "Rilis: kirim per milestone",
+      "body": "Kelompokkan pekerjaan ke Rilis (Alt+7) lengkap dengan versi dan changelog."
+    },
+    "api": {
+      "title": "API: dokumentasikan endpoint",
+      "body": "Inventarisasi setiap endpoint di API (Alt+8) — method, parameter, dan respons."
+    },
+    "whiteboard": {
+      "title": "Whiteboard: sketsa alur",
+      "body": "Curah gagasan di Whiteboard (Alt+9) — sticky note, diagram, dan wireframe AI."
+    },
+    "overview": {
+      "title": "Ringkasan: pantau kesehatan",
+      "body": "Pantau kesehatan project di Ringkasan (Alt+0) — statistik, grafik, dan PRD."
+    },
+    "finish": {
+      "title": "Siap berangkat",
+      "body": "Tim dibuat, workspace dipetakan. Bangun hal hebat — ulangi tur ini kapan saja dari Bantuan."
     }
   }
 }

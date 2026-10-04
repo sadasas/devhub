@@ -14,6 +14,7 @@ import { isTourActive } from '../features/onboarding/tour-events';
 import { LANGUAGES, useAppLocale } from '../i18n/useAppLocale';
 import { useTheme } from '../state/theme-context';
 import { FE_LIMITS } from '../lib/limits';
+import { DoodleIllustration } from './DoodleIllustration';
 
 interface PaletteCommand {
   id: string;
@@ -446,7 +447,12 @@ export function CommandPalette() {
         />
         <div aria-live="polite" className="sr-only">{t('palette.resultsCount', { count: filtered.length, defaultValue: `${filtered.length} results` })}</div>
         <div className="palette-list" id="palette-list" role="listbox" aria-label={t('palette.commandsList')}>
-          {filtered.length === 0 && <div className="palette-empty" role="status">{t('palette.noMatches', { query })}</div>}
+          {filtered.length === 0 && (
+            <div className="palette-empty" role="status">
+              <DoodleIllustration variant="not-found" tone="soft-blue" size={64} />
+              <span>{t('palette.noMatches', { query })}</span>
+            </div>
+          )}
           {groups.map((g) => (
             <div key={g}>
               <div className="palette-group">{g}</div>

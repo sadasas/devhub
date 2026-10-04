@@ -6,10 +6,10 @@ import { useSearchParams, useNavigate } from 'react-router';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import { Button } from '../../components/Button';
+import { AuthHeroArt } from './AuthHeroArt';
 import { Input } from '../../components/Input';
 import { InlineError } from '../../components/InlineError';
 import { DataErrorState } from '../../components/DataErrorState';
-import { Logo } from '../../components/Logo';
 
 export function ResetPasswordPage() {
   const { t } = useTranslation('account');
@@ -61,13 +61,10 @@ export function ResetPasswordPage() {
   return (
     <div className="auth">
       <aside className="auth-brand">
-        <div className="auth-brand-mark">
-          <Logo size={20} />
-          <span>DevHub</span>
-        </div>
         <div className="auth-brand-copy">
-          <h1>{t('auth.brand.title')}</h1>
-          <p>{t('auth.brand.subtitle')}</p>
+          <div className="auth-brand-art" aria-hidden="true">
+            <AuthHeroArt />
+          </div>
         </div>
       </aside>
       <main className="auth-form-wrap">

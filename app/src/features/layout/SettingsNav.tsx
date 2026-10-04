@@ -11,6 +11,7 @@ import {
   Trash,
 } from '@phosphor-icons/react';
 import { SETTINGS_SUB_KEYS, normalizeSettingsSection, type SettingsSection } from '../dashboard/settingsSections';
+import { DoodleIllustration } from '../../components/DoodleIllustration';
 
 interface SettingsNavProps {
   teamSlug: string;
@@ -97,7 +98,10 @@ export function SettingsNav({ teamSlug, dashboardTo, onSelect }: SettingsNavProp
         );
       })}
       {visible.length === 0 && (
-        <p role="status" className="settings-nav-empty">{t('dashboard.team.settingsNavNoResults')}</p>
+        <div role="status" className="settings-nav-empty">
+          <DoodleIllustration variant="not-found" tone="soft-blue" size={52} />
+          <p>{t('dashboard.team.settingsNavNoResults')}</p>
+        </div>
       )}
     </nav>
   );

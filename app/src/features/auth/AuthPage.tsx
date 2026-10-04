@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowRight, Eye, EyeSlash, TerminalWindow, GithubLogo, GoogleLogo } from '@phosphor-icons/react';
+import { ArrowRight, Eye, EyeSlash, GithubLogo, GoogleLogo } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { ApiError } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import { useAuth } from '../../state/auth-context';
 import { Button } from '../../components/Button';
+import { AuthHeroArt } from './AuthHeroArt';
 import { Input } from '../../components/Input';
-import { Logo } from '../../components/Logo';
 import { Skeleton } from '../../components/Skeleton';
 import { InlineError } from '../../components/InlineError';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
@@ -233,19 +233,11 @@ export function AuthPage() {
   return (
     <div className="auth">
       <aside className="auth-brand">
-        <div className="auth-brand-mark">
-          <Logo size={20} />
-          <span>DevHub</span>
-        </div>
 <div className="auth-brand-copy">
-          <h1>{t('auth.brand.title')}</h1>
-          <p>
-            {t('auth.brand.subtitle')}
-          </p>
+          <div className="auth-brand-art" aria-hidden="true">
+            <AuthHeroArt />
+          </div>
         </div>
-        <p className="auth-brand-foot">
-          <TerminalWindow size={12} weight="duotone" /> {t('auth.brand.footer')}
-        </p>
       </aside>
 
       <main className="auth-form-wrap">

@@ -32,7 +32,7 @@ import { TOUR_STEPS } from './tourSteps';
 function renderWizard(step = 0, overrides: Partial<Parameters<typeof OnboardingWizard>[0]> = {}) {
   const props = {
     step,
-    total: 7,
+    total: 14,
     onNext: vi.fn(),
     onBack: vi.fn(),
     onSkip: vi.fn(),
@@ -53,18 +53,18 @@ beforeEach(() => {
 });
 
 describe('tour i18n (project namespace)', () => {
-  it("resolves t('tour.plan.title') in EN", async () => {
+  it("resolves t('tour.board.title') in EN", async () => {
     await i18n.changeLanguage('en');
-    expect(i18n.t('tour.plan.title', { ns: 'project' })).toBe('Plan: Board + Issues');
+    expect(i18n.t('tour.board.title', { ns: 'project' })).toBe('Board: track the work');
   });
 
-  it("resolves t('tour.plan.title') in ID", async () => {
+  it("resolves t('tour.board.title') in ID", async () => {
     await i18n.changeLanguage('id');
-    expect(i18n.t('tour.plan.title', { ns: 'project' })).toBe('Rencana: Board + Issue');
+    expect(i18n.t('tour.board.title', { ns: 'project' })).toBe('Board: lacak pekerjaan');
     await i18n.changeLanguage('en');
   });
 
-  it('has all 7 step titles + bodies in both locales', async () => {
+  it('has all 14 step titles + bodies in both locales', async () => {
     for (const lng of ['en', 'id'] as const) {
       await i18n.changeLanguage(lng);
       for (const s of TOUR_STEPS) {
@@ -81,9 +81,9 @@ describe('tour i18n (project namespace)', () => {
 });
 
 describe('OnboardingWizard', () => {
-  it('shows progress pill X/7 and one-click Skip', () => {
+  it('shows progress pill X/14 and one-click Skip', () => {
     const props = renderWizard(3);
-    expect(screen.getByText('4/7')).toBeTruthy();
+    expect(screen.getByText('4/14')).toBeTruthy();
     const skip = screen.getByRole('button', { name: /skip tour/i });
     expect(skip).toBeTruthy();
     fireEvent.click(skip);
@@ -105,8 +105,8 @@ describe('OnboardingWizard', () => {
   });
 
   it('last step shows Finish and fires onFinish', () => {
-    const props = renderWizard(6);
-    expect(screen.getByText('7/7')).toBeTruthy();
+    const props = renderWizard(13);
+    expect(screen.getByText('14/14')).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: /finish|selesai/i }));
     expect(props.onFinish).toHaveBeenCalledTimes(1);
   });
@@ -131,6 +131,55 @@ describe('OnboardingWizard', () => {
     renderWizard(4);
     expect(screen.queryByText(/glowing button|tombol yang menyala/i)).toBeNull();
     expect(document.querySelector('.tour-tap-hint')).toBeNull();
+  });
+});
+
+describe('Tour doodles (Batch 2)', () => {
+  it('maps every anchored step to a topic doodle, welcome/finish stay doodle-free in def', () => {
+    expect(TOUR_STEPS[0]!.doodle).toBeUndefined();
+    expect(TOUR_STEPS[13]!.doodle).toBeUndefined();
+    const got = TOUR_STEPS.slice(1, 13).map((s) => s.doodle);
+    expect(got).toEqual([
+      'tour-team',
+      'tour-project',
+      'tour-plan',
+      'tour-issues',
+      'tour-tests',
+      'tour-build',
+      'tour-schema',
+      'tour-decide',
+      'tour-releases',
+      'tour-api',
+      'tour-collab',
+      'tour-overview',
+    ]);
+  });
+  it('welcome modal shows the welcome doodle, finish shows success', () => {
+    const first = renderWizard(0);
+    expect(screen.getByLabelText('tour-welcome')).toBeTruthy();
+    first.unmount();
+    document.body.innerHTML = '';
+    renderWizard(13);
+    expect(screen.getByLabelText('success')).toBeTruthy();
+  });
+  it.each([
+    [1, 'tour-team'],
+    [2, 'tour-project'],
+    [3, 'tour-plan'],
+    [4, 'tour-issues'],
+    [5, 'tour-tests'],
+    [6, 'tour-build'],
+    [7, 'tour-schema'],
+    [8, 'tour-decide'],
+    [9, 'tour-releases'],
+    [10, 'tour-api'],
+    [11, 'tour-collab'],
+    [12, 'tour-overview'],
+  ])('step %i shows its topic doodle %s', (step, doodle) => {
+    const view = renderWizard(step);
+    expect(screen.getByLabelText(doodle as string)).toBeTruthy();
+    view.unmount();
+    document.body.innerHTML = '';
   });
 });
 

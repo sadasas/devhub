@@ -255,6 +255,12 @@ Rules:
 | 2026-09-26 | Migrasi per-area Stack/Schema/Releases/Decisions: 7 footer → `ModalFooter` (`NewTechModal`/`SaveVersionModal`/`NewTableModal`/`NewRelationModal`/`ImportSchemaModal`/`NewMilestoneModal`/`NewDecisionModal`) + delete-relation `SchemaPage` → `ConfirmFooter`; dikecualikan: 5 footer DetailShell `[danger sm Delete + save-state]` (`TechModal`/`TableModal`/`MilestoneModal`/`DecisionModal`/`TestModal` — butuh pola `DetailFooter`) + single-submit `NewTestModal`; 3 gagal pre-existing di berkas tak tersentuh (2× sindrom `unread dot`, 1× popup versi `MilestoneModal` yang bahkan tak import `NewMilestoneModal`) |
 | 2026-09-26 | Migrasi per-area Teams: header `InvitesPage` → `PageHeader`; footer `CreateTeamModal`/`InviteModal`/`ChangeRoleModal`/`EditTeamGeneralModal` → `ModalFooter`; tanpa perubahan visual |
 | 2026-09-26 | Migrasi per-area Auth: 2 tombol OAuth `AuthPage` (`btn btn-secondary` tanpa size — sisa terakhir §9) → `btn-md`; inline duplikat (display/align/padding/border/radius, sudah milik `.btn`/`.btn-secondary`/`.btn-md`) dibuang, `fontWeight: 600` dipertahankan; temuan guard `tombol tanpa size` kini nol |
+| 2026-10-01 | Doodle v2 adegan objek (keputusan owner): maskot bermuka (`thinking/celebrating/confused` + blush) dibuang — kesan anak-SD; ganti 6 spot tanpa wajah (`empty/offline/not-found/locked/broken/success`: blob organik + objek goyang + 2-3 aksen coretan, tinta `#1c1c1f` + kertas `#fff` + aksen `accent`/`status-*`); `DataErrorState` mapping `classifyError()` → doodle, `ZeroTeamOnboarding` → `empty`; guard allowlist `DoodleIllustration.tsx` dipertahankan (file tetap), 12 test hijau |
+| 2026-10-01 | Doodle v2 Batch 1 rollout (keputusan owner): `doodle` dipasang di 26 `EmptyState` (18× `empty`, 4× `not-found` + `NotFoundPage` 404, 1× `locked` settings-no-access, 1× `broken` ERD versionsError, `InvitesPage` ikut `empty`); `icon` dipertahankan sebagai fallback; `success` tetap cadangan tak terpakai; welcome strips + teks inline `noResults` tunda Batch 2 |
+| 2026-10-01 | Doodle v2 Batch 2 (keputusan owner): (A) welcome modal tour → `empty` 104px; (B) 3 welcome strips → doodle 64px gantikan ikon (`empty`/`empty`/`not-found`); (C) 6 spot topik `tour-team/project/plan/build/decide/collab` 52px di header popover via field `doodle` di `TourStepDef` (popover ukur-ulang otomatis, aman); kelas baru `tour-wizard-art` + `tour-popover-head--with-art` (gap 12/8 tangga space-*); 73 test hijau |
+| 2026-10-01 | Doodle v2 Batch 3 tour restructure (keputusan owner): 7→14 step (1 fitur 1 step: welcome/team/project/board/issues/tests/schema/decisions/releases/api/whiteboard/overview/finish); 7 spot baru (`tour-welcome/issues/tests/schema/releases/api/overview`, reuse 6 lama); `TOUR_TOTAL=14`; popover head kolom-tengah 64px ala welcome modal; finish modal debut `success`; `ZeroTeamOnboarding` → `tour-team`; i18n EN/ID 14 kunci paritas |
+| 2026-10-01 | Tour step-skip fix (bug Batch 3): `readTourStep` polos + `ProjectPage` resume step ≥3 + `tour-events.test.ts` (verbatim 0–13, snapshot stabil 3→4→5→6); 84 test hijau |
+| 2026-10-01 | Illustration system doc (keputusan owner): gaya doodle dikunci di `illustration-system.md` (kontrak visual, palet+tone, taksonomi state/`tour-*`, matriks pakai, anti-pola, checklist varian baru); §8 Brand/ilustrasi merujuk ke sana |
 
 ---
 
@@ -382,7 +388,9 @@ Domain warna SAH di luar token UI (bukan drift):
   Cermin erd-export dijaga sinkron manual (utang tercatat).
   Keputusan owner 2026-09-15: #34c38e → accent #5db69b untuk default elemen BARU (templates) + swatch palet; #34c38e dipertahankan di isLightFill (WhiteboardCanvas + export, cermin sinkron) untuk konten lama.
 - **Brand/ilustrasi** (Logo, DoodleIllustration, bento-fill #fff): karya
-  tetap, tidak ikut tema.
+  tetap, tidak ikut tema. Gaya ilustrasi mengikat di
+  [illustration-system.md](illustration-system.md) — di luar itu = temuan
+  review.
 - **Varian tooltip** (dulu dark `#111827`, info `#2f6df6`): DILIPAT 2026-09-23 ke
   satu gaya inverse theme-aware (`--surface-inverse`/`--text-inverse`/
   `--border-inverse`/`--icon-inverse`, nilai dibalik per tema ala Radix;

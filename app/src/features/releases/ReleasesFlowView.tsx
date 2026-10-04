@@ -252,6 +252,7 @@ export function ReleasesFlowView({
     return (
       <EmptyState
         icon={<Rocket size={22} />}
+        doodle="flag"
         title={t('releases.emptyTitle')}
         description={t('releases.flow.emptyDescFlow', { defaultValue: 'No releases yet. Create a milestone with status In Progress to see the step-by-step flow.' })}
         action={

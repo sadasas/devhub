@@ -216,6 +216,16 @@
     "manageNote": "Revoking analytics removes _ga* cookies from this device.",
     "privacyLink": "Privacy Policy"
   },
+  "announce": {
+    "integrations": {
+      "heading": "Connect Google and GitHub",
+      "desc": "Sync your calendar and link repos — everything in one place.",
+      "open": "Open Integrations",
+      "later": "Later",
+      "close": "Close announcement",
+      "choiceAria": "Integration announcement"
+    }
+  },
   "notFound": {
     "title": "Page not found",
     "desc": "The address you opened does not exist or was moved. Double-check your link.",

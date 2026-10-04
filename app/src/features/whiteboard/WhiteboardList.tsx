@@ -131,6 +131,7 @@ export function WhiteboardList({ onOpen, loading = false, unreadIds }: Whiteboar
       {boards.length === 0 ? (
         <EmptyState
           icon={<ChalkboardSimple size={22} />}
+          doodle="canvas"
           title={t('whiteboard.list.emptyTitle')}
           description={t('whiteboard.list.emptyDesc')}
           action={

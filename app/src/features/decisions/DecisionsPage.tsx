@@ -136,6 +136,7 @@ export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }
       {decisions.length === 0 ? (
         <EmptyState
           icon={<Scales size={22} />}
+          doodle="scales"
           title={t('decisions.emptyTitle')}
           description={t('decisions.emptyDesc')}
           action={

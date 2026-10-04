@@ -1,10 +1,5 @@
 {
   "auth": {
-    "brand": {
-      "title": "Memori untuk seluruh proyek Anda.",
-      "subtitle": "Task, bug, tech stack, skema database, ADR, dan rilis — semua yang proyek Anda butuhkan, dalam satu workspace.",
-      "footer": "Data Anda tetap milik Anda — ekspor atau impor kapan saja."
-    },
     "form": {
       "loginTitle": "Masuk ke DevHub",
       "registerTitle": "Buat akun Anda",
@@ -45,6 +40,18 @@
       "resetSub": "Pilih kata sandi baru untuk akun Anda.",
       "resetSubmit": "Perbarui kata sandi",
       "resetSuccess": "Kata sandi diperbarui — mengalihkan ke login..."
+    },
+    "verify": {
+      "resend": "Kirim ulang link verifikasi",
+      "resending": "Mengirim...",
+      "resentShort": "Link terkirim — cek inbox.",
+      "resent": "Jika email itu ada dan belum terverifikasi, link verifikasi telah dikirim."
+    },
+    "grace": {
+      "lead_one": "Verifikasi email kamu — tersisa {{count}} hari",
+      "lead_other": "Verifikasi email kamu — tersisa {{count}} hari",
+      "leadToday": "Verifikasi email kamu — hari terakhir hari ini",
+      "message": "Sebelum {{date}}, atau akun ini akan dikunci."
     }
   },
   "dashboard": {

@@ -636,6 +636,7 @@ export function OverviewPage({ project }: { project: Project }) {
         ) : (
           <EmptyState
             icon={<ChartBar size={22} />}
+            doodle="chart"
             title={t('overview.chartsEmptyTitle')}
             description={t('overview.chartsEmptyDesc')}
           />

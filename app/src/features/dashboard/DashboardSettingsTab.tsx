@@ -209,6 +209,8 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
         <div className="narrow-center">
         <EmptyState
           icon={<GearSix size={22} weight="duotone" aria-hidden="true" />}
+          doodle="locked"
+          doodleTone="soft-cream"
           title={t('dashboard.team.settingsNoAccessTitle')}
           description={t('dashboard.team.settingsNoAccessDesc')}
           action={

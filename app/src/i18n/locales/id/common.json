@@ -216,6 +216,16 @@
     "manageNote": "Mencabut analitik menghapus cookie _ga* dari perangkat ini.",
     "privacyLink": "Kebijakan Privasi"
   },
+  "announce": {
+    "integrations": {
+      "heading": "Hubungkan Google dan GitHub",
+      "desc": "Sinkronkan kalender dan tautkan repo — semua pengaturan ada di satu tempat.",
+      "open": "Buka Integrations",
+      "later": "Nanti saja",
+      "close": "Tutup pengumuman",
+      "choiceAria": "Pengumuman integrasi"
+    }
+  },
   "notFound": {
     "title": "Halaman tidak ditemukan",
     "desc": "Alamat yang Anda buka tidak ada atau sudah dipindah. Periksa kembali tautan Anda.",
