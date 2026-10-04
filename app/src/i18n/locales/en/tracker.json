@@ -210,6 +210,12 @@
       "radioPrev": "Previous",
       "radioPlayTitle": "Play {{title}}",
       "radioPickHint": "Pick a song to start",
+      "radioQueueAdd": "Add {{title}} to queue",
+      "radioQueueTitle": "Queue",
+      "radioQueueEmpty": "Queue is empty — add from search results",
+      "radioMoveUp": "Move up",
+      "radioMoveDown": "Move down",
+      "radioRemove": "Remove {{title}}",
       "propsHide": "Hide",
       "propsShow": "Show"
     },

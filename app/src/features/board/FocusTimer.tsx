@@ -1,12 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowCounterClockwise, CheckCircle, Pause, Play, Timer } from '@phosphor-icons/react';
+import { ArrowCounterClockwise, CheckCircle, Pause, PencilSimple, Play, Timer } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../../components/Button';
 import { BottomSheet } from '../../components/BottomSheet';
 import { Tooltip } from '../../components/Tooltip';
 import { track } from '../../lib/analytics';
-import { FocusMusic } from './FocusMusic';
-import { useAmbientAudio, type AmbientAudio } from './useAmbientAudio';
+import { useViewportPanel } from './useViewportPanel';
 
 export function formatFocusTimer(secs: number): string {
   const safe = Math.max(0, Math.floor(secs));
@@ -31,8 +30,6 @@ interface TimerSheetBodyProps {
   onPlay: () => void;
   onReset: () => void;
   onSetDuration: (totalSecs: number) => void;
-  /** Lifted ambient-audio state: outlives the panel so music keeps playing after close. */
-  music: AmbientAudio;
 }
 
 function TimerSheetBody({
@@ -48,7 +45,6 @@ function TimerSheetBody({
   onPlay,
   onReset,
   onSetDuration,
-  music,
 }: TimerSheetBodyProps) {
   const { t } = useTranslation('tracker');
   const showStepper = mode === 'down' && !running && !finished;
@@ -158,6 +154,7 @@ function TimerSheetBody({
           />
         </div>
       ) : canEdit ? (
+        <span style={{ position: 'relative', display: 'block' }}>
         <button
           type="button"
           className="focus-timer-big"
@@ -181,6 +178,27 @@ function TimerSheetBody({
         >
           {display}
         </button>
+        <span
+          aria-hidden="true"
+          data-testid="timer-edit-badge"
+          style={{
+            position: 'absolute',
+            right: 4,
+            bottom: -2,
+            width: 26,
+            height: 26,
+            borderRadius: '50%',
+            background: 'var(--bg-base)',
+            border: '1px solid var(--accent)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            pointerEvents: 'none',
+          }}
+        >
+          <PencilSimple size={13} style={{ color: 'var(--accent)' }} aria-hidden="true" />
+        </span>
+        </span>
       ) : (
         <div
           aria-hidden="true"
@@ -275,8 +293,6 @@ function TimerSheetBody({
           <ArrowCounterClockwise size={18} aria-hidden="true" />
         </button>
       </div>
-      <hr className="sheet-divider" aria-hidden="true" />
-      <FocusMusic music={music} />
     </div>
   );
 }
@@ -289,9 +305,6 @@ export function FocusTimer() {
   const [durationSecs, setDurationSecs] = useState(1500);
   const [finished, setFinished] = useState(false);
   const [sheetOpen, setSheetOpen] = useState(false);
-  // Lifted above the panel: outlives open/close so music keeps playing.
-  // Torn down only when the topbar unmounts (leaving the focus page).
-  const music = useAmbientAudio();
   const [coarse, setCoarse] = useState(
     () => typeof window !== 'undefined' && window.matchMedia('(hover: none)').matches,
   );
@@ -356,6 +369,8 @@ export function FocusTimer() {
   const almostDone = mode === 'down' && !finished && displaySecs >= 1 && displaySecs <= 10;
   const display = formatFocusTimer(displaySecs);
   const timerLabel = t('board.focus.timerLabel') as string;
+  // Viewport-clamped popover (PresenceChip pattern) — never cut off at edges.
+  const panelPos = useViewportPanel(displayButtonRef, 280);
 
   const toggle = () => {
     if (finished) return;
@@ -482,7 +497,6 @@ export function FocusTimer() {
             onPlay={playInSheet}
             onReset={reset}
             onSetDuration={setDuration}
-            music={music}
           />
         </BottomSheet>
       ) : sheetOpen ? (
@@ -490,12 +504,11 @@ export function FocusTimer() {
           ref={panelRef}
           className="pcard"
           style={{
-            position: 'absolute',
-            top: '100%',
-            left: '50%',
-            transform: 'translateX(-50%)',
+            position: 'fixed',
+            top: panelPos.top,
+            left: panelPos.left,
+            width: panelPos.width,
             zIndex: 'var(--z-overlay)',
-            minWidth: 280,
             padding: 12,
           }}
         >
@@ -512,7 +525,6 @@ export function FocusTimer() {
             onPlay={toggle}
             onReset={reset}
             onSetDuration={setDuration}
-            music={music}
           />
         </div>
       ) : null}

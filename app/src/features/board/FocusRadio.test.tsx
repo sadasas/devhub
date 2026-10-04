@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import type { YoutubeVideo } from '../../lib/types';
 
 const { trackMock, searchMock } = vi.hoisted(() => ({ trackMock: vi.fn(), searchMock: vi.fn() }));
@@ -98,24 +98,29 @@ async function searchLofi() {
   });
 }
 
+function queueList() {
+  return screen.getByRole('list', { name: 'Queue' });
+}
+
 describe('FocusRadio', () => {
-  it('renders the pill and opens the sheet', () => {
+  it('renders the pill and opens the sheet with an empty queue', () => {
     render(<FocusRadio />);
     expect(screen.getByRole('button', { name: 'Radio' })).toBeTruthy();
     expect(screen.queryByLabelText('Search YouTube songs')).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'Radio' }));
     expect(screen.getByLabelText('Search YouTube songs')).toBeTruthy();
+    expect(screen.getByText('Queue is empty — add from search results')).toBeTruthy();
     expect(trackMock).not.toHaveBeenCalled();
   });
 
-  it('searches, lists results, and plays the picked track with events', async () => {
+  it('searches without touching the queue, then plays a picked track', async () => {
     const players = installYTMock();
     render(<FocusRadio />);
     fireEvent.click(screen.getByRole('button', { name: 'Radio' }));
     await searchLofi();
     expect(trackMock).toHaveBeenCalledWith('radio_search');
-    // Pill label + result row + now-playing title (current is set on search).
-    expect(screen.getAllByText('Title a')).toHaveLength(3);
+    // Row only — queue is still empty, pill still shows "Radio".
+    expect(screen.getAllByText('Title a')).toHaveLength(1);
     await act(async () => {
       const p = (async () => {
         fireEvent.click(screen.getByRole('button', { name: 'Play Title a' }));
@@ -127,7 +132,68 @@ describe('FocusRadio', () => {
     expect(players[0]!.loadVideoById).toHaveBeenCalledWith('a');
     expect(trackMock).toHaveBeenCalledWith('radio_play', { videoId: 'a' });
     expect(screen.getByText('Now playing')).toBeTruthy();
-    expect(players[0]!.setVolume).toHaveBeenCalledWith(70);
+    // Pill + result row + now playing.
+    expect(screen.getAllByText('Title a')).toHaveLength(3);
+  });
+
+  it('adds results to the queue without playing', async () => {
+    render(<FocusRadio />);
+    fireEvent.click(screen.getByRole('button', { name: 'Radio' }));
+    await searchLofi();
+    fireEvent.click(screen.getByRole('button', { name: 'Add Title b to queue' }));
+    expect(trackMock).toHaveBeenCalledWith('radio_queue_add', { videoId: 'b' });
+    const q = queueList();
+    expect(within(q).getByText('Title b')).toBeTruthy();
+    // Nothing started playing.
+    expect(screen.getByText('Pick a song to start')).toBeTruthy();
+    expect(trackMock).not.toHaveBeenCalledWith('radio_play', expect.anything());
+  });
+
+  it('removes queue entries', async () => {
+    render(<FocusRadio />);
+    fireEvent.click(screen.getByRole('button', { name: 'Radio' }));
+    await searchLofi();
+    fireEvent.click(screen.getByRole('button', { name: 'Add Title a to queue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add Title b to queue' }));
+    expect(within(queueList()).getByText('Title a')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Remove Title a' }));
+    expect(trackMock).toHaveBeenCalledWith('radio_queue_remove', { videoId: 'a' });
+    expect(within(queueList()).queryByText('Title a')).toBeNull();
+    expect(within(queueList()).getByText('Title b')).toBeTruthy();
+  });
+
+  it('reorders the queue with up/down buttons', async () => {
+    render(<FocusRadio />);
+    fireEvent.click(screen.getByRole('button', { name: 'Radio' }));
+    await searchLofi();
+    fireEvent.click(screen.getByRole('button', { name: 'Add Title a to queue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add Title b to queue' }));
+    const q = () => queueList();
+    const order = () =>
+      Array.from(q().querySelectorAll('li')).map((li) => li.textContent ?? '');
+    expect(order()[0]).toContain('Title a');
+    // Move b (index 1) up → b first.
+    const upButtons = within(q()).getAllByRole('button', { name: 'Move up' });
+    fireEvent.click(upButtons[1]!);
+    expect(trackMock).toHaveBeenCalledWith('radio_queue_move', { videoId: 'b', to: 0 });
+    expect(order()[0]).toContain('Title b');
+  });
+
+  it('reorders the queue with drag and drop', async () => {
+    render(<FocusRadio />);
+    fireEvent.click(screen.getByRole('button', { name: 'Radio' }));
+    await searchLofi();
+    fireEvent.click(screen.getByRole('button', { name: 'Add Title a to queue' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Add Title b to queue' }));
+    const rows = queueList().querySelectorAll('li');
+    expect(rows).toHaveLength(2);
+    const dt = { effectAllowed: '', setData: vi.fn(), getData: vi.fn() };
+    fireEvent.dragStart(rows[0]!, { dataTransfer: dt });
+    fireEvent.dragOver(rows[1]!);
+    fireEvent.drop(rows[1]!);
+    expect(trackMock).toHaveBeenCalledWith('radio_queue_move', { videoId: 'a', to: 1 });
+    const order = Array.from(queueList().querySelectorAll('li')).map((li) => li.textContent ?? '');
+    expect(order()[0]).toContain('Title b');
   });
 
   it('shows quota errors with a synth fallback hint', async () => {

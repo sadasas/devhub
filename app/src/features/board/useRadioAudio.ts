@@ -28,11 +28,12 @@ function errorKindOf(err: unknown): RadioErrorKind {
 
 /**
  * Song radio over official YouTube embeds: search (via our backend proxy),
- * queue with auto-advance, and a visible IFrame player. Search metadata flows
- * through the backend; media streams directly browser↔Google.
+ * an explicit user-managed queue with auto-advance, and an audio-only player.
+ * Search metadata flows through the backend; media streams directly
+ * browser↔Google.
  *
- * Volume shares the `devhub.focus.musicVolume` key with the synth ambience.
- * The player is destroyed on unmount so no audio leaks past the panel.
+ * Volume shares the `devhub.focus.musicVolume` key. The player is destroyed
+ * on unmount so no audio leaks past the panel.
  */
 export function useRadioAudio() {
   const [results, setResults] = useState<YoutubeVideo[]>([]);
@@ -56,8 +57,13 @@ export function useRadioAudio() {
   const volumeRef = useRef(volume);
   volumeRef.current = volume;
   const lastVideoRef = useRef<string | null>(null);
+  // Generation counter: bumped on every release/unmount so late async
+  // continuations (player ready arriving after close) stay silent instead of
+  // calling a detached player ("not attached to the DOM").
+  const epochRef = useRef(0);
 
   const destroyPlayer = useCallback(() => {
+    epochRef.current += 1;
     creatingRef.current = null;
     try {
       playerRef.current?.destroy();
@@ -70,65 +76,87 @@ export function useRadioAudio() {
 
   /** Create the player if needed (safe to call on panel open). */
   const ensureReady = useCallback(async (): Promise<boolean> => {
+    const epoch = epochRef.current;
     if (playerRef.current) return true;
-    if (creatingRef.current) {
-      try {
-        playerRef.current = await creatingRef.current;
-        return true;
-      } catch {
-        return false;
-      }
-    }
-    const el = containerRef.current;
-    if (!el) return false;
-    const creating = createRadioPlayer(el, { volume: volumeRef.current });
-    creatingRef.current = creating;
+    let handle: RadioPlayerHandle | null = null;
     try {
-      const handle = await creating;
-      handle.onState((s) => {
-        if (s === 'playing') setPlaying(true);
-        else if (s === 'paused') setPlaying(false);
-        else if (s === 'ended') {
-          const next = indexRef.current + 1;
-          if (next < queueRef.current.length) {
-            const track = queueRef.current[next];
-            if (track) {
-              indexRef.current = next;
-              setIndex(next);
-              lastVideoRef.current = track.videoId;
-              try {
-                handle.playTrack(track.videoId);
-              } catch {
-                /* ignore */
-              }
-              setPlaying(true);
-            }
-          } else {
-            setPlaying(false);
-          }
+      if (creatingRef.current) {
+        handle = await creatingRef.current;
+      } else {
+        const el = containerRef.current;
+        if (!el) return false;
+        // Audio-only (owner-accepted risk, see youtube-radio.ts): the player is
+        // 2px and visually collapsed; the UI shows artwork + own controls.
+        const creating = createRadioPlayer(el, { volume: volumeRef.current, hidden: true });
+        creatingRef.current = creating;
+        try {
+          handle = await creating;
+        } finally {
+          if (creatingRef.current === creating) creatingRef.current = null;
         }
-      });
-      handle.onError(() => {
-        setError('player');
-        setPlaying(false);
-      });
-      playerRef.current = handle;
-      return true;
+      }
     } catch {
       return false;
-    } finally {
-      creatingRef.current = null;
     }
+    // Stale (released/closed while creating) or detached: tear down, stay silent.
+    if (!handle || epoch !== epochRef.current) {
+      try {
+        handle?.destroy();
+      } catch {
+        /* ignore */
+      }
+      return false;
+    }
+    const el = containerRef.current;
+    if (!el || (typeof document !== 'undefined' && !document.contains(el))) {
+      try {
+        handle.destroy();
+      } catch {
+        /* ignore */
+      }
+      return false;
+    }
+    handle.onState((s) => {
+      if (s === 'playing') setPlaying(true);
+      else if (s === 'paused') setPlaying(false);
+      else if (s === 'ended') {
+        const next = indexRef.current + 1;
+        if (next < queueRef.current.length) {
+          const track = queueRef.current[next];
+          if (track) {
+            indexRef.current = next;
+            setIndex(next);
+            lastVideoRef.current = track.videoId;
+            try {
+              handle.playTrack(track.videoId);
+            } catch {
+              /* ignore */
+            }
+            setPlaying(true);
+          }
+        } else {
+          setPlaying(false);
+        }
+      }
+    });
+    handle.onError(() => {
+      setError('player');
+      setPlaying(false);
+    });
+    playerRef.current = handle;
+    return true;
   }, []);
 
   const playAt = useCallback(
     async (i: number): Promise<YoutubeVideo | null> => {
+      const epoch = epochRef.current;
       const track = queueRef.current[i] ?? null;
       if (!track) return null;
       setError(null);
       const ok = await ensureReady();
-      if (!ok || !playerRef.current) {
-        setError('player');
+      if (!ok || epoch !== epochRef.current || !playerRef.current) {
+        // Released while loading → silent (panel closed); real failure → error.
+        if (epoch === epochRef.current) setError('player');
         return null;
       }
       indexRef.current = i;
@@ -191,6 +219,69 @@ export function useRadioAudio() {
     return playAt(indexRef.current - 1);
   }, [playAt]);
 
+  /**
+   * Append a video to the queue (no duplicates). Returns its queue position.
+   * Search results never touch the queue by themselves.
+   */
+  const enqueue = useCallback((video: YoutubeVideo): number => {
+    const existing = queueRef.current.findIndex((v) => v.videoId === video.videoId);
+    if (existing >= 0) return existing;
+    const nextQueue = [...queueRef.current, video];
+    queueRef.current = nextQueue;
+    setQueue(nextQueue);
+    return nextQueue.length - 1;
+  }, []);
+
+  /**
+   * Remove a queue entry. Removing the currently-playing track stops
+   * playback (predictable over auto-jumping to a neighbour).
+   */
+  const removeAt = useCallback(
+    (i: number): YoutubeVideo | null => {
+      const q = queueRef.current;
+      const removed = q[i] ?? null;
+      if (!removed) return null;
+      const wasCurrent = i === indexRef.current;
+      const wasPlaying = wasCurrent && playerRef.current != null;
+      const nextQueue = q.filter((_, j) => j !== i);
+      let idx = indexRef.current;
+      if (i < idx) idx -= 1;
+      if (idx >= nextQueue.length) idx = Math.max(0, nextQueue.length - 1);
+      indexRef.current = idx;
+      setIndex(idx);
+      queueRef.current = nextQueue;
+      setQueue(nextQueue);
+      if (wasCurrent) {
+        lastVideoRef.current = null;
+        if (wasPlaying) pause();
+      }
+      return removed;
+    },
+    [pause],
+  );
+
+  /**
+   * Reorder the queue (drag or up/down buttons). The playing position tracks
+   * the moved entry so audio never jumps.
+   */
+  const move = useCallback((from: number, to: number): boolean => {
+    const q = queueRef.current;
+    if (from === to || from < 0 || to < 0 || from >= q.length || to >= q.length) return false;
+    const nextQueue = [...q];
+    const [item] = nextQueue.splice(from, 1);
+    if (!item) return false;
+    nextQueue.splice(to, 0, item);
+    let idx = indexRef.current;
+    if (from === idx) idx = to;
+    else if (from < idx && idx <= to) idx -= 1;
+    else if (to <= idx && idx < from) idx += 1;
+    indexRef.current = idx;
+    setIndex(idx);
+    queueRef.current = nextQueue;
+    setQueue(nextQueue);
+    return true;
+  }, []);
+
   const search = useCallback(async (q: string): Promise<YoutubeVideo[]> => {
     const query = q.trim();
     if (!query) return [];
@@ -200,11 +291,6 @@ export function useRadioAudio() {
       const res = await api.youtubeSearch(query);
       setResults(res.results);
       setSearched(true);
-      // Search results become the queue (auto-advance through them).
-      setQueue(res.results);
-      indexRef.current = 0;
-      setIndex(0);
-      lastVideoRef.current = null;
       return res.results;
     } catch (err) {
       const status = (err as { status?: unknown })?.status;
@@ -262,6 +348,9 @@ export function useRadioAudio() {
     pause,
     next,
     prev,
+    enqueue,
+    removeAt,
+    move,
     release,
   };
 }

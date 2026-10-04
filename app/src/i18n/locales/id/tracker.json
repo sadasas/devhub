@@ -210,6 +210,12 @@
       "radioPrev": "Sebelumnya",
       "radioPlayTitle": "Putar {{title}}",
       "radioPickHint": "Pilih lagu untuk mulai",
+      "radioQueueAdd": "Tambah {{title}} ke antrean",
+      "radioQueueTitle": "Antrean",
+      "radioQueueEmpty": "Antrean kosong — tambah dari hasil pencarian",
+      "radioMoveUp": "Pindah ke atas",
+      "radioMoveDown": "Pindah ke bawah",
+      "radioRemove": "Hapus {{title}}",
       "propsHide": "Sembunyikan",
       "propsShow": "Tampilkan"
     },

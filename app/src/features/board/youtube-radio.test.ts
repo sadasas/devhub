@@ -14,12 +14,13 @@ interface MockPlayer {
   setVolume: ReturnType<typeof vi.fn>;
   destroy: ReturnType<typeof vi.fn>;
   __events: MockEvents;
+  __opts: { width?: number; height?: number };
 }
 
 function installYTMock() {
   const players: MockPlayer[] = [];
   // NOTE: plain function — vi.fn() mocks are not constructible with `new`.
-  function MockPlayer(this: unknown, _el: unknown, opts: { events?: MockEvents }) {
+  function MockPlayer(this: unknown, _el: unknown, opts: { events?: MockEvents; width?: number; height?: number }) {
     const p: MockPlayer = {
       playVideo: vi.fn(),
       pauseVideo: vi.fn(),
@@ -27,6 +28,7 @@ function installYTMock() {
       setVolume: vi.fn(),
       destroy: vi.fn(),
       __events: opts.events ?? {},
+      __opts: { width: opts.width, height: opts.height },
     };
     players.push(p);
     return p;
@@ -105,5 +107,26 @@ describe('youtube-radio (YT IFrame wrapper)', () => {
     handle.onError((c) => codes.push(c));
     players[0]!.__events.onError?.({ data: 150 });
     expect(codes).toEqual([150]);
+  });
+
+  it('hidden mode creates a 2px player for audio-only radio', async () => {
+    const players = installYTMock();
+    const creating = createRadioPlayer(document.createElement('div'), { volume: 0.5, hidden: true });
+    await flush();
+    expect(players).toHaveLength(1);
+    expect(players[0]!.__opts).toEqual({ width: 2, height: 2 });
+    const ready = creating.then((h) => h);
+    players[0]!.__events.onReady?.({ target: players[0] });
+    await ready;
+  });
+
+  it('visible mode uses a compact artwork-scale player', async () => {
+    const players = installYTMock();
+    const creating = createRadioPlayer(document.createElement('div'), { volume: 0.5 });
+    await flush();
+    expect(players[0]!.__opts).toEqual({ width: 320, height: 200 });
+    const ready = creating.then((h) => h);
+    players[0]!.__events.onReady?.({ target: players[0] });
+    await ready;
   });
 });

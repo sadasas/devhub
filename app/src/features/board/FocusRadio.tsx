@@ -1,17 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   ArrowSquareOut,
+  CaretDown,
+  CaretUp,
+  DotsSixVertical,
   MagnifyingGlass,
   MusicNote,
   Pause,
   Play,
+  Plus,
   SkipBack,
   SkipForward,
+  X,
 } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../../components/Button';
 import { BottomSheet } from '../../components/BottomSheet';
 import { track } from '../../lib/analytics';
+import { useViewportPanel } from './useViewportPanel';
 import { useRadioAudio, type RadioErrorKind } from './useRadioAudio';
 
 function errorMessageKey(kind: RadioErrorKind): string {
@@ -43,6 +49,8 @@ export function FocusRadio() {
   const displayButtonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const radioLabel = t('board.focus.radioLabel') as string;
+  // Viewport-clamped popover (PresenceChip pattern) — never cut off at edges.
+  const panelPos = useViewportPanel(displayButtonRef, 340);
 
   const {
     results,
@@ -52,8 +60,6 @@ export function FocusRadio() {
     index,
     current,
     playing,
-    volume,
-    setVolume,
     error,
     containerRef,
     ensureReady,
@@ -62,8 +68,12 @@ export function FocusRadio() {
     toggle,
     next,
     prev,
+    enqueue,
+    removeAt,
+    move,
     release,
   } = useRadioAudio();
+  const dragFromRef = useRef<number | null>(null);
 
   useEffect(() => {
     const mq = window.matchMedia('(hover: none)');
@@ -130,6 +140,32 @@ export function FocusRadio() {
     if (tr) track('radio_play', { videoId: tr.videoId });
   };
 
+  /** Play a search result: enqueue first (dedup), then play its position. */
+  const onPlayResult = async (i: number) => {
+    const video = results[i];
+    if (!video) return;
+    const qi = enqueue(video);
+    const tr = await playAt(qi);
+    if (tr) track('radio_play', { videoId: tr.videoId });
+  };
+
+  const onEnqueue = (i: number) => {
+    const video = results[i];
+    if (!video) return;
+    enqueue(video);
+    track('radio_queue_add', { videoId: video.videoId });
+  };
+
+  const onRemove = (i: number) => {
+    const removed = removeAt(i);
+    if (removed) track('radio_queue_remove', { videoId: removed.videoId });
+  };
+
+  const onMove = (from: number, to: number) => {
+    const video = queue[from];
+    if (move(from, to) && video) track('radio_queue_move', { videoId: video.videoId, to });
+  };
+
   const onNext = async () => {
     const tr = await next();
     if (tr) track('radio_next', { videoId: tr.videoId });
@@ -192,8 +228,8 @@ export function FocusRadio() {
                   style={{
                     display: 'block',
                     fontSize: 13,
-                    color: i === index && queue.length > 0 ? 'var(--text-primary)' : 'var(--text-secondary)',
-                    fontWeight: i === index && queue.length > 0 ? 600 : 400,
+                    color: current?.videoId === r.videoId ? 'var(--text-primary)' : 'var(--text-secondary)',
+                    fontWeight: current?.videoId === r.videoId ? 600 : 400,
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
@@ -218,7 +254,16 @@ export function FocusRadio() {
               <button
                 type="button"
                 className="btn btn-ghost btn-sm btn-icon"
-                onClick={() => void onPlayAt(i)}
+                onClick={() => onEnqueue(i)}
+                aria-label={t('board.focus.radioQueueAdd', { title: r.title, defaultValue: r.title }) as string}
+                title={t('board.focus.radioQueueAdd', { title: r.title, defaultValue: r.title }) as string}
+              >
+                <Plus size={12} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm btn-icon"
+                onClick={() => void onPlayResult(i)}
                 aria-label={t('board.focus.radioPlayTitle', { title: r.title, defaultValue: r.title }) as string}
               >
                 <Play size={12} aria-hidden="true" />
@@ -239,24 +284,131 @@ export function FocusRadio() {
       )}
       <hr className="sheet-divider" aria-hidden="true" />
       <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 8px' }}>
+        {t('board.focus.radioQueueTitle')}
+      </p>
+      {queue.length === 0 ? (
+        <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 8px' }}>
+          {t('board.focus.radioQueueEmpty')}
+        </p>
+      ) : (
+        <ul aria-label={t('board.focus.radioQueueTitle') as string} style={{ listStyle: 'none', margin: '0 0 8px', padding: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+          {queue.map((v, i) => (
+            <li
+              key={v.videoId}
+              data-queue-index={i}
+              draggable
+              onDragStart={(e) => {
+                dragFromRef.current = i;
+                if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+              }}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => {
+                const from = dragFromRef.current;
+                dragFromRef.current = null;
+                if (from != null) onMove(from, i);
+              }}
+              onDragEnd={() => {
+                dragFromRef.current = null;
+              }}
+              style={{ display: 'flex', alignItems: 'center', gap: 6 }}
+            >
+              <span aria-hidden="true" style={{ display: 'inline-flex', color: 'var(--text-muted)', cursor: 'grab', flexShrink: 0 }}>
+                <DotsSixVertical size={14} />
+              </span>
+              {v.thumbnailUrl ? (
+                <img
+                  src={v.thumbnailUrl}
+                  alt=""
+                  width={36}
+                  height={28}
+                  loading="lazy"
+                  style={{ borderRadius: 4, objectFit: 'cover', flexShrink: 0 }}
+                />
+              ) : null}
+              <button
+                type="button"
+                onClick={() => void onPlayAt(i)}
+                aria-label={t('board.focus.radioPlayTitle', { title: v.title, defaultValue: v.title }) as string}
+                style={{
+                  flex: 1,
+                  minWidth: 0,
+                  background: 'none',
+                  border: 'none',
+                  padding: 0,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  font: 'inherit',
+                  color: i === index ? 'var(--text-primary)' : 'var(--text-secondary)',
+                  fontWeight: i === index ? 600 : 400,
+                  fontSize: 13,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}
+                title={v.title}
+              >
+                {v.title}
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm btn-icon"
+                onClick={() => onMove(i, i - 1)}
+                disabled={i <= 0}
+                aria-label={t('board.focus.radioMoveUp') as string}
+              >
+                <CaretUp size={12} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm btn-icon"
+                onClick={() => onMove(i, i + 1)}
+                disabled={i + 1 >= queue.length}
+                aria-label={t('board.focus.radioMoveDown') as string}
+              >
+                <CaretDown size={12} aria-hidden="true" />
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm btn-icon"
+                onClick={() => onRemove(i)}
+                aria-label={t('board.focus.radioRemove', { title: v.title, defaultValue: v.title }) as string}
+              >
+                <X size={12} aria-hidden="true" />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <hr className="sheet-divider" aria-hidden="true" />
+      <p style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', margin: '0 0 8px' }}>
         {t('board.focus.radioNowPlaying')}
       </p>
       <div
         ref={containerRef}
-        style={{
-          minHeight: 180,
-          borderRadius: 8,
-          overflow: 'hidden',
-          background: 'var(--bg-inset)',
-        }}
+        aria-hidden="true"
+        style={{ height: 0, overflow: 'hidden' }}
       />
       {current ? (
         <div style={{ marginTop: 8 }}>
-          <p style={{ fontSize: 13, fontWeight: 600, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={current.title}>
-            {current.title}
-          </p>
-          <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 8px' }}>{current.channelTitle}</p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            {current.thumbnailUrl ? (
+              <img
+                src={current.thumbnailUrl}
+                alt={current.title}
+                width={56}
+                height={56}
+                loading="lazy"
+                style={{ borderRadius: 8, objectFit: 'cover', flexShrink: 0 }}
+              />
+            ) : null}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ fontSize: 13, fontWeight: 600, margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={current.title}>
+                {current.title}
+              </p>
+              <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '2px 0 0' }}>{current.channelTitle}</p>
+            </div>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
             <button
               type="button"
               className="btn btn-ghost btn-sm btn-icon"
@@ -291,9 +443,6 @@ export function FocusRadio() {
             >
               <SkipForward size={14} aria-hidden="true" />
             </button>
-            <span style={{ fontSize: 11, color: 'var(--text-muted)', marginLeft: 'auto' }}>
-              {t('board.focus.radioQueueCount', { count: Math.max(0, queue.length - index - 1) })}
-            </span>
           </div>
         </div>
       ) : (
@@ -301,20 +450,6 @@ export function FocusRadio() {
           {t('board.focus.radioPickHint')}
         </p>
       )}
-      <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 8 }}>
-        <input
-          type="range"
-          min={0}
-          max={100}
-          value={Math.round(volume * 100)}
-          onChange={(e) => setVolume(Number(e.target.value) / 100)}
-          aria-label={t('board.focus.musicVolumeLabel') as string}
-          style={{ flex: 1, minWidth: 0, accentColor: 'var(--text-primary)' }}
-        />
-        <span style={{ fontSize: 12, color: 'var(--text-muted)', minWidth: 36, textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-          {Math.round(volume * 100)}%
-        </span>
-      </div>
       {error && (
         <div role="alert" style={{ marginTop: 8, fontSize: 12, color: 'var(--status-danger)' }}>
           <p style={{ margin: '0 0 4px' }}>{t(errorMessageKey(error))}</p>
@@ -392,13 +527,11 @@ export function FocusRadio() {
           ref={panelRef}
           className="pcard"
           style={{
-            position: 'absolute',
-            top: '100%',
-            left: '50%',
-            transform: 'translateX(-50%)',
+            position: 'fixed',
+            top: panelPos.top,
+            left: panelPos.left,
+            width: panelPos.width,
             zIndex: 'var(--z-overlay)',
-            minWidth: 320,
-            maxWidth: 360,
             padding: 12,
           }}
         >

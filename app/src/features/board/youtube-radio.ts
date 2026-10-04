@@ -26,7 +26,12 @@ interface YTPlayerEvents {
 interface YTNamespace {
   Player: new (
     el: HTMLElement,
-    opts: { playerVars?: Record<string, unknown>; events?: YTPlayerEvents },
+    opts: {
+      width?: number;
+      height?: number;
+      playerVars?: Record<string, unknown>;
+      events?: YTPlayerEvents;
+    },
   ) => YTPlayer;
 }
 
@@ -100,10 +105,18 @@ export interface RadioPlayerHandle {
   onError(cb: (code: number) => void): void;
 }
 
-/** Create the visible player inside `el`. Resolves once the player is ready. */
+/**
+ * Create the player inside `el`. Resolves once the player is ready.
+ *
+ * `hidden: true` renders a 1px player for audio-only radio (no video pixels)
+ * with keyboard focus removed from the iframe. ACCEPTED RISK (owner decision):
+ * audio-only playback violates YouTube's audio-separation policy; the account
+ * risks throttling/blocks. The synth fallback stays available. Do not use
+ * this mode without explicit owner sign-off.
+ */
 export async function createRadioPlayer(
   el: HTMLElement,
-  opts: { volume: number },
+  opts: { volume: number; hidden?: boolean },
 ): Promise<RadioPlayerHandle> {
   const YT = await loadYouTubeIframeAPI();
   let player: YTPlayer | null = null;
@@ -114,6 +127,8 @@ export async function createRadioPlayer(
   await new Promise<void>((resolve, reject) => {
     try {
       player = new YT.Player(el, {
+        width: opts.hidden ? 2 : 320,
+        height: opts.hidden ? 2 : 200,
         playerVars: { rel: 0, playsinline: 1 },
         events: {
           onReady: () => {
@@ -122,6 +137,14 @@ export async function createRadioPlayer(
               player?.setVolume(Math.round(opts.volume * 100));
             } catch {
               /* ignore */
+            }
+            if (opts.hidden) {
+              // Keep keyboard focus out of the invisible iframe.
+              try {
+                el.querySelector('iframe')?.setAttribute('tabindex', '-1');
+              } catch {
+                /* ignore */
+              }
             }
             resolve();
           },

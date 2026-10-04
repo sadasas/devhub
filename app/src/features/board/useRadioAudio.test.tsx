@@ -62,6 +62,12 @@ function attachContainer(result: { current: { containerRef: { current: HTMLDivEl
   });
 }
 
+async function tick() {
+  await act(async () => {
+    await new Promise((r) => setTimeout(r, 0));
+  });
+}
+
 beforeEach(() => {
   window.localStorage.clear();
   searchMock.mockReset();
@@ -74,7 +80,7 @@ afterEach(() => {
 });
 
 describe('useRadioAudio', () => {
-  it('search fills results and mirrors them into the queue', async () => {
+  it('search fills results but leaves the queue untouched', async () => {
     searchMock.mockResolvedValue({ results: [VID('a'), VID('b')], cached: false });
     const { result } = renderHook(() => useRadioAudio());
     attachContainer(result);
@@ -85,7 +91,7 @@ describe('useRadioAudio', () => {
     expect(out).toHaveLength(2);
     expect(searchMock).toHaveBeenCalledWith('lofi');
     expect(result.current.results).toHaveLength(2);
-    expect(result.current.queue).toHaveLength(2);
+    expect(result.current.queue).toEqual([]);
     expect(result.current.searched).toBe(true);
     expect(result.current.playing).toBe(false);
   });
@@ -122,13 +128,91 @@ describe('useRadioAudio', () => {
     expect(result.current.error).toBe('not-configured');
   });
 
-  it('playAt loads the video once the player is ready', async () => {
-    searchMock.mockResolvedValue({ results: [VID('a'), VID('b')], cached: false });
+  it('enqueue appends and dedups by videoId', () => {
+    const { result } = renderHook(() => useRadioAudio());
+    attachContainer(result);
+    let i0 = -1;
+    let i1 = -1;
+    let dup = -1;
+    act(() => {
+      i0 = result.current.enqueue(VID('a'));
+      i1 = result.current.enqueue(VID('b'));
+      dup = result.current.enqueue(VID('a'));
+    });
+    expect(i0).toBe(0);
+    expect(i1).toBe(1);
+    expect(dup).toBe(0);
+    expect(result.current.queue.map((v) => v.videoId)).toEqual(['a', 'b']);
+  });
+
+  it('removeAt fixes the index and stops when the current track goes', async () => {
     const players = installYTMock();
     const { result } = renderHook(() => useRadioAudio());
     attachContainer(result);
+    act(() => {
+      result.current.enqueue(VID('a'));
+      result.current.enqueue(VID('b'));
+      result.current.enqueue(VID('c'));
+    });
+    // Play middle track, then remove the one before it → index shifts down.
+    let box: { track: YoutubeVideo | null } = { track: null };
     await act(async () => {
-      await result.current.search('lofi');
+      const p = result.current.playAt(1);
+      await new Promise((r) => setTimeout(r, 0));
+      players[0]!.__events.onReady?.({ target: players[0] });
+      box.track = await p;
+    });
+    expect(box.track?.videoId).toBe('b');
+    let removed!: YoutubeVideo | null;
+    act(() => {
+      removed = result.current.removeAt(0);
+    });
+    expect(removed?.videoId).toBe('a');
+    expect(result.current.queue.map((v) => v.videoId)).toEqual(['b', 'c']);
+    expect(result.current.index).toBe(0);
+    expect(result.current.playing).toBe(true);
+    // Remove the playing track → stops.
+    act(() => {
+      removed = result.current.removeAt(0);
+    });
+    expect(removed?.videoId).toBe('b');
+    expect(result.current.playing).toBe(false);
+    expect(players[0]!.pauseVideo).toHaveBeenCalled();
+    expect(result.current.queue.map((v) => v.videoId)).toEqual(['c']);
+  });
+
+  it('move reorders and tracks the playing position', () => {
+    const { result } = renderHook(() => useRadioAudio());
+    attachContainer(result);
+    act(() => {
+      result.current.enqueue(VID('a'));
+      result.current.enqueue(VID('b'));
+      result.current.enqueue(VID('c'));
+    });
+    let moved = false;
+    act(() => {
+      moved = result.current.move(0, 2);
+    });
+    expect(moved).toBe(true);
+    expect(result.current.queue.map((v) => v.videoId)).toEqual(['b', 'c', 'a']);
+    expect(result.current.index).toBe(0);
+    act(() => {
+      moved = result.current.move(1, 1);
+    });
+    expect(moved).toBe(false);
+    act(() => {
+      moved = result.current.move(0, 9);
+    });
+    expect(moved).toBe(false);
+  });
+
+  it('playAt loads the video once the player is ready', async () => {
+    const players = installYTMock();
+    const { result } = renderHook(() => useRadioAudio());
+    attachContainer(result);
+    act(() => {
+      result.current.enqueue(VID('a'));
+      result.current.enqueue(VID('b'));
     });
     const box: { track: YoutubeVideo | null } = { track: null };
     await act(async () => {
@@ -143,13 +227,42 @@ describe('useRadioAudio', () => {
     expect(result.current.index).toBe(0);
   });
 
-  it('auto-advances on ended and stops at the end of the queue', async () => {
-    searchMock.mockResolvedValue({ results: [VID('a'), VID('b')], cached: false });
+  it('ignores a late player ready after release (close race, no DOM warning)', async () => {
     const players = installYTMock();
     const { result } = renderHook(() => useRadioAudio());
     attachContainer(result);
+    act(() => {
+      result.current.enqueue(VID('a'));
+    });
+    let pending!: Promise<YoutubeVideo | null>;
+    act(() => {
+      pending = result.current.playAt(0);
+    });
     await act(async () => {
-      await result.current.search('lofi');
+      await new Promise((r) => setTimeout(r, 0)); // constructor ran
+    });
+    expect(players).toHaveLength(1);
+    act(() => {
+      result.current.release(); // panel closed before ready
+    });
+    const box: { track: YoutubeVideo | null | undefined } = { track: undefined };
+    await act(async () => {
+      players[0]!.__events.onReady?.({ target: players[0] });
+      box.track = await pending;
+      await new Promise((r) => setTimeout(r, 0));
+    });
+    expect(box.track).toBeNull();
+    expect(players[0]!.loadVideoById).not.toHaveBeenCalled();
+    expect(result.current.playing).toBe(false);
+  });
+
+  it('auto-advances on ended and stops at the end of the queue', async () => {
+    const players = installYTMock();
+    const { result } = renderHook(() => useRadioAudio());
+    attachContainer(result);
+    act(() => {
+      result.current.enqueue(VID('a'));
+      result.current.enqueue(VID('b'));
     });
     await act(async () => {
       const p = result.current.playAt(0);
@@ -171,12 +284,11 @@ describe('useRadioAudio', () => {
   });
 
   it('surfaces player errors', async () => {
-    searchMock.mockResolvedValue({ results: [VID('a')], cached: false });
     const players = installYTMock();
     const { result } = renderHook(() => useRadioAudio());
     attachContainer(result);
-    await act(async () => {
-      await result.current.search('lofi');
+    act(() => {
+      result.current.enqueue(VID('a'));
     });
     await act(async () => {
       const p = result.current.playAt(0);
@@ -192,7 +304,6 @@ describe('useRadioAudio', () => {
   });
 
   it('persists volume and applies it live', async () => {
-    searchMock.mockResolvedValue({ results: [VID('a')], cached: false });
     const players = installYTMock();
     const { result } = renderHook(() => useRadioAudio());
     attachContainer(result);
@@ -201,8 +312,8 @@ describe('useRadioAudio', () => {
     });
     expect(result.current.volume).toBeCloseTo(0.42);
     expect(window.localStorage.getItem('devhub.focus.musicVolume')).toBe('0.42');
-    await act(async () => {
-      await result.current.search('lofi');
+    act(() => {
+      result.current.enqueue(VID('a'));
     });
     await act(async () => {
       const p = result.current.playAt(0);
@@ -218,12 +329,11 @@ describe('useRadioAudio', () => {
   });
 
   it('destroys the player on unmount', async () => {
-    searchMock.mockResolvedValue({ results: [VID('a')], cached: false });
     const players = installYTMock();
     const { result, unmount } = renderHook(() => useRadioAudio());
     attachContainer(result);
-    await act(async () => {
-      await result.current.search('lofi');
+    act(() => {
+      result.current.enqueue(VID('a'));
     });
     await act(async () => {
       const p = result.current.playAt(0);
