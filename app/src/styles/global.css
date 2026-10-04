@@ -3604,6 +3604,15 @@ html[data-theme='light'] .splash-bg {
 .page:has(.focus-topbar) {
   background: var(--bg-focus);
 }
+/* Focus page = satu kolom ala wireframe: aside disembunyikan (Status +
+   Prioritas dirender inline di kolom utama), konten max 720px tengah. */
+.page:has(.focus-topbar) .detail-grid {
+  grid-template-columns: minmax(0, 720px);
+  justify-content: center;
+}
+.page:has(.focus-topbar) .detail-side {
+  display: none;
+}
 .focus-combined {
   display: inline-flex;
   align-items: center;

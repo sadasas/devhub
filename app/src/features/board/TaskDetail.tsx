@@ -1447,6 +1447,23 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
                 </button>
               </div>
             )}
+            {variant === 'page' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ width: 110, flexShrink: 0, fontSize: 12, color: 'var(--text-muted)' }}>{t('board.taskModal.statusLabel')}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <SearchableSelect searchable={false} id="task-status-inline" label="" ariaLabel={t('board.taskModal.statusLabel')} value={task.status} allowEmpty={false} options={STATUS_OPTIONS.map((s) => ({ value: s, label: TASK_STATUS[s].label, icon: <TaskStatusIcon status={s} size={13} /> }))} onChange={(v) => { if (v) changeStatus(v as TaskStatus, 'status'); }} />
+                  </div>
+                </div>
+                {doneWarn && doneWarnSource === 'status' && <InlineError>{doneWarn}</InlineError>}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <span style={{ width: 110, flexShrink: 0, fontSize: 12, color: 'var(--text-muted)' }}>{t('board.newTaskModal.priorityLabel')}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <SearchableSelect searchable={false} id="task-priority-inline" label="" ariaLabel={t('board.newTaskModal.priorityLabel')} value={task.priority} allowEmpty={false} options={TASK_PRIORITY_ORDER.map((p) => ({ value: p, label: TASK_PRIORITY[p].label, icon: <TaskPriorityIcon priority={p} size={13} /> }))} onChange={(v) => { if (v) update({ priority: v as TaskPriority }); }} />
+                  </div>
+                </div>
+              </div>
+            )}
 
             <AttachmentSection
               projectId={projectId}
