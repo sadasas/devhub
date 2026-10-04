@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { nowIso } from '../../../shared/ids.js';
-import { deriveActualHours } from './hours.js';
+import { applyActiveHoursTransition } from './hours.js';
 import {
   taskSchema,
   issueSchema,
@@ -108,18 +108,45 @@ export function deriveTaskPatch(
   patch: Record<string, unknown>,
 ): Record<string, unknown> {
   const after: Record<string, unknown> = { ...patch };
+  // ADR-067: input manual jam diabaikan server-side (strip, jangan error).
+  delete after.actualHours;
+  delete after.activeMs;
+  delete after.inProgressAt;
+  const now = nowIso();
   const wasDone = before.status === 'done';
   if (patch.status === 'done' && !wasDone) {
-    if (after.completedAt === undefined) after.completedAt = nowIso();
-    if (after.completedAt != null && after.actualHours === undefined && typeof before.createdAt === 'string') {
-      after.actualHours = deriveActualHours({
-        completedAt: String(after.completedAt),
-        createdAt: before.createdAt,
-        startDate: (after.startDate ?? before.startDate) as string | null | undefined,
-      });
-    }
+    if (after.completedAt === undefined) after.completedAt = now;
   } else if (patch.status !== undefined && patch.status !== 'done' && wasDone) {
     after.completedAt = null;
+  }
+  if (typeof patch.status === 'string' && patch.status !== before.status) {
+    const hoursPatch = applyActiveHoursTransition(
+      {
+        status: String(before.status),
+        createdAt: String(before.createdAt),
+        inProgressAt: (before.inProgressAt as string | null | undefined) ?? null,
+        activeMs: before.activeMs as number | undefined,
+        actualHours: before.actualHours as number | undefined,
+      },
+      String(patch.status),
+      now,
+      (after.completedAt as string | null | undefined) ?? (before.completedAt as string | null | undefined) ?? now,
+    );
+    Object.assign(after, hoursPatch);
+  } else if (patch.status !== undefined && (before as Record<string, unknown>).activeMs === undefined && before.actualHours != null) {
+    // Seed legacy sekali walau status sama (done→done): jangan recompute actualHours.
+    const hoursPatch = applyActiveHoursTransition(
+      {
+        status: String(before.status),
+        createdAt: String(before.createdAt),
+        inProgressAt: (before.inProgressAt as string | null | undefined) ?? null,
+        activeMs: before.activeMs as number | undefined,
+        actualHours: before.actualHours as number | undefined,
+      },
+      String(before.status),
+      now,
+    );
+    Object.assign(after, hoursPatch);
   }
   return after;
 }

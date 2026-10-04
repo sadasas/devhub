@@ -181,7 +181,7 @@ describe('TaskModal milestone select', () => {
     render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
     fireEvent.click(document.querySelector('[data-prop="assignee"] .prop-view') as Element);
     fireEvent.change(screen.getByRole('combobox', { name: 'Search Assignee' }), { target: { value: 'adit' } });
-    fireEvent.click(await screen.findByRole('option', { name: /adit@test\.dev/ }));
+    fireEvent.click(await screen.findByRole('option', { name: /adit@gmail\.com/ }));
     expect(mockDispatch).toHaveBeenCalledWith({
       type: 'task/update',
       id: TASK_ID,
@@ -408,15 +408,16 @@ describe('TaskModal milestone select', () => {
     );
   });
 
-  it('shows actual hours as an editable row with popup', () => {
+  it('shows actual hours as read-only without popup', () => {
     mockState.tasks = [makeTask({ actualHours: 24.5 })];
     render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
     const row = document.querySelector('[data-prop="actual"]');
     expect(row).toBeTruthy();
     expect(row?.textContent).toContain('24.5h');
-    expect(row?.querySelector('.prop-edit')).toBeTruthy();
-    fireEvent.click(row?.querySelector('.prop-view') as Element);
-    expect(screen.getByRole('spinbutton', { name: 'Actual' })).toBeTruthy();
+    expect(row?.querySelector('.prop-view-text')).toBeTruthy();
+    expect(row?.querySelector('.prop-edit')).toBeNull();
+    expect(document.querySelector('.prop-pop')).toBeNull();
+    expect(screen.queryByRole('spinbutton', { name: 'Active hours' })).toBeNull();
   });
 
   it('dispatches decimal inline estimate, keeping the dot', () => {
@@ -564,6 +565,64 @@ describe('TaskModal subtasks', () => {
     expect(screen.getByRole('button', { name: 'Detach' }).querySelector('svg')).toBeTruthy();
     mockState.tasks = [makeTask({ title: 'Parent task' })];
     render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} onNavigate={vi.fn()} /></MemoryRouter>);
-    expect(screen.getByRole('button', { name: 'Make subtask of…' }).querySelector('svg')).toBeTruthy();
+    expect(screen.getByRole('button', { name: /Make subtask of/ }).querySelector('svg')).toBeTruthy();
   });
+
+describe('TaskModal focus entry', () => {
+  beforeEach(() => {
+    mockDispatch.mockReset();
+    canEditMock.value = true;
+    fetchActivityMock.mockReset();
+    fetchActivityMock.mockResolvedValue([]);
+    listMembersMock.mockReset();
+    listMembersMock.mockResolvedValue([]);
+    mockState = makeState();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('hides the header button without onEnterFocus', () => {
+    render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} /></MemoryRouter>);
+    expect(screen.queryByRole('button', { name: 'Enter focus mode' })).toBeNull();
+  });
+
+  it('calls onEnterFocus with the task id on header button click', () => {
+    const onEnterFocus = vi.fn();
+    render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} onEnterFocus={onEnterFocus} /></MemoryRouter>);
+    fireEvent.click(screen.getByRole('button', { name: 'Enter focus mode' }));
+    expect(onEnterFocus).toHaveBeenCalledTimes(1);
+    expect(onEnterFocus).toHaveBeenCalledWith(TASK_ID);
+  });
+
+  it('calls onEnterFocus on Shift+F outside typing targets', () => {
+    const onEnterFocus = vi.fn();
+    render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} onEnterFocus={onEnterFocus} /></MemoryRouter>);
+    fireEvent.keyDown(document, { key: 'F', shiftKey: true });
+    expect(onEnterFocus).toHaveBeenCalledTimes(1);
+    expect(onEnterFocus).toHaveBeenCalledWith(TASK_ID);
+  });
+
+  it('ignores Shift+F while typing in an input', () => {
+    const onEnterFocus = vi.fn();
+    render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} onEnterFocus={onEnterFocus} /></MemoryRouter>);
+    const title = screen.getByRole('textbox', { name: 'Name' });
+    fireEvent.keyDown(title, { key: 'F', shiftKey: true });
+    expect(onEnterFocus).not.toHaveBeenCalled();
+  });
+
+  it('ignores Shift+F when no task is open', () => {
+    const onEnterFocus = vi.fn();
+    render(<MemoryRouter><TaskModal taskId={null} onClose={vi.fn()} onEnterFocus={onEnterFocus} /></MemoryRouter>);
+    fireEvent.keyDown(document, { key: 'F', shiftKey: true });
+    expect(onEnterFocus).not.toHaveBeenCalled();
+  });
+
+  it('keeps the property sidebar visible', () => {
+    const onEnterFocus = vi.fn();
+    render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} onEnterFocus={onEnterFocus} /></MemoryRouter>);
+    expect(document.querySelector('[data-prop="status"]')).toBeTruthy();
+  });
+});
 });

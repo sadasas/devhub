@@ -118,12 +118,24 @@ export interface GitHubInstallation {
   status: string;
 }
 
+/** Video YouTube publik yang bisa di-embed (sumber antrean radio fokus). */
+export interface YoutubeVideo {
+  videoId: string;
+  title: string;
+  channelTitle: string;
+  thumbnailUrl: string;
+}
+
 export interface Task extends Base {
   title: string;
   status: TaskStatus;
   priority: TaskPriority;
   estimate?: number;
   actualHours?: number;
+  /** ADR-067: ISO mulai interval inProgress aktif (null = tak ada interval berjalan). */
+  inProgressAt?: string | null;
+  /** ADR-067: ms terakumulasi di inProgress (auto, ≥0). */
+  activeMs?: number;
   labels: string[];
   blockedBy: string[];
   parentTaskId?: string | null;

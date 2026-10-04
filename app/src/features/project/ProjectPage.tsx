@@ -108,7 +108,7 @@ const TABS: { id: ProjectTab; label: string; icon: ReactNode }[] = [
 
 // Stable module-level instance: a fresh provider per render would re-run the
 // ProjectProvider mount effect (provider is in its effect deps).
-const projectStorage = offlineProvider();
+export const projectStorage = offlineProvider();
 
 function TabSkeleton({ tab }: { tab: ProjectTab }) {
   const { t } = useTranslation('project');

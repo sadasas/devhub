@@ -19,7 +19,7 @@ import {
 import { reconcileQueue } from '../lib/sync-service';
 import { RealtimeSocket, applyStateDiff, realtimeWsUrl } from '../lib/realtime-client';
 import type { ActivityNew, PresenceUpdate, PresenceUser, RealtimeHandlers, StateDiff } from '../lib/realtime-client';
-import { deriveActualHours, nowIso } from '../lib/utils';
+import { applyActiveHoursTransition, initTaskHoursOnCreate, nowIso } from '../lib/utils';
 import {
   isApiCollectionValid,
   isApiEndpointValid,
@@ -192,17 +192,15 @@ export function projectReducer(state: State, action: ProjectAction): State {
       return action.state;
 
     case 'task/add': {
+      const now = nowIso();
       const completedAt =
-        action.task.completedAt ?? (action.task.status === 'done' ? nowIso() : null);
-      const actualHours =
-        action.task.actualHours ??
-        (completedAt
-          ? deriveActualHours({
-              completedAt,
-              createdAt: action.task.createdAt,
-              startDate: action.task.startDate,
-            })
-          : undefined);
+        action.task.completedAt ?? (action.task.status === 'done' ? now : null);
+      // ADR-067: jam full-otomatis — abaikan kiriman manual dari caller.
+      const { actualHours: _manualHours, activeMs: _manualMs, inProgressAt: _manualAt, ...restTask } = action.task as Task & {
+        activeMs?: unknown;
+        inProgressAt?: unknown;
+      };
+      const init = initTaskHoursOnCreate(action.task.status, action.task.createdAt, now, completedAt);
       // 1-level: parent tidak boleh subtask; self-parent ditolak.
       let parentTaskId = action.task.parentTaskId ?? null;
       if (parentTaskId) {
@@ -215,9 +213,11 @@ export function projectReducer(state: State, action: ProjectAction): State {
         ...state,
         tasks: [
           {
-            ...action.task,
+            ...restTask,
             completedAt,
-            actualHours,
+            actualHours: init.actualHours,
+            inProgressAt: init.inProgressAt,
+            activeMs: init.activeMs,
             parentTaskId,
             milestoneId,
             checklist: action.task.checklist ?? [],
@@ -229,6 +229,14 @@ export function projectReducer(state: State, action: ProjectAction): State {
     case 'task/update': {
       const prev = state.tasks.find((t) => t.id === action.id);
       let patch = action.patch;
+      // ADR-067: strip input manual jam (UI/MCP tak lagi mengirim).
+      if ('actualHours' in patch || 'activeMs' in patch || 'inProgressAt' in patch) {
+        const { actualHours: _ah, activeMs: _am, inProgressAt: _ip, ...rest } = patch as Partial<Task> & {
+          activeMs?: unknown;
+          inProgressAt?: unknown;
+        };
+        patch = rest;
+      }
       // Guard parent 1-level.
       if (prev && patch.parentTaskId !== undefined && patch.parentTaskId) {
         const parent = state.tasks.find((tt) => tt.id === patch.parentTaskId);
@@ -239,24 +247,43 @@ export function projectReducer(state: State, action: ProjectAction): State {
       if (prev && patch.status !== undefined && patch.completedAt === undefined) {
         if (patch.status === 'done' && prev.status !== 'done') {
           patch = { ...patch, completedAt: nowIso() };
-        } else if (patch.status !== 'done') {
+        } else if (patch.status !== 'done' && prev.status === 'done') {
           patch = { ...patch, completedAt: null };
         }
       }
-      if (
-        prev &&
-        patch.status === 'done' &&
-        prev.status !== 'done' &&
-        patch.actualHours === undefined
-      ) {
-        patch = {
-          ...patch,
-          actualHours: deriveActualHours({
-            completedAt: patch.completedAt ?? nowIso(),
+      if (prev && patch.status !== undefined && patch.status !== prev.status) {
+        const now = nowIso();
+        const hoursPatch = applyActiveHoursTransition(
+          {
+            status: prev.status,
             createdAt: prev.createdAt,
-            startDate: patch.startDate ?? prev.startDate,
-          }),
-        };
+            inProgressAt: prev.inProgressAt ?? null,
+            activeMs: prev.activeMs,
+            actualHours: prev.actualHours,
+          },
+          patch.status,
+          now,
+          (patch.completedAt as string | null | undefined) ?? prev.completedAt ?? now,
+        );
+        if (Object.keys(hoursPatch).length > 0) {
+          patch = { ...patch, ...hoursPatch };
+        }
+      } else if (prev && prev.activeMs === undefined && prev.actualHours != null && patch.status !== undefined) {
+        // Seed legacy sekali tanpa recompute actualHours.
+        const hoursPatch = applyActiveHoursTransition(
+          {
+            status: prev.status,
+            createdAt: prev.createdAt,
+            inProgressAt: prev.inProgressAt ?? null,
+            activeMs: undefined,
+            actualHours: prev.actualHours,
+          },
+          prev.status,
+          nowIso(),
+        );
+        if (Object.keys(hoursPatch).length > 0) {
+          patch = { ...patch, ...hoursPatch };
+        }
       }
       return { ...state, tasks: updateIn<Task>(state.tasks, action.id, patch) };
     }

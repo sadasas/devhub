@@ -1040,7 +1040,7 @@ describe('completedAt derivation', () => {
   });
 });
 
-describe('actualHours derivation', () => {
+describe('actualHours derivation (ADR-067 interval)', () => {
   afterEach(() => {
     vi.useRealTimers();
   });
@@ -1050,86 +1050,168 @@ describe('actualHours derivation', () => {
     vi.setSystemTime(new Date(iso));
   }
 
-  it('computes actualHours from startDate day start when moving to done', () => {
-    const state = makeState();
-    state.tasks[0] = {
-      ...state.tasks[0]!,
-      startDate: '2026-01-03',
-      createdAt: '2026-01-01T00:00:00.000Z',
-    };
-    freezeNow('2026-01-05T06:00:00.000Z');
-    const next = projectReducer(state, {
-      type: 'task/update',
-      id: 't1',
-      patch: { status: 'done' },
-    });
-    expect(next.tasks[0]!.actualHours).toBe(54);
-  });
-
-  it('falls back to createdAt when no startDate', () => {
-    freezeNow('2026-01-05T06:00:00.000Z');
+  it('opens an interval when entering inProgress', () => {
+    freezeNow('2026-01-02T00:00:00.000Z');
     const next = projectReducer(makeState(), {
       type: 'task/update',
       id: 't1',
-      patch: { status: 'done' },
+      patch: { status: 'inProgress' },
     });
-    expect(next.tasks[0]!.actualHours).toBe(102);
+    expect(next.tasks[0]!.status).toBe('inProgress');
+    expect(next.tasks[0]!.inProgressAt).toBe('2026-01-02T00:00:00.000Z');
+    expect(next.tasks[0]!.activeMs).toBe(0);
+    expect(next.tasks[0]!.actualHours).toBeUndefined();
   });
 
-  it('rounds to 1 decimal', () => {
+  it('closes the interval when leaving inProgress for done', () => {
     const state = makeState();
     state.tasks[0] = {
       ...state.tasks[0]!,
-      startDate: '2026-01-03',
-      createdAt: '2026-01-01T00:00:00.000Z',
+      status: 'inProgress',
+      inProgressAt: '2026-01-01T00:00:00.000Z',
+      activeMs: 0,
     };
-    freezeNow('2026-01-05T06:15:00.000Z');
+    freezeNow('2026-01-01T02:30:00.000Z');
     const next = projectReducer(state, {
       type: 'task/update',
       id: 't1',
       patch: { status: 'done' },
     });
-    expect(next.tasks[0]!.actualHours).toBe(54.3);
+    expect(next.tasks[0]!.inProgressAt).toBeNull();
+    expect(next.tasks[0]!.activeMs).toBe(9_000_000);
+    expect(next.tasks[0]!.actualHours).toBe(2.5);
   });
 
-  it('clamps to 0 when completedAt predates the base', () => {
+  it('closes the interval when leaving inProgress for todo', () => {
     const state = makeState();
     state.tasks[0] = {
       ...state.tasks[0]!,
-      startDate: '2026-01-05',
-      createdAt: '2026-01-01T00:00:00.000Z',
+      status: 'inProgress',
+      inProgressAt: '2026-01-01T00:00:00.000Z',
+      activeMs: 0,
     };
+    freezeNow('2026-01-01T02:00:00.000Z');
     const next = projectReducer(state, {
       type: 'task/update',
       id: 't1',
-      patch: { status: 'done', completedAt: '2026-01-04T00:00:00.000Z' },
+      patch: { status: 'todo' },
     });
+    expect(next.tasks[0]!.inProgressAt).toBeNull();
+    expect(next.tasks[0]!.activeMs).toBe(7_200_000);
+    expect(next.tasks[0]!.actualHours).toBe(2);
+  });
+
+  it('falls back to createdAt→doneAt for direct done without inProgress', () => {
+    const next = projectReducer(makeState(), {
+      type: 'task/update',
+      id: 't1',
+      patch: { status: 'done', completedAt: '2026-01-01T03:00:00.000Z' },
+    });
+    expect(next.tasks[0]!.actualHours).toBe(3);
+    expect(next.tasks[0]!.activeMs).toBe(10_800_000);
+    expect(next.tasks[0]!.inProgressAt).toBeNull();
+  });
+
+  it('rounds accumulated hours to 1 decimal', () => {
+    const state = makeState();
+    state.tasks[0] = {
+      ...state.tasks[0]!,
+      status: 'inProgress',
+      inProgressAt: '2026-01-01T00:00:00.000Z',
+      activeMs: 0,
+    };
+    freezeNow('2026-01-01T01:06:00.000Z');
+    const next = projectReducer(state, {
+      type: 'task/update',
+      id: 't1',
+      patch: { status: 'review' },
+    });
+    expect(next.tasks[0]!.actualHours).toBe(1.1);
+  });
+
+  it('clamps negative interval to 0 when clock skews', () => {
+    const state = makeState();
+    state.tasks[0] = {
+      ...state.tasks[0]!,
+      status: 'inProgress',
+      inProgressAt: '2026-01-05T00:00:00.000Z',
+      activeMs: 0,
+    };
+    freezeNow('2026-01-04T00:00:00.000Z');
+    const next = projectReducer(state, {
+      type: 'task/update',
+      id: 't1',
+      patch: { status: 'todo' },
+    });
+    expect(next.tasks[0]!.activeMs).toBe(0);
     expect(next.tasks[0]!.actualHours).toBe(0);
   });
 
-  it('respects an explicit completedAt in the patch', () => {
-    const state = makeState();
-    state.tasks[0] = {
-      ...state.tasks[0]!,
-      startDate: '2026-01-03',
-      createdAt: '2026-01-01T00:00:00.000Z',
-    };
-    const next = projectReducer(state, {
-      type: 'task/update',
-      id: 't1',
-      patch: { status: 'done', completedAt: '2026-01-04T12:00:00.000Z' },
-    });
-    expect(next.tasks[0]!.actualHours).toBe(36);
-  });
-
-  it('respects an explicit actualHours in the patch', () => {
-    freezeNow('2026-01-05T06:00:00.000Z');
+  it('ignores manual actualHours/activeMs/inProgressAt in the patch', () => {
     const next = projectReducer(makeState(), {
       type: 'task/update',
       id: 't1',
-      patch: { status: 'done', actualHours: 2.5 },
+      patch: {
+        status: 'done',
+        completedAt: '2026-01-01T03:00:00.000Z',
+        actualHours: 99,
+        activeMs: 123,
+        inProgressAt: '2026-01-01T00:00:00.000Z',
+      } as unknown as Partial<Task>,
     });
-    expect(next.tasks[0]!.actualHours).toBe(2.5);
+    expect(next.tasks[0]!.actualHours).toBe(3);
+    expect(next.tasks[0]!.activeMs).toBe(10_800_000);
+  });
+
+  it('seeds legacy activeMs once without recomputing actualHours', () => {
+    const state = makeState();
+    state.tasks[0] = {
+      ...state.tasks[0]!,
+      status: 'done',
+      completedAt: '2026-01-02T00:00:00.000Z',
+      actualHours: 24,
+    };
+    freezeNow('2026-01-05T06:00:00.000Z');
+    const next = projectReducer(state, {
+      type: 'task/update',
+      id: 't1',
+      patch: { status: 'done' },
+    });
+    expect(next.tasks[0]!.actualHours).toBe(24);
+    expect(next.tasks[0]!.activeMs).toBe(86_400_000);
+  });
+
+  it('accumulates across reopen (done→inProgress→done)', () => {
+    freezeNow('2026-01-01T00:00:00.000Z');
+    let state = projectReducer(makeState(), {
+      type: 'task/update',
+      id: 't1',
+      patch: { status: 'inProgress' },
+    });
+    vi.setSystemTime(new Date('2026-01-01T02:00:00.000Z'));
+    state = projectReducer(state, {
+      type: 'task/update',
+      id: 't1',
+      patch: { status: 'done' },
+    });
+    expect(state.tasks[0]!.actualHours).toBe(2);
+    expect(state.tasks[0]!.activeMs).toBe(7_200_000);
+    vi.setSystemTime(new Date('2026-01-02T00:00:00.000Z'));
+    state = projectReducer(state, {
+      type: 'task/update',
+      id: 't1',
+      patch: { status: 'inProgress' },
+    });
+    expect(state.tasks[0]!.inProgressAt).toBe('2026-01-02T00:00:00.000Z');
+    expect(state.tasks[0]!.activeMs).toBe(7_200_000);
+    vi.setSystemTime(new Date('2026-01-02T01:00:00.000Z'));
+    state = projectReducer(state, {
+      type: 'task/update',
+      id: 't1',
+      patch: { status: 'done' },
+    });
+    expect(state.tasks[0]!.activeMs).toBe(10_800_000);
+    expect(state.tasks[0]!.actualHours).toBe(3);
   });
 
   it('keeps actualHours when leaving done', () => {
@@ -1139,6 +1221,8 @@ describe('actualHours derivation', () => {
       status: 'done',
       completedAt: '2026-01-02T00:00:00.000Z',
       actualHours: 24,
+      activeMs: 86_400_000,
+      inProgressAt: null,
     };
     const next = projectReducer(state, {
       type: 'task/update',
@@ -1166,7 +1250,23 @@ describe('actualHours derivation', () => {
     expect(next.tasks[0]!.actualHours).toBe(24);
   });
 
-  it('computes actualHours when adding a done task without explicit values', () => {
+  it('inits interval fields when adding an inProgress task', () => {
+    freezeNow('2026-01-01T01:00:00.000Z');
+    const next = projectReducer(makeState(), {
+      type: 'task/add',
+      task: {
+        ...TASK,
+        id: 't2',
+        status: 'inProgress',
+        createdAt: '2026-01-01T00:00:00.000Z',
+        updatedAt: '2026-01-01T00:00:00.000Z',
+      },
+    });
+    expect(next.tasks[0]!.inProgressAt).toBe('2026-01-01T01:00:00.000Z');
+    expect(next.tasks[0]!.activeMs).toBe(0);
+  });
+
+  it('computes fallback when adding a done task without history', () => {
     freezeNow('2026-01-01T03:00:00.000Z');
     const next = projectReducer(makeState(), {
       type: 'task/add',
@@ -1179,6 +1279,7 @@ describe('actualHours derivation', () => {
       },
     });
     expect(next.tasks[0]!.actualHours).toBe(3);
+    expect(next.tasks[0]!.activeMs).toBe(10_800_000);
   });
 
   it('detaches parent when parent is itself a subtask (1-level only)', () => {

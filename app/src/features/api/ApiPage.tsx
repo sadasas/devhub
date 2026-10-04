@@ -31,6 +31,7 @@ import type { ApiCollection, ApiEndpoint, ApiMethod, ApiParam, State } from '../
 import { useProject } from '../../state/project-context';
 import { BottomSheet } from '../../components/BottomSheet';
 import { Button } from '../../components/Button';
+import { Tooltip } from '../../components/Tooltip';
 import { ActivityList } from '../../components/ActivityList';
 import { EmptyState } from '../../components/EmptyState';
 import { DoodleIllustration } from '../../components/DoodleIllustration';
@@ -147,17 +148,18 @@ function ApiOverflowMenu({ canEdit, onImport, onExportOpenApi, onExportPdf, onNe
   };
   return (
     <div className="sort-control">
+      <Tooltip title={t('api.toolbar.moreActions')}>
       <button
         type="button"
         className="btn btn-ghost btn-sm btn-icon"
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-label={t('api.toolbar.moreActions')}
-        title={t('api.toolbar.moreActions')}
         onClick={() => setOpen(true)}
       >
         <DotsThree size={16} weight="bold" aria-hidden="true" />
       </button>
+      </Tooltip>
       <BottomSheet open={open} title={t('api.toolbar.moreActions')} onClose={() => setOpen(false)} hideHeader>
         {canEdit && (
           <button type="button" className="sort-menu-row" onClick={choose(onImport)}>

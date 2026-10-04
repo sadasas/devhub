@@ -17,6 +17,7 @@ import { PinButton } from '../../components/PinButton';
 import { RowMenu } from '../../components/RowMenu';
 import { Skeleton } from '../../components/Skeleton';
 import { SortControl } from '../../components/SortControl';
+import { Tooltip } from '../../components/Tooltip';
 import { DecisionModal } from './DecisionModal';
 import { NewDecisionModal } from './NewDecisionModal';
 import { DataErrorState } from '../../components/DataErrorState';
@@ -176,11 +177,11 @@ export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }
                             dispatch({ type: 'decision/update', id: d.id, patch: { pinned: !d.pinned } })
                           }
                         />
+                        <Tooltip title={t('decisions.deleteAria', { title: d.title, defaultValue: `Delete decision ${d.title}` })}>
                         <button
                           type="button"
                           className="btn btn-ghost btn-sm btn-icon btn-danger swap-trash"
                           aria-label={t('decisions.deleteAria', { title: d.title, defaultValue: `Delete decision ${d.title}` })}
-                          title={t('decisions.deleteAria', { title: d.title, defaultValue: `Delete decision ${d.title}` })}
                           onClick={(e) => {
                             e.stopPropagation();
                             const btn = e.currentTarget;
@@ -192,6 +193,7 @@ export function DecisionsPage({ unreadIds }: { unreadIds?: ReadonlySet<string> }
                         >
                           <Trash size={13} aria-hidden="true" />
                         </button>
+                        </Tooltip>
                       </span>
                     </span>
                   )}

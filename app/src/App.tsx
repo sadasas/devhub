@@ -45,6 +45,7 @@ const CheckEmailPageLazy = lazy(() => import('./features/auth/CheckEmailPage').t
 const VerifyEmailPageLazy = lazy(() => import('./features/auth/VerifyEmailPage').then((m) => ({ default: m.VerifyEmailPage })));
 const NotFoundLazy = lazy(() => import('./components/NotFound').then((m) => ({ default: m.NotFoundPage })));
 const CommandPaletteLazy = lazy(() => import('./components/CommandPalette').then((m) => ({ default: m.CommandPalette })));
+const FocusPageLazy = lazy(() => import('./features/board/FocusPage').then((m) => ({ default: m.FocusPage })));
 
 
 
@@ -111,6 +112,14 @@ function Root() {
       <ProjectsProvider>
         <ActivityUnreadProvider>
           <Routes>
+            <Route
+              path="/project/:projectId/focus/:taskId"
+              element={
+                <RouteBoundary fallback={<ProjectSkeleton />}>
+                  <FocusPageLazy />
+                </RouteBoundary>
+              }
+            />
             <Route element={<Layout />}>
             <Route
               path="/"

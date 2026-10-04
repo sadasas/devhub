@@ -10,8 +10,14 @@ interface DetailShellProps {
   sidebarHead?: ReactNode;
   sidebar?: ReactNode;
   children: ReactNode;
+  /** Aksi kustom di header modal (diteruskan ke Modal). */
+  headerAction?: ReactNode;
   /** Elemen tambahan setelah modal (mis. dialog konfirmasi hapus). */
   after?: ReactNode;
+  variant?: 'modal' | 'page';
+  topbar?: ReactNode;
+  /** Id untuk <aside> properti di varian page (mis. anchor scroll mobile). Modal diabaikan. */
+  sideId?: string;
 }
 
 /**
@@ -28,8 +34,28 @@ export function DetailShell({
   sidebarHead,
   sidebar,
   children,
+  headerAction,
   after,
+  variant = 'modal',
+  topbar,
+  sideId,
 }: DetailShellProps) {
+  if (variant === 'page') {
+    return (
+      <div className="page">
+        {topbar}
+        <div className="detail-grid">
+          <div className="detail-main">{children}</div>
+          <aside className="detail-side" id={sideId}>
+            {sidebarHead != null && <div className="propside-head">{sidebarHead}</div>}
+            {sidebar}
+          </aside>
+        </div>
+        {footer}
+        {after}
+      </div>
+    );
+  }
   return (
     <>
       <Modal
@@ -39,6 +65,7 @@ export function DetailShell({
         width="lg"
         className="modal-composer modal-composer--fullscreen"
         footer={footer}
+        headerAction={headerAction}
       >
         <div className="composer-scroll">
           <div className="detail-grid">

@@ -60,6 +60,10 @@ const envSchema = z.object({
   GITHUB_APP_PRIVATE_KEY_B64: z.string().max(10000).default(''),
   GITHUB_APP_WEBHOOK_SECRET: z.string().max(500).default(''),
   GITHUB_APP_SLUG: z.string().max(200).default(''),
+  // YouTube Data API v3 untuk radio fokus (046b_youtube, modul integrations/youtube).
+  // Kosong = search mati (endpoint mengembalikan YOUTUBE_NOT_CONFIGURED 503).
+  // Kunci server-side saja — JANGAN pernah terekspos ke frontend (kuota bersama).
+  YOUTUBE_API_KEY: z.string().max(500).default(''),
   // Redirect origins — comma-separated extra allowed origins for OAuth callbacks (e.g. Vercel preview)
   OAUTH_REDIRECT_ORIGINS: z
     .string()

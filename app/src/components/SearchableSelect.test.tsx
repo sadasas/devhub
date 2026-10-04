@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { StrictMode } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { SearchableSelect } from './SearchableSelect';
 
@@ -164,5 +165,24 @@ describe('SearchableSelect', () => {
     fireEvent.click(screen.getByRole('option', { name: 'Beta' }));
     expect(onOpenChange).toHaveBeenCalledTimes(2);
     expect(onOpenChange).toHaveBeenLastCalledWith(false);
+  });
+
+  it('does not emit onOpenChange on mount under StrictMode double-effects (dev parent-picker regression)', () => {
+    const onOpenChange = vi.fn();
+    render(
+      <StrictMode>
+        <SearchableSelect
+          id="test-select-strict"
+          value={null}
+          options={OPTIONS}
+          onChange={() => {}}
+          onOpenChange={onOpenChange}
+        />
+      </StrictMode>,
+    );
+    // StrictMode menjalankan effect setup→cleanup→setup saat mount; guard
+    // perbandingan-nilai harus diam di kedua setup (nilai sama), sehingga
+    // parent-picker tidak menerima false dan panel tidak gugur seketika.
+    expect(onOpenChange).not.toHaveBeenCalled();
   });
 });
