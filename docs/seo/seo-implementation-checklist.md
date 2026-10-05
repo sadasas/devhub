@@ -23,6 +23,14 @@ Focus on these first — highest impact, achievable difficulty.
 | 9 | `technical memory for engineering teams` | 170 | 22 | Homepage | ⬜ |
 | 10 | `ERD diagram generator for teams` | 2,400 | 45 | /features/schema | ⬜ |
 
+> Catatan 2026-10-05: target `/features/*` pada tabel di atas resolve ke
+> docs site (`docs.devhub.nrawangbatin.my.id/features/*`, slug aktual:
+> `issues`, `schema`, `decisions`, `milestones`, `tasks`, `api-docs`,
+> `whiteboard`, `testing` + `/mcp`) — bukan halaman domain landing.
+> `/features/tech-stack` belum ada padanannya (tech stack terdokumentasi di
+> dalam app + README, belum jadi halaman docs); jangan buat halaman
+> landing-domain tandingan sebelum memutuskan keyword ownership-nya.
+
 ---
 
 ## ✅ Pre-Launch Checklist
@@ -197,36 +205,47 @@ Focus on these first — highest impact, achievable difficulty.
 
 ## 🔗 Internal Linking Map
 
-### Homepage → Feature Pages
+> **Amandemen 2026-10-05 (Opsi A — diputuskan):** halaman fitur tinggal di
+> docs site (`https://docs.devhub.nrawangbatin.my.id/features/*`), bukan di
+> domain landing. Satu sumber konten, tanpa duplikasi (duplikasi melanggar
+> § Cannibalization Prevention di bawah). Peta di bawah sudah diselaraskan:
+> link fitur keluar dari homepage landing menuju docs site; `/pricing` dan
+> `/faq` tetap di domain landing. Kanonis meta-tag `/features/*` di § Meta
+> Tags di bawah berlaku untuk URL docs-site sampai halaman setara ada di
+> domain landing (bila dibangun, pasang canonical + redirect dari docs).
+
+### Homepage → Feature Pages (docs site)
 ```
 Homepage H1: "Project Management for Developers"
-  ├─ Link to /features/schema (anchor: "database schema documentation")
-  ├─ Link to /features/adr (anchor: "architectural decision records")
-  ├─ Link to /features/tech-stack (anchor: "tech stack tracking")
-  ├─ Link to /features/test-cases (anchor: "test case management")
-  ├─ Link to /features/issues (anchor: "issue tracking")
-  └─ Link to /pricing (anchor: "start free trial")
+  ├─ Link to docs /features/schema (anchor: "database schema documentation")
+  ├─ Link to docs /features/decisions — slug `decisions`, bukan `adr` (anchor: "architectural decision records")
+  ├─ Link to docs /features/tasks (anchor: "task board")
+  ├─ Link to docs /features/issues (anchor: "issue tracking")
+  ├─ Link to docs /features/testing (anchor: "test case management")
+  ├─ Link to docs /features/milestones (anchor: "release changelog")
+  ├─ Link to docs /features/api-docs (anchor: "API documentation")
+  ├─ Link to docs /features/whiteboard (anchor: "whiteboard to task")
+  ├─ Link to docs /mcp (anchor: "MCP integration")
+  └─ Link to /pricing (anchor: "start free trial", domain landing)
 ```
 
-### Feature Pages → Homepage + Siblings
+### Feature Pages (docs site) → Homepage + Siblings
 ```
-/features/schema
-  ├─ → Homepage (anchor: "DevHub features")
-  ├─ → /features/adr (anchor: "document why you chose this schema")
-  ├─ → /features/tech-stack (anchor: "track technologies")
-  └─ → Blog: "ERD Diagram Tutorial"
+docs /features/schema
+  ├─ → Landing homepage (anchor: "DevHub features")
+  ├─ → docs /features/decisions (anchor: "document why you chose this schema")
+  ├─ → docs /features/api-docs (anchor: "endpoints in front of this schema")
+  └─ → Blog: "ERD Diagram Tutorial" (bila blog ada)
 
-/features/adr
-  ├─ → Homepage (anchor: "technical memory features")
-  ├─ → /features/schema (anchor: "connect to data model")
-  ├─ → /features/tech-stack (anchor: "document technology choices")
-  └─ → Blog: "ADR Template Guide"
+docs /features/decisions
+  ├─ → Landing homepage (anchor: "technical memory features")
+  ├─ → docs /features/schema (anchor: "connect to data model")
+  ├─ → docs /features/api-docs (anchor: "document technology choices")
+  └─ → Blog: "ADR Template Guide" (bila blog ada)
 
-/features/tech-stack
-  ├─ → Homepage (anchor: "all features")
-  ├─ → /features/adr (anchor: "record technology decisions")
-  ├─ → /features/schema (anchor: "map to database")
-  └─ → Blog: "Dependency Management Guide"
+docs /features (overview)
+  ├─ → Landing homepage #features (anchor: "all features")
+  └─ → semua halaman fitur di bawahnya
 ```
 
 ### Blog → Product Pages
@@ -243,17 +262,14 @@ Every blog post should include:
 
 ### Week 1: Foundation
 - [ ] Homepage (optimize H1, subhead, CTAs)
-- [ ] /features/schema (full page content)
-- [ ] /features/adr (full page content)
-- [ ] /features/tech-stack (full page content)
-- [ ] Submit sitemap to Search Console
+- [x] Docs `/features/` overview + 8 detail pages (DONE 2026-10-05 — EN+ID, sidebar Features; `/mcp` reuse existing)
+- [ ] Submit sitemap to Search Console (termasuk sitemap docs site)
+- [ ] Perbaiki tombol landing → URL docs `/features/*` (DONE di kode, menunggu deploy docs dulu baru landing)
 
 ### Week 2: Conversion Pages
 - [ ] /pricing (optimize for transactional keywords)
 - [ ] /faq (implement FAQ schema)
-- [ ] /features/test-cases
-- [ ] /features/issues
-- [ ] Build internal links between all pages
+- [ ] Internal links landing ↔ docs sesuai § Internal Linking Map (amandemen 2026-10-05)
 
 ### Week 3–4: Blog Launch
 - [ ] Pillar Post 1: "Project Management for Developers: Ultimate Guide"
@@ -375,6 +391,6 @@ Checklist ini menginduk ke [Go-Live Checklist Tier-2](../05-operations/go-live-c
 
 ---
 
-**Last Updated:** 2026-09-24 (domain prod + harga IDR + status Tier-2)  
-**Owner:** SEO Lead  
+**Last Updated:** 2026-10-05 (amandemen Opsi A: fitur di docs site + sinkron hitung MCP 25 tools)
+**Owner:** SEO Lead
 **Next Review:** 2026-12-24
