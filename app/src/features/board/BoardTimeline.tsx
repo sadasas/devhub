@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../../components/Button";
 import { Badge } from "../../components/Badge";
+import { Tooltip } from "../../components/Tooltip";
 import { CalendarBlank, CaretLeft, CaretRight, Plus } from "@phosphor-icons/react";
 import { useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
@@ -199,8 +200,8 @@ export function BoardTimeline({ filteredTasks, onOpenTask, members, unreadIds, o
           <div style={{background:"var(--bg-elevated)",borderBottom:"1px solid var(--border-strong)",borderRight:"1px solid var(--border-hairline)",display:"flex",alignItems:"center",justifyContent:"space-between",padding:"0 10px",height:76,position:"sticky",top:0,left:0,zIndex:4, minWidth:0}}>
             <span style={{fontSize:11,fontWeight:600,textTransform:"uppercase",letterSpacing:"0.06em",color:"var(--text-muted)"}}>{t("board.timeline.laneTasks",{defaultValue:"Tasks"})}</span>
             <span style={{display:"flex",gap:4}}>
-              <button type="button" className="btn btn-ghost btn-sm btn-icon" aria-label={t("board.timeline.prev",{defaultValue:"Previous"})} onClick={()=>onNav(-1)}><CaretLeft size={14} aria-hidden="true" /></button>
-              <button type="button" className="btn btn-ghost btn-sm btn-icon" aria-label={t("board.timeline.next",{defaultValue:"Next"})} onClick={()=>onNav(1)}><CaretRight size={14} aria-hidden="true" /></button>
+              <Tooltip title={t("board.timeline.prev",{defaultValue:"Previous"})}><button type="button" className="btn btn-ghost btn-sm btn-icon" aria-label={t("board.timeline.prev",{defaultValue:"Previous"})} onClick={()=>onNav(-1)}><CaretLeft size={14} aria-hidden="true" /></button></Tooltip>
+              <Tooltip title={t("board.timeline.next",{defaultValue:"Next"})}><button type="button" className="btn btn-ghost btn-sm btn-icon" aria-label={t("board.timeline.next",{defaultValue:"Next"})} onClick={()=>onNav(1)}><CaretRight size={14} aria-hidden="true" /></button></Tooltip>
             </span>
           </div>
           <div ref={headerRef} style={{overflow:"hidden",borderBottom:"1px solid var(--border-strong)",background:"var(--bg-elevated)",position:"sticky",top:0,zIndex:2,minWidth:0}}>

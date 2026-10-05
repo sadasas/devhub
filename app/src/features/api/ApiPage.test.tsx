@@ -91,6 +91,11 @@ function renderPage(unreadIds?: ReadonlySet<string>, initialEntries?: string[]) 
   );
 }
 
+/** Scope query ke sidebar — workbench kini ikut menampilkan judul endpoint (default selection). */
+function sidebarRoot(): HTMLElement {
+  return document.querySelector('.api-sidebar') as HTMLElement;
+}
+
 describe('ApiPage', () => {
   beforeEach(() => {
     mocks.state = makeState();
@@ -127,8 +132,8 @@ describe('ApiPage', () => {
     expect(screen.getByRole('tab', { name: 'Workspace' }).getAttribute('aria-selected')).toBe('true');
     expect(screen.getByRole('tab', { name: 'Docs' }).getAttribute('aria-selected')).toBe('false');
 
-    fireEvent.click(screen.getByText('Get user'));
-    // read mode first: docs preview + Edit button, no method editor
+    // default selection: endpoint pertama terbuka otomatis tanpa klik — read mode dulu
+    expect(within(sidebarRoot()).getByText('Get user')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Edit' })).toBeTruthy();
     expect(screen.queryByLabelText('HTTP method')).not.toBeTruthy();
 
@@ -156,6 +161,39 @@ describe('ApiPage', () => {
     expect(screen.queryByLabelText('HTTP method')).not.toBeTruthy();
   });
 
+  it('selects an endpoint when clicking the row path outside the select button', () => {
+    mocks.state = makeState({ apiCollections: [collection], apiEndpoints: [{ ...endpoint, collectionId: 'c1' }] });
+    renderPage();
+
+    // pindahkan selection ke koleksi dulu supaya klik baris endpoint benar-benar diuji
+    fireEvent.click(within(sidebarRoot()).getByText('Users'));
+    expect(screen.getByLabelText('Collection name')).toBeTruthy();
+
+    // path ada di luar <button class="api-tree-item-select"> — seluruh baris wajib klikabel
+    fireEvent.click(within(sidebarRoot()).getByText('/users/:id'));
+    expect(screen.getByRole('heading', { name: 'Get user' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeTruthy();
+  });
+
+  it('keeps a ?entity=apiEndpoints deep link instead of the default selection', () => {
+    const other: ApiEndpoint = {
+      ...endpoint,
+      id: 'e2',
+      name: 'Other user',
+      path: '/others',
+      collectionId: 'c1',
+      description: '',
+    };
+    mocks.state = makeState({
+      apiCollections: [collection],
+      apiEndpoints: [{ ...endpoint, collectionId: 'c1' }, other],
+    });
+    renderPage(undefined, ['/?entity=apiEndpoints&id=e2']);
+
+    expect(screen.getByRole('heading', { name: 'Other user' })).toBeTruthy();
+    expect(screen.queryByRole('heading', { name: 'Get user' })).not.toBeTruthy();
+  });
+
   it('forces docs mode for viewer role', () => {
     mocks.canEdit = false;
     mocks.state = makeState({ apiCollections: [collection], apiEndpoints: [endpoint] });
@@ -169,10 +207,8 @@ describe('ApiPage', () => {
 
     fireEvent.click(screen.getByRole('tab', { name: 'Workspace' }));
 
-    expect(screen.getByText('Pick an endpoint from the sidebar to view its documentation.')).toBeTruthy();
-
-    fireEvent.click(screen.getByText('Get user'));
-
+    // default selection berlaku untuk viewer: endpoint pertama terbuka read-only
+    expect(within(sidebarRoot()).getByText('Get user')).toBeTruthy();
     expect(screen.getByRole('heading', { name: 'Get user' })).toBeTruthy();
     expect(screen.queryByLabelText('HTTP method')).not.toBeTruthy();
     expect(screen.queryByLabelText('Endpoint path')).not.toBeTruthy();
@@ -231,12 +267,13 @@ describe('ApiPage', () => {
     renderPage();
 
     fireEvent.click(screen.getByRole('button', { name: 'Collapse Users' }));
-    expect(screen.queryByText('Get user')).not.toBeTruthy();
+    // workbench tetap menampilkan endpoint terpilih (default selection) — yang hilang hanya baris sidebar
+    expect(within(sidebarRoot()).queryByText('Get user')).not.toBeTruthy();
 
     fireEvent.change(screen.getByLabelText('Search endpoints'), { target: { value: 'get user' } });
 
     expect(screen.getByText('1 result')).toBeTruthy();
-    expect(screen.getByText('Get user')).toBeTruthy();
+    expect(within(sidebarRoot()).getByText('Get user')).toBeTruthy();
     expect(document.querySelector('.api-tree-item-title mark')).toBeTruthy();
   });
 
@@ -310,7 +347,7 @@ describe('ApiPage', () => {
     });
     renderPage();
 
-    fireEvent.click(screen.getByText('Get user'));
+    fireEvent.click(within(sidebarRoot()).getByText('Get user'));
     expect(screen.getByRole('heading', { name: 'Get user' }).tagName).toBe('H4');
     expect(screen.getByRole('button', { name: 'Edit' })).toBeTruthy();
     expect(screen.queryByLabelText('HTTP method')).not.toBeTruthy();
@@ -336,7 +373,7 @@ describe('ApiPage', () => {
     });
     renderPage();
 
-    fireEvent.click(screen.getByText('Get user'));
+    fireEvent.click(within(sidebarRoot()).getByText('Get user'));
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
     fireEvent.change(screen.getByDisplayValue('Get user'), { target: { value: 'Get user v2' } });
     fireEvent.click(screen.getByRole('button', { name: 'Done' }));
@@ -401,7 +438,7 @@ describe('ApiPage', () => {
     });
     renderPage();
 
-    fireEvent.click(screen.getByText('Get user'));
+    fireEvent.click(within(sidebarRoot()).getByText('Get user'));
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
 
     fireEvent.change(screen.getByLabelText('Endpoint path'), { target: { value: '/orders' } });
@@ -488,7 +525,7 @@ describe('ApiPage', () => {
     });
     renderPage();
 
-    fireEvent.click(screen.getByText('Get user'));
+    fireEvent.click(within(sidebarRoot()).getByText('Get user'));
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
     fireEvent.click(screen.getByRole('tab', { name: 'Body' }));
 
@@ -504,7 +541,7 @@ describe('ApiPage', () => {
     });
     renderPage();
 
-    fireEvent.click(screen.getByText('Get user'));
+    fireEvent.click(within(sidebarRoot()).getByText('Get user'));
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
     fireEvent.click(screen.getByRole('tab', { name: 'Body' }));
 
@@ -654,7 +691,7 @@ describe('ApiPage', () => {
     });
     renderPage();
 
-    fireEvent.click(screen.getByText('Get user'));
+    fireEvent.click(within(sidebarRoot()).getByText('Get user'));
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
 
     expect(screen.queryByText('Key · Value · Description')).toBeNull();
@@ -745,7 +782,7 @@ describe('ApiPage', () => {
     });
     renderPage();
 
-    fireEvent.click(screen.getByText('Get user'));
+    fireEvent.click(within(sidebarRoot()).getByText('Get user'));
     fireEvent.click(screen.getByRole('button', { name: 'Edit' }));
 
     fireEvent.click(screen.getByRole('button', { name: 'Collection' }));

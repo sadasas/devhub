@@ -96,10 +96,13 @@ describe('ProjectSettings shell', () => {
   });
 
   it('shows project ID row and team/status rows', () => {
-    renderSettings('/project/p1?tab=settings');
+    const { container } = renderSettings('/project/p1?tab=settings');
     expect(screen.getByText('Project ID')).toBeTruthy();
     expect(screen.getByText('Alpha')).toBeTruthy();
     expect(screen.getByText('Active')).toBeTruthy();
+    // Pola settings-row kanonik: dt/dd + mono + aksi Copy, bukan Input readOnly.
+    expect(container.querySelectorAll('.settings-row').length).toBeGreaterThanOrEqual(3);
+    expect(screen.getByRole('button', { name: 'Copy ID' })).toBeTruthy();
   });
 
   it('saves name+description via update() for admins', async () => {

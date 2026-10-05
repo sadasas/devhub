@@ -1304,7 +1304,7 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
                         {subDraft.trim() ? (
                           <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                           <span style={{ fontSize: 11, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{t('board.taskModal.subAddHint')}</span>
-                          <Button variant="primary" size="md" className="btn-icon" aria-label={t('board.taskModal.addSubtask', { defaultValue: 'New subtask…' })} onClick={() => { addSubtask(); }}><Plus size={16} aria-hidden="true" /></Button>
+                          <Tooltip title={t('board.taskModal.addSubtask', { defaultValue: 'New subtask…' })}><Button variant="primary" size="md" className="btn-icon" aria-label={t('board.taskModal.addSubtask', { defaultValue: 'New subtask…' })} onClick={() => { addSubtask(); }}><Plus size={16} aria-hidden="true" /></Button></Tooltip>
                           </span>
                         ) : (
                           <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', flexShrink: 0 }}>
@@ -1393,11 +1393,13 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
                       {c.done ? '✓' : ''}
                     </button>
                   </Tooltip>
-                  <span style={{ flex: 1, minWidth: 0, fontSize: 13, whiteSpace: 'normal', overflowWrap: 'anywhere', textDecoration: c.done ? 'line-through' : 'none', color: c.done ? 'var(--text-muted)' : 'var(--text-secondary)' }}>{c.title}</span>
+                  <span className="mini-row-body" style={{ flex: 1, minWidth: 0, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: c.done ? 'line-through' : 'none', color: c.done ? 'var(--text-muted)' : 'var(--text-secondary)' }}>{c.title}</span>
                   {canEdit && (
-                    <Tooltip title={`Remove ${c.title}`}>
-                    <button type="button" className="mini-del" onClick={() => removeCheck(c.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--status-danger)', padding: '6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} aria-label={`Remove ${c.title}`}><Trash size={15} aria-hidden="true" /></button>
-                    </Tooltip>
+                    <span className="mini-row-actions">
+                      <Tooltip title={`Remove ${c.title}`}>
+                      <button type="button" className="mini-del" onClick={() => removeCheck(c.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--status-danger)', padding: '6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} aria-label={`Remove ${c.title}`}><Trash size={15} aria-hidden="true" /></button>
+                      </Tooltip>
+                    </span>
                   )}
                 </div>
               ))}
@@ -1421,7 +1423,7 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
                       style={{ fontSize: 13, fontWeight: 400 }}
                     />
                     {checkDraft.trim() ? (
-                      <Button variant="primary" size="md" className="btn-icon" aria-label={t('board.taskModal.addChecklist', { defaultValue: 'New item…' })} onClick={addCheck}><Plus size={16} aria-hidden="true" /></Button>
+                      <Tooltip title={t('board.taskModal.addChecklist', { defaultValue: 'New item…' })}><Button variant="primary" size="md" className="btn-icon" aria-label={t('board.taskModal.addChecklist', { defaultValue: 'New item…' })} onClick={addCheck}><Plus size={16} aria-hidden="true" /></Button></Tooltip>
                     ) : null}
                   </div>
                 ) : (

@@ -676,9 +676,12 @@ export function SettingsTabSkeleton() {
                 <Skeleton style={{ flex: 1, height: 36, borderRadius: 8 }} />
               </div>
               <Skeleton style={{ width: '100%', height: 36, borderRadius: 8, marginTop: 12 }} />
-              <div className="dashboard__settings-id-row" style={{ marginTop: 12 }}>
-                <Skeleton style={{ flex: 1, height: 36, borderRadius: 8 }} />
-                <Skeleton style={{ width: 110, height: 36, borderRadius: 8 }} />
+              <div className="settings-row" style={{ marginTop: 12 }}>
+                <Skeleton style={{ width: 72, height: 12 }} />
+                <span style={{ flex: 1, display: 'inline-flex', alignItems: 'center', gap: 8, justifyContent: 'flex-end' }}>
+                  <Skeleton style={{ width: '55%', height: 12 }} />
+                  <Skeleton style={{ width: 110, height: 32, borderRadius: 8 }} />
+                </span>
               </div>
               <Skeleton style={{ width: 120, height: 36, borderRadius: 8, marginTop: 12 }} />
             </section>

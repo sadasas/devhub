@@ -17,6 +17,7 @@ import type { BillingPayment, BillingStatus, PaymentHistoryItem } from '../../li
 import { Badge } from '../../components/Badge';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { Button } from '../../components/Button';
+import { Tooltip } from '../../components/Tooltip';
 import { DataErrorState } from '../../components/DataErrorState';
 import { InlineError } from '../../components/InlineError';
 import { Skeleton } from '../../components/Skeleton';
@@ -79,16 +80,17 @@ function WorkspaceEyebrow({ name, loading }: { name: string | null; loading?: bo
 function CardBack({ to, label }: { to: string; label: string }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+      <Tooltip title={label}>
       <Button
         variant="ghost"
         size="sm"
         className="btn-icon"
         aria-label={label}
-        title={label}
         onClick={() => { window.location.href = to; }}
       >
         <ArrowLeft size={16} aria-hidden="true" />
       </Button>
+      </Tooltip>
     </div>
   );
 }

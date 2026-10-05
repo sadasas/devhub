@@ -161,6 +161,25 @@ a:hover {
   min-height: 36px;
 }
 
+/* Tier-1 size ladder icon-button (2026-10-03): kotak ikon WAJIB mengikuti
+   tinggi class size-nya — sebelumnya `.btn-icon` 36px menimpa `.btn-sm` 28px
+   sehingga tombol ikon melayang 8px lebih tinggi dari tombol teks sebelahnya
+   (bug tab API: trash 36 vs Edit 28). `.btn-icon` tanpa size class tetap 36px.
+   Touch (hover:none) punya override 44px sendiri di blok media touch. */
+.btn-sm.btn-icon {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+}
+
+.btn-md.btn-icon {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  min-height: 34px;
+}
+
 .btn-primary {
   background: var(--accent);
   color: var(--text-on-accent);
@@ -554,14 +573,17 @@ a:hover {
   box-shadow: 0 0 0 3px var(--accent-ring);
 }
 
-/* Badge-only presence: avatar stack without count text (project header). */
-.presence-chip--badge {
-  padding: 3px 6px;
-  gap: 0;
+/* Trigger badgeOnly: avatar stack polos tanpa pill badge — stack sendiri
+   cukup sebagai chip list (keputusan §6 2026-10-04). */
+.presence-chip--naked {
+  background: transparent;
+  border: none;
+  padding: 2px;
+  border-radius: var(--radius-pill);
 }
 
-.presence-chip--badge .presence-avatars {
-  margin-right: 0;
+.presence-chip--naked:hover {
+  background: var(--surface-hover);
 }
 
 .presence-avatars {
@@ -836,15 +858,25 @@ a:hover {
 }
 
 .presence-popover-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: flex;
+  align-items: baseline;
+  min-width: 0;
   font-size: 12.5px;
   font-weight: 600;
   color: var(--text-primary);
 }
 
+/* Teks nama saja yang ellipsis; marker YOU (sibling) tak terpotong. */
+.presence-popover-name-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .presence-you {
+  flex: 0 0 auto;
   margin-left: 6px;
   font-size: 10.5px;
   font-weight: 400;
@@ -2982,11 +3014,6 @@ html[data-theme='light'] .splash-bg {
   transform: rotate(-90deg);
 }
 
-.sidebar-team-header:hover .sidebar-add-btn-team,
-.sidebar-add-btn-team:focus-visible {
-  opacity: 1;
-}
-
 /* Project rows sit one level below the Proyek toggle (single 24px step on
    the spacing scale) but keep the L1 item type (13px via .sidebar-item) —
    indent only, no smaller font, no rail. The pin button lives outside the
@@ -3515,10 +3542,6 @@ html[data-theme='light'] .splash-bg {
 @media (hover: none) {
   .sidebar-filter-input {
     min-height: 36px;
-  }
-
-  .sidebar-add-btn-team {
-    opacity: 1;
   }
 
   .sidebar-item {
@@ -4290,6 +4313,17 @@ span.focus-detail-parentbtn {
     min-height: 44px;
   }
 
+  /* Spesifisitas (0,2,0) size-ladder icon-button (lihat .btn-sm.btn-icon di
+     atas) menang atas aturan touch di atas — tanpa ini target sentuh 44px
+     hilang di layar touch. Urutan setelah .btn-icon/.btn-sm touch = menang. */
+  .btn-sm.btn-icon,
+  .btn-md.btn-icon {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+  }
+
   /* Icon-only button: kembalikan padding 0 yang ditimpa .btn-sm di atas.
      Tanpa ini tombol btn-sm+btn-icon (mis. Share/⋮ header) punya ruang
      konten 44-32=12px dan glyph 18px disusutkan max-width:100%.
@@ -4947,18 +4981,19 @@ span.focus-detail-parentbtn {
   box-shadow: 0 0 0 4px var(--accent-ring);
 }
 
-/* Single-select highlight — tinted (kontras aman), bukan solid penuh. */
+/* Single-select highlight — tinted (kontras aman), bukan solid penuh.
+   Tanpa shadow: shadow-raised khusus overlay/sheet (§8). */
 .bento-stat-selected {
   color: var(--text-primary);
   background: var(--accent-dim);
   border: 1px solid var(--accent-ring);
-  box-shadow: var(--shadow-raised);
+  box-shadow: none;
 }
 
 .bento-stat-tone-primary {
   background: var(--accent-dim);
   border: 1px solid var(--accent-ring);
-  box-shadow: var(--shadow-raised);
+  box-shadow: none;
 }
 
 .bento-stat-tone-warn {
@@ -5129,31 +5164,6 @@ span.focus-detail-parentbtn {
   font-size: 12px;
   font-weight: 600;
   color: var(--text-muted);
-}
-
-.task-activity-toggle {
-  display: inline-flex;
-  gap: 4px;
-  padding: 2px;
-  background: var(--bg-inset);
-  border-radius: var(--radius-pill);
-}
-
-.task-activity-toggle button {
-  padding: 4px 10px;
-  border: none;
-  border-radius: var(--radius-pill);
-  background: transparent;
-  color: var(--text-muted);
-  font-size: 11px;
-  font-weight: 500;
-  cursor: pointer;
-}
-
-.task-activity-toggle button.active {
-  background: var(--bg-elevated);
-  color: var(--text-primary);
-  box-shadow: var(--shadow-raised);
 }
 
 .task-activity-bars {
@@ -5389,6 +5399,9 @@ span.focus-detail-parentbtn {
   color: var(--text-muted);
 }
 
+/* Flat content surface (pola .pcard): hairline border, tanpa shadow —
+   shadow-raised khusus overlay/sheet (§8). Hover = surface-hover (§3:
+   bg-overlay hanya layer melayang), tanpa lift. */
 .welcome-queue-card {
   display: flex;
   align-items: center;
@@ -5397,31 +5410,23 @@ span.focus-detail-parentbtn {
   background: var(--bg-elevated);
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-raised);
+  box-shadow: none;
   cursor: pointer;
   text-align: left;
   transition:
     background var(--duration-fast) var(--ease-out),
-    border-color var(--duration-fast) var(--ease-out),
-    transform var(--duration-fast) var(--ease-out);
+    border-color var(--duration-fast) var(--ease-out);
 }
 
 .welcome-queue-card:hover {
-  background: var(--bg-overlay);
+  background: var(--surface-hover);
   border-color: var(--accent-ring);
-  transform: translateY(-1px);
 }
 
 .welcome-queue-card:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
   box-shadow: 0 0 0 4px var(--accent-ring);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .welcome-queue-card:hover {
-    transform: none;
-  }
 }
 
 .welcome-queue-num {
@@ -5644,11 +5649,13 @@ span.focus-detail-parentbtn {
   color: var(--text-primary);
 }
 
+/* Selected-pill kanonik (pola .mini-toggle): accent-dim + teks primary,
+   tanpa border/shadow — shadow-raised khusus overlay/sheet (§8). */
 .archive-filter-btn-active {
-  background: var(--bg-elevated);
+  background: var(--accent-dim);
   color: var(--text-primary);
-  border: 1px solid var(--border-hairline);
-  box-shadow: var(--shadow-raised);
+  border: none;
+  box-shadow: none;
 }
 
 /* list & groups */
@@ -5930,7 +5937,7 @@ span.focus-detail-parentbtn {
 
 @media (hover: none) {
   .welcome-row-chevron {
-    opacity: 0.6;
+    opacity: 1;
   }
 }
 
@@ -6942,13 +6949,16 @@ span.focus-detail-parentbtn {
   right: 6px;
   z-index: 2;
   opacity: 0;
+  pointer-events: none;
   transition: opacity var(--duration-fast) var(--ease-out);
 }
 
 .task-card-wrap:hover .task-card-pin,
+.task-card-wrap:focus-within .task-card-pin,
 .task-card-pin:focus-visible,
 .task-card-pin.pin-btn-active {
   opacity: 1;
+  pointer-events: auto;
 }
 
 @media (hover: none) {
@@ -7556,74 +7566,83 @@ span.focus-detail-parentbtn {
    Collapse via max-width+opacity (bukan display:none) agar Tab tetap sampai
    lewat :focus-within. Hanya geser horizontal halus dalam 1 row, tinggi row
    dikunci — tanpa CLS vertikal. Tokens only. */
+/* §10c kanonik (migrasi 2026-10-04): swap = overlay opacity, bukan
+   max-width+visibility. `swap-status` = meta yang fade saat hover/fokus;
+   `swap-group` = overlay kanan. Tanpa CLS, Tab tetap sampai via
+   :focus-within, touch selalu tampil in-flow. Pinned idle = status + Pin
+   (Pin terlalu penting untuk disembunyikan); hover = Pin+Trash. Pola
+   reveal-only (Decisions/Releases) memakai ulang .swap-group tanpa
+   .swap-status: overlay mengambang di ujung baris. */
 .data-list .row-swap {
+  position: relative;
   display: inline-flex;
   align-items: center;
+  min-height: 28px;
 }
 
 .data-list .swap-status {
   display: inline-flex;
   align-items: center;
-  overflow: hidden;
   white-space: nowrap;
-  max-width: 140px;
-  opacity: 1;
-  visibility: visible;
-  transition:
-    max-width var(--duration-fast) var(--ease-out),
-    opacity var(--duration-fast) var(--ease-out),
-    visibility var(--duration-fast) var(--ease-out);
+  transition: opacity var(--duration-fast) var(--ease-out);
 }
 
 .data-list .swap-group {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  overflow: hidden;
-  white-space: nowrap;
-  max-width: 0;
   opacity: 0;
-  visibility: hidden;
-  margin-left: 0;
-  transition:
-    max-width var(--duration-fast) var(--ease-out),
-    opacity var(--duration-fast) var(--ease-out),
-    visibility var(--duration-fast) var(--ease-out),
-    margin-left var(--duration-fast) var(--ease-out);
+  pointer-events: none;
+  transition: opacity var(--duration-fast) var(--ease-out);
 }
 
-/* Pinned idle: Pin mengintip (Trash terlipat + hidden, bukan overlap). */
-.data-list .row-swap.is-pinned .swap-group {
-  max-width: 32px;
-  opacity: 1;
-  visibility: visible;
-  margin-left: 4px;
-}
-
-.data-list .row-swap.is-pinned .swap-trash {
-  visibility: hidden;
-}
-
-/* Hover / keyboard: status terlipat, actions mengembang. Di bawah aturan
-   pinned agar menang saat hover (spesifisitas juga lebih tinggi). */
+/* Hover / keyboard: status fade, digantikan overlay aksi. */
 .data-list .data-row:hover .swap-status,
 .data-list .data-row:focus-within .swap-status {
-  max-width: 0;
   opacity: 0;
-  visibility: hidden;
 }
 
 .data-list .data-row:hover .swap-group,
 .data-list .data-row:focus-within .swap-group {
-  max-width: 80px;
   opacity: 1;
-  visibility: visible;
-  margin-left: 4px;
+  pointer-events: auto;
+}
+
+/* Pinned idle: Pin tetap in-flow berdampingan status; Trash tersembunyi. */
+.data-list .row-swap.is-pinned .swap-group {
+  position: static;
+  transform: none;
+  width: 32px;
+  overflow: hidden;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.data-list .row-swap.is-pinned .swap-trash {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+/* Hover pinned: Pin pindah ke overlay, Trash ikut tampil. */
+.data-list .data-row:hover .row-swap.is-pinned .swap-group,
+.data-list .data-row:focus-within .row-swap.is-pinned .swap-group {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: auto;
+  overflow: visible;
 }
 
 .data-list .data-row:hover .row-swap.is-pinned .swap-trash,
 .data-list .data-row:focus-within .row-swap.is-pinned .swap-trash {
-  visibility: visible;
+  opacity: 1;
+  pointer-events: auto;
 }
 
 .data-list .data-row .swap-group .btn:focus-visible,
@@ -7635,7 +7654,8 @@ span.focus-detail-parentbtn {
 
 @media (prefers-reduced-motion: reduce) {
   .data-list .swap-status,
-  .data-list .swap-group {
+  .data-list .swap-group,
+  .data-list .swap-trash {
     transition: none;
   }
 }
@@ -7643,20 +7663,24 @@ span.focus-detail-parentbtn {
 /* Touch: tanpa hover, swap dimatikan — status + Pin + Trash tampil semua. */
 @media (hover: none) {
   .data-list .swap-status {
-    max-width: none;
     opacity: 1;
-    visibility: visible;
   }
 
   .data-list .swap-group {
-    max-width: none;
+    position: static;
+    transform: none;
     opacity: 1;
-    visibility: visible;
-    margin-left: 4px;
+    pointer-events: auto;
+  }
+
+  .data-list .row-swap.is-pinned .swap-group {
+    width: auto;
+    overflow: visible;
   }
 
   .data-list .row-swap.is-pinned .swap-trash {
-    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
   }
 }
 
@@ -7669,24 +7693,46 @@ span.focus-detail-parentbtn {
   }
 }
 
-/* Whiteboard cards — Gmail-faithful hover swap (grid cards, bukan data-row).
-   Kolom aksi collapse penuh (bukan opacity-only): idle NOL space — judul
-   pakai lebar penuh; hover/focus mengembangkan max-width dan judul terpotong
-   sedikit lebih awal. Hanya titik truncate yang bergerak (pola Gmail).
-   Tinggi dikunci: judul 1 baris + deskripsi area 2 baris (clamp +
-   min-height existing) + meta nowrap — tetangga tidak bergeser.
-   Touch: selalu tampil. Narrow diganti kebab RowMenu (JS-gated).
-   Scope .wb-card / .whiteboard-page agar dashboard tidak ikut berubah. */
+/* Whiteboard cards (§10c kanonik, migrasi 2026-10-04): aksi = overlay
+   kanan-atas kartu — bukan kolom max-width yang mengembang. Idle NOL space
+   (judul pakai lebar penuh); hover/fokus overlay menggantikan ujung judul
+   tanpa CLS. Touch: selalu tampil in-flow. Narrow diganti kebab RowMenu
+   (JS-gated). Scope .wb-card agar dashboard tidak ikut berubah. */
 .wb-card {
+  position: relative;
   column-gap: 0;
 }
 
 .wb-card-actions {
+  position: absolute;
+  top: 14px;
+  right: 16px;
   display: inline-flex;
   gap: 4px;
-  align-items: start;
-  overflow: hidden;
-  white-space: nowrap;
+  align-items: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+
+.wb-card:hover .wb-card-actions,
+.wb-card:focus-within .wb-card-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (hover: none) {
+  .wb-card-actions {
+    position: static;
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wb-card .wb-card-actions {
+    transition: none;
+  }
 }
 
 /* Meta baris sendiri full-width di bawah (di luar tombol main + kolom aksi)
@@ -7698,28 +7744,6 @@ span.focus-detail-parentbtn {
 
 .whiteboard-page .project-grid {
   align-items: start;
-}
-
-@media (hover: hover) {
-  .wb-card .wb-card-actions {
-    max-width: 0;
-    opacity: 0;
-    visibility: hidden;
-    margin-left: 0;
-    transition:
-      max-width var(--duration-fast) var(--ease-out),
-      opacity var(--duration-fast) var(--ease-out),
-      visibility var(--duration-fast) var(--ease-out),
-      margin-left var(--duration-fast) var(--ease-out);
-  }
-
-  .wb-card:hover .wb-card-actions,
-  .wb-card:focus-within .wb-card-actions {
-    max-width: 76px;
-    opacity: 1;
-    visibility: visible;
-    margin-left: 8px;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -10021,6 +10045,7 @@ input[type='checkbox'] {
 }
 
 .version-row:hover .version-row-eye,
+.version-row:focus-within .version-row-eye,
 .version-row-active .version-row-eye {
   opacity: 1;
   color: var(--accent);
@@ -11926,6 +11951,7 @@ input[type='checkbox'] {
   color: var(--text-primary);
   margin: 0 0 12px;
   white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .about-description-empty {
@@ -13298,6 +13324,7 @@ input[type='checkbox'] {
   padding: 5px 6px;
   border-radius: var(--radius-sm);
   user-select: none;
+  cursor: pointer;
   color: var(--text-secondary);
   font-size: 12.5px;
 }
@@ -13392,8 +13419,13 @@ input[type='checkbox'] {
   flex: 0 0 auto;
 }
 
+/* §10c kanonik (migrasi 2026-10-04): `display: none` → opacity agar Tab
+   mencapai tombol hapus; gate `pointer: coarse` → `hover: none` + in-flow
+   (target 44px mengikuti blok touch). Satu-satunya aksi baris (hapus,
+   destruktif) tetap hidden — matriks §10c "selalu tampak" hanya untuk
+   aksi primer. */
 .api-tree-actions {
-  display: none;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   padding: 3px;
@@ -13405,18 +13437,24 @@ input[type='checkbox'] {
   flex: 0 0 auto;
   min-width: 24px;
   min-height: 24px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-fast) var(--ease-out);
 }
 
 .api-tree-item:hover .api-tree-actions,
 .api-tree-group-label:hover .api-tree-actions,
 .api-tree-item:focus-within .api-tree-actions,
-.api-tree-group-label:focus-within .api-tree-actions {
-  display: inline-flex;
+.api-tree-group-label:focus-within .api-tree-actions,
+.api-tree-actions:focus-visible {
+  opacity: 1;
+  pointer-events: auto;
 }
 
-@media (pointer: coarse) {
+@media (hover: none) {
   .api-tree-actions {
-    display: inline-flex;
+    opacity: 1;
+    pointer-events: auto;
     min-width: 32px;
     min-height: 32px;
   }
@@ -13512,6 +13550,22 @@ input[type='checkbox'] {
   flex: 1 1 auto;
 }
 
+/* Sel method (SearchableSelect) WAJIB ukuran alami — 2026-10-04: tanpa ini
+   `.ss-wrap` (flex 0 1 auto) ikut menyusut karena path input membawa base
+   `width: 100%` (baris kelebihan beban ~116px), lalu `.ss-trigger-text`
+   ellipsis memotong "GET" → "G…". Pola sama seperti guard `.method-chip`
+   di read-mode. */
+.api-workbench-method .ss-wrap {
+  flex: 0 0 auto;
+}
+
+/* Base `width: 100%` dari `.input` dipakai sebagai flex-basis (flex: 1 1 auto)
+   sehingga input menuntut selebar baris + item lain. `auto` mengembalikan
+   base ke ukuran konten — input tetap tumbuh via flex-grow = 1. */
+.api-workbench-method .api-path-input {
+  width: auto;
+}
+
 .api-workbench-actions {
   display: flex;
   align-items: center;
@@ -13519,6 +13573,11 @@ input[type='checkbox'] {
   flex: 0 0 auto;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.api-page .tabs {
+  position: static;
+  padding: 4px 8px;
 }
 
 .api-read-actions {
@@ -15470,8 +15529,12 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
 .chat-author { color: var(--text-primary); }
 .chat-author-own { color: var(--accent); }
 .chat-msg-time { font-family: var(--font-sans); font-size: 12px; color: var(--text-muted); }
-.chat-msg-actions { position: absolute; top: 2px; right: 4px; display: flex; gap: 2px; opacity: 0; visibility: hidden; transition: opacity var(--duration-fast) var(--ease-out), visibility var(--duration-fast) var(--ease-out); }
-.chat-msg:hover .chat-msg-actions, .chat-msg:focus-within .chat-msg-actions { opacity: 1; visibility: visible; }
+/* §10c kanonik (migrasi 2026-10-04): `visibility: hidden` → `pointer-events:
+   none` agar Tab mencapai tombol (dulu jalur keyboard 2-langkah). Reserve
+   `padding-right: 72px` di `.chat-msg` dipertahankan sebagai padanan
+   `--mini-actions-reserve` (teks bubble tidak lari ke bawah overlay). */
+.chat-msg-actions { position: absolute; top: 2px; right: 4px; display: flex; gap: 2px; opacity: 0; pointer-events: none; transition: opacity var(--duration-fast) var(--ease-out); }
+.chat-msg:hover .chat-msg-actions, .chat-msg:focus-within .chat-msg-actions { opacity: 1; pointer-events: auto; }
 @media (hover: none) {
   .chat-msg-actions { opacity: 1; position: static; }
   .chat-msg { padding-right: 0; }
@@ -15924,12 +15987,12 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
 
 .due-cal-month {
   grid-template-columns: repeat(7, 1fr);
-  grid-template-rows: 28px repeat(6, 112px);
+  grid-template-rows: 28px repeat(6, 142px);
 }
 
 .due-cal-week {
   grid-template-columns: repeat(7, 1fr);
-  grid-template-rows: 28px 140px;
+  grid-template-rows: 28px 142px;
 }
 
 .due-cal-head {
@@ -20251,21 +20314,6 @@ html[data-theme='light'] .tour-overlay-dim {
   overflow-wrap: anywhere;
 }
 
-.dashboard__settings-read-desc-block {
-  margin: 0;
-}
-
-.dashboard__settings-read-meta-block {
-  margin: 0;
-}
-
-.dashboard__settings-read-key {
-  margin: 0 0 4px;
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.dashboard__settings-read-desc-block .dashboard__settings-read-key,
 .dashboard__settings-read-desc {
   font-size: 14px;
 }
@@ -20277,15 +20325,7 @@ html[data-theme='light'] .tour-overlay-dim {
   overflow-wrap: anywhere;
 }
 
-/* Team·Status satu baris: flex + gap eksplisit (bukan spasi teks),
-   separator muted, label status hanya untuk screen reader. */
-.dashboard__settings-team-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  font-size: 12px;
-}
-
+/* Separator muted untuk baris Team·Status (label status hanya screen reader). */
 .dashboard__settings-team-status-sep {
   color: var(--text-muted);
 }
@@ -20312,28 +20352,6 @@ html[data-theme='light'] .tour-overlay-dim {
 
 .dashboard__settings-field--name {
   flex: 1;
-}
-
-.dashboard__settings-id-row {
-  display: flex;
-  gap: 12px;
-  align-items: flex-end;
-}
-
-.dashboard__settings-id-field {
-  flex: 1;
-  min-width: 0;
-}
-
-.dashboard__settings-copy {
-  flex-shrink: 0;
-}
-
-.dashboard__settings-slug {
-  margin: 0;
-  font-size: 12px;
-  font-family: var(--font-mono);
-  color: var(--text-muted);
 }
 
 .dashboard__settings-save-row {
@@ -20495,7 +20513,6 @@ html[data-theme='light'] .tour-overlay-dim {
 }
 
 .dashboard__settings-save:focus-visible,
-.dashboard__settings-copy:focus-visible,
 .dashboard__settings-manage:focus-visible,
 .dashboard__settings-link:focus-visible,
 .dashboard__settings-danger-btn:focus-visible,
@@ -20588,19 +20605,9 @@ html[data-theme='light'] .tour-overlay-dim {
     width: 100%;
   }
 
-  .dashboard__settings-id-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
   /* Aturan konsisten: button action di settings mobile fit-content rata
      kanan (ujung baris, sejajar tombol Save) — bukan fullwidth. Modal
      dikecualikan (.modal-footer tetap 50/50). */
-  .dashboard__settings-copy {
-    width: auto;
-    align-self: flex-end;
-  }
-
   .dashboard__settings-manage {
     width: auto;
     align-self: flex-end;
@@ -20693,7 +20700,6 @@ html[data-theme='light'] .tour-overlay-dim {
   .dashboard__settings,
   .dashboard__settings-section,
   .dashboard__settings-save,
-  .dashboard__settings-copy,
   .dashboard__settings-manage,
   .dashboard__settings-link,
   .dashboard__settings-danger-btn,
@@ -21183,9 +21189,18 @@ html[data-theme='light'] .sidebar-project-row.is-active > .sidebar-item-active:h
 }
 
 .sidebar-project-row:hover .pin-toggle,
+.sidebar-project-row:focus-within .pin-toggle,
 .pin-toggle:focus-visible,
 .pin-toggle[aria-pressed='true'] {
   opacity: 1;
+}
+
+/* §10c kanonik (migrasi 2026-10-04): tanpa override ini pin tidak pernah
+   tampil di touch kecuali ter-pin/fokus. */
+@media (hover: none) {
+  .pin-toggle {
+    opacity: 1;
+  }
 }
 
 .pin-toggle:hover {
@@ -23474,12 +23489,15 @@ html[data-theme='light'] .kanban-swipe-tab.is-active {
     color: var(--status-danger);
   }
 
-  /* Mock C: TOC jadi chip bawah yang mengembang. */
+  /* Mock C: TOC jadi chip bawah yang mengembang.
+     margin-bottom 12px WAJIB — rule ini (specificity 0,2,0) menimpa
+     margin-bottom: 20px base `.docs-toc-mobile`; dulu `margin: 12px 0 0`
+     membuat jarak On this page ↔ search = 0 (bug mobile 2026-10-03). */
   .api-docs .docs-toc-mobile {
     position: sticky;
     bottom: 12px;
     z-index: 5;
-    margin: 12px 0 0;
+    margin: 12px 0;
     background: var(--bg-elevated);
     border: 1px solid var(--border-hairline);
     border-radius: var(--radius-card);
@@ -23706,26 +23724,13 @@ html[data-theme='light'] .kanban-swipe-tab.is-active {
   }
 }
 
-/* Minimalis: aksi destruktif baris (×/Detach) hover-reveal.
-   Selalu tampil saat keyboard-focus atau touch (tanpa hover). */
+/* `.mini-del` kini hanya hook gaya tombol mini di dalam `.mini-row-actions`
+   (§10c: reveal diatur overlay induk — bukan gate opacity ganda). Tombol
+   mini WAJIB dibungkus `<Tooltip>` (§9 `tooltip-icon-btn`) karena guard
+   `guard-icon-buttons` hanya menjangkau class `btn-icon`. */
 .mini-del {
-  opacity: 0;
-  transition: opacity 0.12s ease;
-}
-.mini-row:hover .mini-del,
-.mini-row:focus-within .mini-del,
-.mini-del:focus-visible {
-  opacity: 1;
-}
-@media (hover: none) {
-  .mini-del {
-    opacity: 1;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .mini-del {
-    transition: none;
-  }
+  display: inline-flex;
+  flex-shrink: 0;
 }
 
 /* Title & Description pencil hover-reveal (konsisten dengan prop-edit). */
@@ -23805,11 +23810,66 @@ html[data-theme='light'] .kanban-swipe-tab.is-active {
   }
 }
 
-/* Lampiran: aksi baris hidden sampai hover/fokus (desktop); selalu tampil di sentuh. */
-.mini-row .att-actions { display: inline-flex; gap: 4px; flex-shrink: 0; opacity: 0; visibility: hidden; transition: opacity var(--duration-fast) var(--ease-out), visibility var(--duration-fast) var(--ease-out); }
-.mini-row:hover .att-actions, .mini-row:focus-within .att-actions { opacity: 1; visibility: visible; }
-@media (hover: none) { .mini-row .att-actions { opacity: 1; visibility: visible; } }
-@media (prefers-reduced-motion: reduce) { .mini-row .att-actions { transition: none; } }
+/* Lampiran/Labels/Checklist: aksi baris TANPA ruang cadangan saat idle
+   (overlay absolute). Saat hover/fokus aksi menggantikan konten terakhir:
+   meta (mis. "0 tasks") fade-out, konten fleksibel (nama file/judul) menyisih
+   sebesar var(--mini-actions-reserve). Sentuh (hover:none) kembali in-flow
+   & selalu tampil. Pola terdaftar di design-tokens.md §10 `mini-row-actions`. */
+.mini-row {
+  position: relative;
+}
+.mini-row-actions {
+  position: absolute;
+  right: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+.mini-row:hover .mini-row-actions,
+.mini-row:focus-within .mini-row-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+.mini-row-meta {
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+.mini-row:has(.mini-row-actions):hover .mini-row-meta,
+.mini-row:has(.mini-row-actions):focus-within .mini-row-meta {
+  opacity: 0;
+}
+.mini-row:has(.mini-row-actions:not(:empty)):hover .mini-row-body,
+.mini-row:has(.mini-row-actions:not(:empty)):focus-within .mini-row-body {
+  padding-right: var(--mini-actions-reserve, 32px);
+}
+@media (hover: none) {
+  .mini-row-actions {
+    position: static;
+    transform: none;
+    opacity: 1;
+    pointer-events: auto;
+    transition: none;
+  }
+  .mini-row:has(.mini-row-actions):hover .mini-row-meta,
+  .mini-row:has(.mini-row-actions):focus-within .mini-row-meta {
+    opacity: 1;
+  }
+  .mini-row:has(.mini-row-actions:not(:empty)):hover .mini-row-body,
+  .mini-row:has(.mini-row-actions:not(:empty)):focus-within .mini-row-body {
+    padding-right: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mini-row-actions,
+  .mini-row-meta {
+    transition: none;
+  }
+}
 
 /* Focus page mobile (≤640px, .page scope only) — topbar icon-only, badges
    status/prioritas/overdue, kartu Properti collapsible, bottom bar sticky.

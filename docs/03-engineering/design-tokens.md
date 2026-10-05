@@ -136,7 +136,9 @@ is reserved for floating layers.
 ## 4. Touch & responsive rules (summary)
 
 - Touch targets: 44px minimum on `hover: none` (WCAG 2.5.8 floor
-  is 24px). Desktop icon buttons 32px, text buttons 28px — intentional.
+  is 24px). Desktop sizes follow the §9 size ladder: text buttons
+  28/34px (sm/md); icon boxes match their size class (28/34px),
+  36px when unsized — intentional.
 - Inputs `font-size: 13px` di semua device.
 - Heights: `100dvh` with `100vh` fallback (mobile browser chrome);
   `env(safe-area-inset-*)` for notch/home indicator.
@@ -267,6 +269,18 @@ Rules:
 | 2026-10-01 | Illustration system doc (keputusan owner): gaya doodle dikunci di `illustration-system.md` (kontrak visual, palet+tone, taksonomi state/`tour-*`, matriks pakai, anti-pola, checklist varian baru); §8 Brand/ilustrasi merujuk ke sana |
 | 2026-10-04 | Composer bare cue = garis atas-bawah saja (keputusan owner): `.composer-title:focus-visible` tanpa outline/halo — `border-strong` atas-bawah, kiri-kanan kosong; base transparan cegah lompatan layout; pengecualian Tier-1 §9 (indikator fokus keyboard penuh di composer, preseden Notion/Linear); guard tak perlu diubah (1px + var existing) |
 | 2026-10-04 | Badge priority diseragamkan (keputusan owner): `Badge tone=tone + TaskPriorityIcon 11 + label` di meta Focus, TaskDetail (meta+sidebar+badges), PublicDetailModal; timeline Board memakai teks pendek `TASK_PRIORITY_SHORT` (Urg/Hi/Med/Lo) sebagai pengecualian densitas eksplisit; hapus `.focus-detail-prio` + `as any` BoardTimeline |
+| 2026-10-03 | Aksi hover baris tanpa ruang cadangan §10 (`mini-row-actions`): `.mini-row { position: relative }` + `.mini-row-actions` overlay absolute (idle `opacity:0`, hover/fokus baris menggantikan konten terakhir: `.mini-row-meta` fade-out, `.mini-row-body` geser `var(--mini-actions-reserve)`), `@media (hover:none)` kembali in-flow & selalu tampil; gantikan pola lama in-flow `opacity:0` (Labels/Checklist `.mini-del`) dan `.att-actions` `visibility:hidden` (Attachments) yang menyisakan jarak kosong permanen; `RowMenu` kebab narrow tidak dibungkus (selalu terlihat); tanpa kelas baru kena guard `*-title/*-label` |
+| 2026-10-03 | Size-ladder ikon Tier-1 §9: `.btn-sm.btn-icon` 28×28 + `.btn-md.btn-icon` 34×34 (global.css:166-178), `.btn-icon` tanpa size tetap 36px; touch `hover:none` ladder di-restore 44px + `padding: 0` setelah blok touch (specificity 0,2,0, global.css:3941-3956) — `.btn-icon` 36 lama menimpa `.btn-sm` 28 sehingga trash melayang 8px di atas Edit di baris bar API; uji e2e `api-tab-fixes` (Trash==Edit 28px centerY Δ≤1; touch 44 + precondition `matchMedia('(hover: none)')`) |
+| 2026-10-04 | Workbench API method select terpotong "G…": `.api-workbench-method .ss-wrap { flex: 0 0 auto }` + `.api-path-input { width: auto }` (akar: path input bawa base `width: 100%` sebagai flex-basis → baris kelebihan ~116px, select tanpa guard ikut menyusut, trigger text ellipsis; pola guard sama seperti `.method-chip` read-mode); uji e2e baru (label tak ellipsized, wrap ≥ 60px) |
+| 2026-10-04 | Semantik schedule kalender (amend ADR-028): drop ke tanggal = `startDate = dueDate` = target (single-day/no-date); multi-day tak berubah; strip = clear kedua (sebelumnya hanya due → start basi); perbaiki 2 bug turunan (start==due di-drag jadi multi-day tak sengaja, strip tinggalkan start usang); uji `DueCalendar` 38/38 (+3 baru) |
+| 2026-10-04 | Aturan hidden action & icon hint §10c + full migration (tanpa rename class): `.swap-group` + `.wb-card-actions` + `.api-tree-actions` + `.chat-msg-actions` → overlay opacity kanonik (`display:none`/`visibility` dibuang — Tab mencapai tombol); `.mini-del` lepas double-gate + Tooltip Labels/Checklist; bug touch `.pin-toggle` (tak tampil → tampil) + `.welcome-row-chevron` (0.6 → 1); `.version-row-eye` + `:focus-within`; hapus CSS mati `.sidebar-add-btn-team`; token `--mini-actions-reserve: 32px` didefinisikan; `.erd-handle`/`.prop-edit`/`.settings-row-actions`/`.row-kebab` terverifikasi kanonik/pengecualian |
+| 2026-10-03 | 5 issue tab API: (1) default = endpoint pertama urutan sidebar — guard `?entity` deep link menang; (2) seluruh baris tree clickable (button tanpa onClick → bubble, trash `stopPropagation`); (3) tombol ikon ikut ladder §9; (4) pill aktif via override `.api-page .tabs` static + padding 4/8 + `scrollIntoView` `.tab-active` (pola §9b `api-tabs-strip`) — strip top-flush & sticky aneh hilang (topGap 4/leftGap 8 desktop), pill mobile tak kepotong (right 317.7 ≤ bar 318); (5) gap TOC↔search 12px (`.api-docs .docs-toc-mobile { margin: 12px 0 }`, global.css:23058); uji: e2e `e2e/tests/api-tab-fixes.spec.ts` 7 test serial (1 project, dihapus afterAll — cap plan) + unit `ApiPage.test` 42/42 (helper `sidebarRoot`, +2 test default-selection & deep-link) |
+| 2026-10-04 | Kalender DueDate seragam + lipat shadow dashboard (§8): `emptyH` 112/72 → `collapsedH` 142/108 (`DueCalendar.tsx:473-496`) — grid tak bergeser saat task muncul; fallback CSS `.due-cal-month/week` → 142 (global.css:15627-15635); e2e `due.spec.ts` dinavigasi ulang (tab By Due Date/Calendar/Buckets & dialog perantara sudah tak ada; label Title → Name) + assert seragam pasca-task; shadow `shadow-raised` DILIPAT di `.archive-filter-btn-active` (→ accent-dim + text-primary), `.welcome-queue-card` (tanpa shadow/lift, hover surface-hover), `.bento-stat-selected/-tone-primary`; CSS mati `.task-activity-toggle` dihapus; uji `dashboard-flat.spec.ts` (light+dark); sisa in-flow (`.segment-active`, `.team-workspace__card`) antre lipat; temuan: chip dirender di overlay `.due-cal-spans-container` (bukan dalam cell) → locator cope-date tak valid, persistensi diassert via API + render |
+| 2026-10-04 | Presence popup: marker `(you)`/`(Anda)` keluar dari container ellipsis (flex-split `.presence-popover-name-text` ellipsis + `.presence-you` fixed — pola: marker status jangan satu container ellipsis dengan teks variabel); trigger `badgeOnly` dikupas dari pill `badge-info` → avatar stack polos (`presence-chip--naked`, hover surface-hover), CSS mati `.presence-chip--badge` dihapus; uji `PresenceChip.test` +2 |
+| 2026-10-04 | Amend keputusan Sept-14 (tema+bahasa keluar topbar): jalan pintas `ThemeSwitcher` + `LanguageSwitcher` varian dropdown kembali ke `content-header-actions` global (`Layout.tsx`, trigger `topbar-btn` 36px, tanpa CSS/i18n baru) — alasan discoverability (issue Next.js #86002, pola header GitHub/Linear); Profile Preferences tetap rumah kanonik (tidak dihapus); opsi sidebar-menu/dashboard-segmented ditolak via wireframe whiteboard; uji `ThemeSwitcher.test` (baru) + e2e `header-prefs.spec.ts` |
+| 2026-10-04 | Audit Tooltip icon-only menyeluruh (32 situs): guard `guard-icon-buttons` buta terhadap komponen `<Button>` (hanya `<button>` mentah) + mode warn exit-0 → temuan menumpuk tak diperbaiki (PinButton `title=` native, WhiteboardCard, 6 ApiPage, TaskDetail ×2, ProjectPage ×3, dsb.). SEMUA dibungkus `<Tooltip title=sama-dengan-aria-label>` (bare `title=` dibuang); `ArchiveUndoToast` dismiss masuk ALLOWLIST; guard diperluas ke `<Button>` + test `guard-icon-buttons.test.mjs`; guard kini HIJAU 0 warning |
+| 2026-10-04 | Tooltip kolom ERD menutupi daftar (`showColTip` ikut kursor + `pointer-events:none`): ganti ke table-edge anchor `placeRightOrFlip` (selaras jalur keyboard) untuk hover maupun fokus; `placeRightOrFlip` dikeraskan (TIP 300×190, flip vertikal, clamp kiri/atas-bawah); clamp CSS disinkron `308/198px` + aman kontainer sempit; uji stabilitas posisi saat mouseMove |
+| 2026-10-04 | Unifikasi settings-row Team+Project ke pola Profile: Team ID/URL (`DashboardSettingsTab`) + Project ID/Team/Desc (`ProjectSettings`) dari `Input readOnly`/meta-block → `dl.settings-rows` + `SettingsRowGroup` dt/dd + mono + aksi Copy (pola: nilai read-only = settings-row); mirror skeleton; hapus CSS mati (`-id-row/-copy/-read-meta-block/-read-key/-read-desc-block/-team-status/-slug` + 2 rujukan list); `Input` import lepas di ProjectSettings; uji struktur +2 |
 
 ---
 
@@ -416,6 +430,7 @@ Antre lipat per area (semua mengubah visual → task sendiri, bukan fondasi):
 | Hijau sukses Auth (#dcfce7/#14532d) | status-success-soft + status-success — DILIPAT 2026-09-15 (var hantu --success-bg/fg dihapus) |
 | Fallback tint chat #a1a1aa (ENTITY_TINT) | text-muted — DILIPAT 2026-09-15 (3 fallback di ChatPanel) |
 | Tooltip dark/info hardcoded | Retokenisasi (task whiteboard; varian tetap ada) |
+| Shadow in-flow non-dashboard (`.segment-active` bg-overlay+shadow global.css:13841, `.team-workspace__card` shadow global.css:20456) | accent-dim + `box-shadow: none` (pola selected-pill §8; task tersendiri, bukan fondasi) |
 
 Rules:
 
@@ -436,6 +451,14 @@ Rules:
   Lompatan 55→78 dari perluasan guard ke radius/border/btn-size
   (12 radius + 4 border-width + 11 border-rgba + 1 btn-size).
 - Nilai spacing/radius/warna baru di luar tangga = temuan review.
+- Shadow: `shadow-raised` / `inset-highlight` HANYA layer melayang
+  (modal, panel, sheet, menu, popover, tooltip, toolbar/pill floating —
+  §3). Konten in-flow (kartu, chip/tab/toggle terpilih, stat) WAJIB
+  `box-shadow: none`; seleksi ditandai `background: var(--accent-dim)`
+  (+ `border: accent-ring` bila perlu) — pola selected-pill
+  (`.mini-toggle`, `.seg-btn-active`, `.tab-active`). `bg-overlay`
+  sebagai bg hover in-flow juga melanggar §3 (contoh dilipat
+  2026-10-04: `.welcome-queue-card:hover` → `surface-hover`).
 - Test yang meng-assert kelas varian (mis. .tooltip-card-info) diperbarui
   bersama migrasinya, bukan diam-diam.
 
@@ -453,7 +476,7 @@ offset 2px + halo ring 4px.
 |---|---|---|
 | btn-sm | 28px / 12px label / pad 0-10 | SEMUA aksi settings-rows/action-row (Password, Connect, Copy, Manage). Touch naik 44px via blok global |
 | btn-md | 34px / 13px label / pad 0-14 | Aksi primer halaman (CTA, Save, New) |
-| btn-icon | 32px desktop / 36px touch | Ikon-only; padding 0 (jangan timpa — regresi 12px tercatat §1) |
+| btn-icon | 28px (sm) / 34px (md) / 36px tanpa size; touch 44px | Ikon-only; padding 0 (jangan timpa — regresi 12px tercatat §1). Size-ladder 2026-10-03 (global.css:166-178): kotak ikon setinggi tombol teks sebelarnya — `.btn-icon` 36 lama menimpa `.btn-sm` 28 sehingga trash melayang 8px di atas Edit (bug tab API) |
 | btn-gap | 6px, radius-input, weight 500 | DNA semua tombol/link-btn |
 | tooltip-icon-btn | `<Tooltip title={sama-dengan-aria-label}>` (side top) | Tombol icon-only tanpa label teks di hover-capable WAJIB `<Tooltip>`; bare `title=` native TANPA Tooltip = temuan guard (kecuali tutup/dismiss × di ALLOWLIST — aria-label wajib, tooltip visual opsional); grandfather clause untuk title telanjang EXPIRED 2026-09-29; di sentuh/mobile tooltip tak ada sehingga ikon harus jelas dari konteks |
 | divider | 1px hairline | Pemisah baris berkelompok (settings-row-group bawah, list li+li atas). Strong HANYA zona emfasis (danger-top) |
@@ -476,13 +499,13 @@ Fold map (diterapkan sesi ini):
 | ConsentBanner Accept+Reject dua-duanya `secondary` | SENGAJA — anti dark-pattern ("ketiga tombol setara", consent.note). Jangan "perbaiki" ke primary |
 | WhiteboardList sort memuat `createdAt`, halaman lain memfilter | Dicatat, belum diputuskan (opsi sort produk — butuh keputusan owner, bukan lipat diam-diam) |
 | Board `?view=` + Dashboard `?status` + Profile `?tab=` tablist tanpa roving/arrow | Dilengkapi 2026-09 (tablist + roving tabIndex + ArrowLeft/Right + aria-controls/tabpanel); Board naik ke pola header A + `board.count` |
-| .btn tanpa size (tinggi auto) | DILARANG — sisa 1 file (AuthPage OAuth, ikut task per-area Auth) |
+| .btn tanpa size (tinggi auto) | DILARANG — nol sisa (AuthPage OAuth → btn-md, decision §6 2026-09-26; terverifikasi grep + `guard:buttons` hijau 2026-10-03) |
 
 Rules:
 
 - Tombol/link-btn baru WAJIB size (sm/md/icon); tanpa size = temuan review.
-- Guard memperingatkan className `btn` statis tanpa size (sisa 1 file: AuthPage OAuth —
-  lipat ke btn-md ikut task per-area Auth, bukan fondasi). Transition belum dijaga guard.
+- Guard memperingatkan className `btn` statis tanpa size (nol temuan per
+  2026-10-03 — AuthPage OAuth terakhir dilipat ke btn-md 2026-09-26). Transition belum dijaga guard.
 - Transisi baru WAJIB duration-fast + ease-out kecuali justifikasi + ADR.
 - Opt-out fokus (mis. composer bare) didaftar eksplisit per kasus, bukan pola.
 
@@ -494,6 +517,7 @@ Rules:
 |---|---|---|
 | `modal-mobile` | `100% + 100dvh-24 + safe-area` + footer 50/50 | `.modal-lg / .modal-composer--fullscreen` jadi fullscreen sheet ≤640px (`overflow-x: clip`); footer ikut `modal-footer` §4b |
 | `tabs-icon-only` | `min 44px + center + label hidden` | SATU pola gantikan board + releases: `min-width/min-height 44px`, label `display: none`, teks tetap di `aria-label` (`font-size: 0` tanpa px lolos guard) |
+| `api-tabs-strip` | `.api-page .tabs { position: static; padding: 4px 8px }` (global.css:13181) + `scrollIntoView({ block: 'nearest', inline: 'nearest' })` pada `.tab-active` saat `tab` berubah (ApiPage `workbenchTabsRef`) | Bar workbench API: base `.tabs` sticky `top: 40px` menempel di scrollport `.api-main` (bukan window) + base `padding: 0 0 4px` membuat strip band putih top-flush (0px atas/kiri, terukur di screenshot 956×88); override Tier-1 ini SCOPED `.api-page` — DocsNav/PageSkeletons/PublicProjectPage tetap base `.tabs` |
 | `overlay-clamp` | `100vw-16 / 100dvh-16` | SEMUA popover/sheet/menu: `position: fixed + max-width: calc(100vw-16px) + max-height: min(320px, 100dvh-16px)` + flip atas-bawah + clamp kiri/kanan + reposition saat scroll/resize (pola `RowMenu.tsx`) |
 
 Rules:
@@ -523,6 +547,7 @@ upload TUS + fallback PUT + `isUploadAuthError`
 | `project-card-title-block` | judul kartu `display:block` | Perbaiki ellipsis/wrap judul project-card |
 | `templates-icon-only` | aksi Templates icon-only di sempit | Hemat ruang; label penuh hanya di lebar cukup |
 | `labels-kebab-mobile` | Labels/Templates pindah ke kebab di mobile via `useIs*Narrow` hooks | Satu mekanisme aksi di layar kecil (paired JS+CSS, cf. §4 thresholds 640px) |
+| `mini-row-actions` | `.mini-row` relative + `.mini-row-actions` (absolute `right:0; top:50%`, idle `opacity:0`/`pointer-events:none`) + `.mini-row-meta` (fade saat aksi tampil) + `.mini-row-body` (geser `var(--mini-actions-reserve, 32px)` tanpa transisi) | Aksi hover baris (Labels count, Attachment nama-file, Checklist judul) TANPA ruang cadangan idle; hover/fokus menggantikan konten terakhir; `hover:none` kembali in-flow + selalu tampil; baris tanpa aksi (`:empty`) tak menggeser konten |
 | `drawer-settings` | drawer untuk Settings di sempit | Panel pengaturan jadi drawer, bukan kolom terjepit |
 | `common-ns-key` | aksi umum via `common:` (`defaultNS: common`, 6 ns + paritas EN/ID) | `save/sort/select/presence/activity/error` milik `common`, bukan duplikat per-ns |
 | `upload-tus-fallback` | upload TUS + fallback PUT + `isUploadAuthError` | Resume besar via TUS; fallback PUT saat TUS tak tersedia; 401/403 dibedakan via `isUploadAuthError` (bukan retry buta) |
@@ -536,3 +561,58 @@ Rules:
 - Grid kartu baru WAJIB `minmax`, bukan flex `%`.
 - Token i18n umum baru WAJIB `common:` + EN/ID paritas dalam PR yang sama.
 - Upload baru WAJIB lewat `attachmentUpload.ts` (TUS → fallback PUT, auth error via `isUploadAuthError`).
+
+---
+
+## 10c. Hidden actions & icon hints (Okt-2026)
+
+Satu mekanisme kanonik menggantikan 5 mekanisme lama yang hidup berdampingan
+(`opacity` saja / `opacity+pointer-events` / `opacity+visibility` /
+`max-width+opacity+visibility` / `display:none` — audit 2026-10-04). Referensi
+kanonik: `.mini-row-actions` (`global.css:23346-23400`).
+
+### Kriteria pemakaian (komponen baru WAJIB ikut matriks ini)
+
+| Situasi | Pola |
+|---|---|
+| Baris list padat, ≥1 aksi edit/delete non-primer | **Hidden row action** (kanonik di bawah) — aksi hapus tunggal pun hidden, bukan selalu tampak |
+| 1 aksi primer/satu-satunya (settings-row, `.settings-row-actions`) | **Selalu tampak** — jangan disembunyikan |
+| >2 aksi, atau layar sempit/sentuh | **`RowMenu` kebab** (ikut rule `menu-kebab` §10) |
+| Pencil/chevron di sebelah label/field yang bisa diedit | **Icon hint** (kanonik di bawah) |
+
+### Mekanisme kanonik hidden row action
+
+Idle `opacity: 0` + `pointer-events: none` (overlay absolute — idle TIDAK
+menyisakan gap, keputusan §6 2026-10-03); reveal `:hover` + `:focus-within`
+pada row (WAJIB dua-duanya agar Tab mencapai aksi); konten yang digantikan
+fade-out (pola `.mini-row-meta`); body geser `var(--mini-actions-reserve)`
+(token di `tokens.css`); `@media (hover: none)` kembali in-flow + selalu
+tampil; motion opacity saja (§9); icon-only ikut ladder §9 + `<Tooltip>`
+`tooltip-icon-btn` + `aria-label` (44px touch otomatis).
+
+**Dilarang:** `display: none` / `visibility: hidden` sebagai reveal (keluar
+dari tab order → jalur keyboard 2-langkah); trigger hanya `:focus-visible`
+tanpa `:focus-within`; mekanisme reveal baru (wajib pakai pola ini);
+`opacity: 0.6` di touch (touch = tampak penuh, bukan setengah).
+
+### Mekanisme kanonik icon hint
+
+`opacity: 0` → reveal `:hover` / `:focus-within` (+`:focus-visible` untuk
+tombol); dekoratif = `aria-hidden` + `pointer-events: none`; interaktif =
+`<button>` + `aria-label` + focus ring (§9); `hover: none` → tampak;
+`max-width: 640px` → `display: none` kecuali revert eksplisit
+(`.page .detail-side .prop-edit`). Varian resmi: **dim hint** (idle
+`opacity: 0.55`, mis. `.version-row-eye`) — khusus affordance "ada detail",
+bukan aksi tersembunyi. `PropRow` hanya sah di dalam `.detail-side`
+(rule `.prop-edit` di-scope di sana — di luarnya pensil tampak permanen).
+
+### Migrasi 2026-10-04 (semua pola existing → kanonik, tanpa rename class)
+
+`.mini-row-actions` referensi (nol ubah); `.mini-del` dilepas dari double-gate
++ backfill Tooltip Labels/Checklist; `.swap-group` + `.chat-msg-actions` +
+`.wb-card-actions` + `.api-tree-actions` dikonversi ke overlay opacity
+(status/tree-label jadi meta yang fade); `.task-card-pin` + `.erd-handle`
+sudah kanonik (verifikasi); `.pin-toggle` + `.welcome-row-chevron` diperbaiki
+kasus touch (tidak tampil / 0.6 → tampil penuh); `.sidebar-add-btn-team`
+CSS mati dihapus; `.settings-row-actions`/`.row-kebab` pengecualian
+selalu-tampak.

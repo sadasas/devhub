@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { useNavigate } from 'react-router';
-import { ArrowRight, Eye, EyeSlash, GithubLogo, GoogleLogo } from '@phosphor-icons/react';
+import { ArrowRight, GithubLogo, GoogleLogo } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { ApiError } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
@@ -9,6 +9,7 @@ import { useAuth } from '../../state/auth-context';
 import { Button } from '../../components/Button';
 import { AuthHeroArt } from './AuthHeroArt';
 import { Input } from '../../components/Input';
+import { PasswordToggle } from '../../components/PasswordToggle';
 import { Skeleton } from '../../components/Skeleton';
 import { InlineError } from '../../components/InlineError';
 import { LanguageSwitcher } from '../../components/LanguageSwitcher';
@@ -341,75 +342,33 @@ export function AuthPage() {
             maxLength={FE_LIMITS.EMAIL}
           />
           {!isForgot && (
-            <div style={{ position: 'relative' }}>
-              <Input
-                label={t('auth.field.password')}
-                type={showPassword ? 'text' : 'password'}
-                autoComplete={isRegister ? 'new-password' : 'current-password'}
-                autoFocus={justVerified && mode === 'login'}
-                required
-                minLength={8}
-                maxLength={FE_LIMITS.PASSWORD}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                helper={isRegister ? t('auth.field.passwordRegisterHelper') : undefined}
-              />
-              <button
-                type="button"
-                aria-label={showPassword ? t('profile.passwordToggle.hide') : t('profile.passwordToggle.show')}
-                onClick={() => setShowPassword((v) => !v)}
-                style={{
-                  position: 'absolute',
-                  right: 4,
-                  top: 26,
-                  width: 44,
-                  height: 44,
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--text-muted)',
-                  display: 'grid',
-                  placeItems: 'center',
-                  padding: 0,
-                }}
-              >
-                {showPassword ? <EyeSlash size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
+            <Input
+              label={t('auth.field.password')}
+              type={showPassword ? 'text' : 'password'}
+              autoComplete={isRegister ? 'new-password' : 'current-password'}
+              autoFocus={justVerified && mode === 'login'}
+              required
+              minLength={8}
+              maxLength={FE_LIMITS.PASSWORD}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              helper={isRegister ? t('auth.field.passwordRegisterHelper') : undefined}
+              className="input-with-slot"
+              rightSlot={<PasswordToggle show={showPassword} onToggle={() => setShowPassword((v) => !v)} />}
+            />
           )}
           {isRegister && (
-            <div style={{ position: 'relative' }}>
-              <Input
-                label={t('auth.field.confirmPassword')}
-                type={showConfirm ? 'text' : 'password'}
-                autoComplete="new-password"
-                required
-                value={confirm}
-                onChange={(e) => setConfirm(e.target.value)}
-                maxLength={FE_LIMITS.PASSWORD}
-              />
-              <button
-                type="button"
-                aria-label={showConfirm ? t('profile.passwordToggle.hide') : t('profile.passwordToggle.show')}
-                onClick={() => setShowConfirm((v) => !v)}
-                style={{
-                  position: 'absolute',
-                  right: 4,
-                  top: 26,
-                  width: 44,
-                  height: 44,
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  color: 'var(--text-muted)',
-                  display: 'grid',
-                  placeItems: 'center',
-                  padding: 0,
-                }}
-              >
-                {showConfirm ? <EyeSlash size={18} /> : <Eye size={18} />}
-              </button>
-            </div>
+            <Input
+              label={t('auth.field.confirmPassword')}
+              type={showConfirm ? 'text' : 'password'}
+              autoComplete="new-password"
+              required
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              maxLength={FE_LIMITS.PASSWORD}
+              className="input-with-slot"
+              rightSlot={<PasswordToggle show={showConfirm} onToggle={() => setShowConfirm((v) => !v)} />}
+            />
           )}
           {!isForgot && !isRegister && (
             <div style={{ textAlign: 'right', marginTop: -8 }}>

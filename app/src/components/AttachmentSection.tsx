@@ -361,6 +361,12 @@ export function AttachmentSection({
           const downloadLabel = t('board.attachments.download', { defaultValue: 'Open {{name}}', name: att.name });
           const removeLabel = t('board.attachments.remove', { defaultValue: 'Remove {{name}}', name: att.name });
           const openPreview = () => setPreviewTarget(att);
+          const actionCount =
+            (previewable ? 1 : 0) +
+            (att.provider === 'link' || (!staged && canDownload) ? 1 : 0) +
+            (canEdit ? 1 : 0);
+          const actionsReserve = actionCount * 36 + Math.max(0, actionCount - 1) * 4 + 8;
+          const bodyStyle = { '--mini-actions-reserve': `${actionsReserve}px` } as React.CSSProperties;
           return (
           <div
             key={att.id}
@@ -371,7 +377,7 @@ export function AttachmentSection({
             }}
           >
             {att.provider === 'link' ? (
-              <span style={{ flex: 1, minWidth: 0 }}>
+              <span className="mini-row-body" style={{ flex: 1, minWidth: 0, ...bodyStyle } as React.CSSProperties}>
                 <LinkCard attachment={att} />
                 <span style={{ display: 'block', fontSize: 'var(--text-caption)', color: 'var(--text-muted)' }}>
                   {t('board.attachments.linkBadge', { defaultValue: 'Link' })}
@@ -382,7 +388,7 @@ export function AttachmentSection({
               {previewable && (
                 <AttachmentThumb projectId={projectId} att={att} localUrl={localUrls[att.id]} label={previewLabel} onPreview={openPreview} />
               )}
-              <span style={{ flex: 1, minWidth: 0 }}>
+              <span className="mini-row-body" style={{ flex: 1, minWidth: 0, ...bodyStyle } as React.CSSProperties}>
                 {previewable ? (
                   <button
                     type="button"
@@ -406,7 +412,7 @@ export function AttachmentSection({
               </span>
               </>
             )}
-            <span className="att-actions">
+            <span className="mini-row-actions">
             {previewable && (
               <Tooltip title={previewLabel}>
               <button
@@ -555,6 +561,7 @@ export function AttachmentSection({
             aria-label={t('board.attachments.linkUrl', { defaultValue: 'Link URL' })}
             style={{ flex: 1, minWidth: 0 }}
           />
+          <Tooltip title={t('board.attachments.linkAdd', { defaultValue: 'Add' })}>
           <Button
             variant="primary"
             size="md"
@@ -565,6 +572,7 @@ export function AttachmentSection({
           >
             <Plus size={16} aria-hidden="true" />
           </Button>
+          </Tooltip>
         </div>
       )}
       {staged && (

@@ -158,6 +158,8 @@
   --rail-w-expanded: 180px;
   --sidebar-w: 240px;
   --sidebar-w-flyout: 280px;
+  /* Geser konten saat overlay `.mini-row-actions` tampil (§10c) */
+  --mini-actions-reserve: 32px;
 
   /* Motion */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);

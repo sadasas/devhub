@@ -294,7 +294,7 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
             return [{ value: user.id, label: t('board.taskModal.assignToMe', { defaultValue: 'Assign to me' }), icon: <Avatar src={me?.avatarUrl ?? null} name={n} email={me?.email} id={user.id} size={20} alt="" /> }];
           })()
           : []),
-        ...members.map((m) => { const n = m.displayName || m.email; return { value: m.id, label: n, icon: <Avatar src={m.avatarUrl ?? null} name={n} email={m.email} id={m.id} size={20} alt="" /> }; }),
+        ...members.filter((m) => !(user?.id && assignee !== user.id && m.id === user.id)).map((m) => { const n = m.displayName || m.email; return { value: m.id, label: n, icon: <Avatar src={m.avatarUrl ?? null} name={n} email={m.email} id={m.id} size={20} alt="" /> }; }),
       ]}
       onChange={setAssignee}
       triggerEmptyLabel={t('board.taskModal.assigneeLabel')}

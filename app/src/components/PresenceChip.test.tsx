@@ -99,6 +99,30 @@ describe('PresenceChip', () => {
     expect(rows[1]?.textContent).not.toContain('(you)');
   });
 
+  it('keeps the (you) marker outside the ellipsis container for long names', () => {
+    const longName = 'A very long display name that overflows the popover row width';
+    renderChip([{ userId: 'u1', name: longName }], 'u1');
+    fireEvent.click(screen.getByTestId('presence-chip'));
+    const name = screen.getByRole('dialog').querySelector('.presence-popover-name');
+    // Hanya teks nama yang ellipsis; marker YOU sibling tak terpotong.
+    expect(name?.querySelector('.presence-popover-name-text')?.textContent).toBe(longName);
+    const you = name?.querySelector('.presence-you');
+    expect(you?.textContent).toContain('(you)');
+    expect(you?.parentElement).toBe(name);
+  });
+
+  it('badgeOnly renders a naked avatar stack without the badge pill', () => {
+    useProjectMock.mockReturnValue({ presence: [{ userId: 'u1', name: 'One' }] });
+    useAuthMock.mockReturnValue({ user: null });
+    render(<PresenceChip badgeOnly />);
+    const chip = screen.getByTestId('presence-chip');
+    expect(chip.className).toContain('presence-chip--naked');
+    expect(chip.className).not.toContain('badge-info');
+    expect(chip.querySelectorAll('.presence-avatar')).toHaveLength(1);
+    fireEvent.click(chip);
+    expect(screen.getByRole('dialog')).toBeTruthy();
+  });
+
   it('dedupes users by id across tabs', () => {
     renderChip([
       { userId: 'u1', name: 'One' },

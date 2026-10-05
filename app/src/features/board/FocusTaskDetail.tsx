@@ -1007,6 +1007,7 @@ export function FocusTaskDetail({ taskId, onClose, onNavigate }: FocusTaskDetail
                               flexShrink: 0,
                             }}
                           >
+                            <Tooltip title={t('board.taskModal.addSubtask', { defaultValue: 'New subtask…' })}>
                             <Button
                               variant="primary"
                               size="md"
@@ -1020,6 +1021,7 @@ export function FocusTaskDetail({ taskId, onClose, onNavigate }: FocusTaskDetail
                             >
                               <Plus size={16} aria-hidden="true" />
                             </Button>
+                            </Tooltip>
                           </span>
                         ) : null}
                       </div>
@@ -1184,6 +1186,7 @@ export function FocusTaskDetail({ taskId, onClose, onNavigate }: FocusTaskDetail
                 </button>
                 </Tooltip>
                 <span
+                  className="mini-row-body"
                   style={{
                     flex: 1,
                     minWidth: 0,
@@ -1197,27 +1200,29 @@ export function FocusTaskDetail({ taskId, onClose, onNavigate }: FocusTaskDetail
                   {c.title}
                 </span>
                 {canEdit && (
-                  <Tooltip title={`Remove ${c.title}`}>
-                  <button
-                    type="button"
-                    className="mini-del"
-                    onClick={() => removeCheck(c.id)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      cursor: 'pointer',
-                      color: 'var(--status-danger)',
-                      padding: '6px',
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                    }}
-                    aria-label={`Remove ${c.title}`}
-                  >
-                    <Trash size={15} aria-hidden="true" />
-                  </button>
-                  </Tooltip>
+                  <span className="mini-row-actions">
+                    <Tooltip title={`Remove ${c.title}`}>
+                    <button
+                      type="button"
+                      className="mini-del"
+                      onClick={() => removeCheck(c.id)}
+                      style={{
+                        background: 'none',
+                        border: 'none',
+                        cursor: 'pointer',
+                        color: 'var(--status-danger)',
+                        padding: '6px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0,
+                      }}
+                      aria-label={`Remove ${c.title}`}
+                    >
+                      <Trash size={15} aria-hidden="true" />
+                    </button>
+                    </Tooltip>
+                  </span>
                 )}
               </div>
             ))}
@@ -1244,6 +1249,7 @@ export function FocusTaskDetail({ taskId, onClose, onNavigate }: FocusTaskDetail
                     style={{ fontSize: 13, fontWeight: 400 }}
                   />
                   {checkDraft.trim() ? (
+                    <Tooltip title={t('board.taskModal.addChecklist', { defaultValue: 'New item…' })}>
                     <Button
                       variant="primary"
                       size="md"
@@ -1255,6 +1261,7 @@ export function FocusTaskDetail({ taskId, onClose, onNavigate }: FocusTaskDetail
                     >
                       <Plus size={16} aria-hidden="true" />
                     </Button>
+                    </Tooltip>
                   ) : null}
                 </div>
               ) : (

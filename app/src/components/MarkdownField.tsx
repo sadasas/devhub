@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { MarkdownBlocks } from '../lib/markdown';
 import type { Attachment } from '../lib/types';
 import { Modal } from './Modal';
+import { Tooltip } from './Tooltip';
 
 // autoFocus hanya desktop (hover) — di touch, keyboard virtual melonjak (pola Modal).
 const AUTO_FOCUS_INPUT = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover)').matches;
@@ -148,15 +149,16 @@ export function MarkdownField({
           <span className="md-inline-icon">
             <Icon size={12} aria-hidden="true" /> {label}
           </span>
+          <Tooltip title={t('tracker:issues.modal.fullscreenAriaDescription')}>
           <button
             type="button"
             className="btn btn-ghost btn-sm btn-icon"
             aria-label={t('tracker:issues.modal.fullscreenAriaDescription')}
-            title={t('tracker:issues.modal.fullscreenAriaDescription')}
             onClick={() => setFullscreen(true)}
           >
             <ArrowsOutSimple size={14} aria-hidden="true" />
           </button>
+          </Tooltip>
           <PencilSimple size={12} aria-hidden="true" className="md-head-pencil" />
         </div>
         <textarea

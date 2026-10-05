@@ -462,13 +462,12 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
 
   // Row heights: daynum (28) + lanes (26 each) + footer slot (gap + 22px
   // text-button + bottom pad) agar tombol +N lagi / ciutkan muat di dalam cell.
-  // C6 mobile: empty rows collapse to 72px; overlay tak dirender di mobile
-  // sehingga formula footer hanya untuk desktop.
+  // Semua baris seragam = collapsedH walau kosong (keputusan §6 2026-10-04):
+  // baris kosong yang lebih pendek menggeser grid tiap ada task (regresi visual).
   const FOOTER_GAP = 6;
   const FOOTER_H = 22;
   const FOOTER_PAD = 8;
   const rowHeights = useMemo(() => {
-    const emptyH = isMobileCal ? 72 : 112;
     const collapsedH = isMobileCal
       ? 28 + MAX_VISIBLE_MOBILE * 26 + 28
       : 28 + MAX_VISIBLE * 26 + FOOTER_GAP + FOOTER_H + FOOTER_PAD;
@@ -477,7 +476,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
     for (let r = 0; r < numRows; r++) {
       const group = rowGroups.get(r);
       if (!group) {
-        heights.push(emptyH);
+        heights.push(collapsedH);
         continue;
       }
       const totalLanes = (group as any).lanes?.length ?? 0;
@@ -548,7 +547,12 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
       const task = allTasks.find((t) => t.id === taskId);
       if (!task) return;
       if (date === null) {
-        if (task.dueDate !== null) dispatch({ type: 'task/update', id: taskId, patch: { dueDate: null } });
+        // Unschedule = clear KEDUA field. Sebelum 2026-10-04 hanya dueDate
+        // yang di-null-kan sehingga task multi-day menyimpan startDate basi;
+        // drop berikutnya jatuh ke cabang single-day dengan start usang.
+        if (task.dueDate !== null || task.startDate !== null) {
+          dispatch({ type: 'task/update', id: taskId, patch: { dueDate: null, startDate: null } });
+        }
         dragGrabDateRef.current = null;
         return;
       }
@@ -576,12 +580,19 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
           dispatch({ type: 'task/update', id: taskId, patch: { dueDate: newDue, startDate: newStart } });
         }
       } else {
+        // Jadwal 1 hari: startDate = dueDate = tanggal target. Selaras
+        // quick-create (`startDate: dueDate`) & BoardTimeline. Sebelum
+        // 2026-10-04 hanya dueDate yang ditulis — task dari strip no-date
+        // menyimpan startDate null selamanya, dan task start==due yang
+        // di-drag berubah jadi rentang multi-day tak sengaja.
         dragGrabDateRef.current = null;
-        if (wouldViolate(task.startDate, date)) {
+        if (wouldViolate(date, date)) {
           flashRangeBlocked();
           return;
         }
-        if (task.dueDate !== date) dispatch({ type: 'task/update', id: taskId, patch: { dueDate: date } });
+        if (task.dueDate !== date || task.startDate !== date) {
+          dispatch({ type: 'task/update', id: taskId, patch: { dueDate: date, startDate: date } });
+        }
       }
     },
     [readOnly, canEdit, allTasks, dispatch, flashRangeBlocked],
@@ -713,9 +724,11 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
     <div className={`due-cal${isMobileCal ? ' due-cal--mobile' : ''}`}>
       <div className="due-cal-toolbar">
         <div className="due-cal-nav">
+          <Tooltip title={t('board.cal.prevMonth')}>
           <button type="button" className="btn btn-ghost btn-sm btn-icon" aria-label={t('board.cal.prevMonth')} onClick={() => nav(-1)}>
             <CaretLeft size={14} aria-hidden="true" />
           </button>
+          </Tooltip>
           <button
             ref={monthLabelRef}
             type="button"
@@ -745,9 +758,11 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
               }}
             />
           )}
+          <Tooltip title={t('board.cal.nextMonth')}>
           <button type="button" className="btn btn-ghost btn-sm btn-icon" aria-label={t('board.cal.nextMonth')} onClick={() => nav(1)}>
             <CaretRight size={14} aria-hidden="true" />
           </button>
+          </Tooltip>
           {!isMobileCal && (
             <button type="button" className="btn btn-ghost btn-sm due-cal-today-btn" onClick={() => setAnchor(today)}>
               {t('board.cal.today')}
