@@ -135,7 +135,7 @@ describe('IssueModal linked task select', () => {
     expect(screen.getByRole('textbox', { name: 'Description' })).toBeDefined();
     expect(screen.getByRole('textbox', { name: 'Reproduction steps' })).toBeDefined();
     // Created time is displayed
-    expect(screen.getByText('Created time')).toBeDefined();
+    expect(screen.getByText(/Created time/)).toBeDefined();
     // Footer delete for editors
     expect(screen.getByRole('button', { name: 'Delete' })).toBeDefined();
     // Modal is large (lg)

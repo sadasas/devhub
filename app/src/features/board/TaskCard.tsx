@@ -250,7 +250,7 @@ export const TaskCard = memo(function TaskCard({
                   borderRadius: 6,
                   border: '1px solid var(--border-strong)',
                   background: task.status === 'done' ? 'var(--status-success)' : 'transparent',
-                  color: task.status === 'done' ? '#fff' : 'transparent',
+                  color: task.status === 'done' ? 'var(--text-on-accent)' : 'transparent',
                   cursor: 'pointer',
                   display: 'inline-flex',
                   alignItems: 'center',

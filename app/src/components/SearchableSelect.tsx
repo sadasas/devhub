@@ -133,8 +133,10 @@ export function SearchableSelect({
       setQuery('');
       setIndex(0);
       requestAnimationFrame(() => {
-        if (searchable) inputRef.current?.focus();
-        else panelRef.current?.focus();
+        // Panel terposisi fixed di dekat trigger yang sudah terlihat — jangan
+        // gulir sidebar/halaman saat fokus pindah (mencegah lompatan layout).
+        if (searchable) inputRef.current?.focus({ preventScroll: true });
+        else panelRef.current?.focus({ preventScroll: true });
       });
     }
   }, [open, searchable]);

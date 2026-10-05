@@ -387,8 +387,7 @@ export function TableModal({ tableId, onClose }: TableModalProps) {
               </div>
             </div>
 
-            <h4 className="detail-subtitle">{t('schema.table.activity')}</h4>
-            <ActivityList projectId={projectId} entity="tables" entityId={table.id} />
+            <ActivityList collapsible projectId={projectId} entity="tables" entityId={table.id} />
             <p className="field-helper">{t('schema.table.updated', { time: formatRelative(table.updatedAt) })}</p>
           </>
         </div>

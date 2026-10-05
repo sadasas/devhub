@@ -281,6 +281,10 @@ Rules:
 | 2026-10-04 | Audit Tooltip icon-only menyeluruh (32 situs): guard `guard-icon-buttons` buta terhadap komponen `<Button>` (hanya `<button>` mentah) + mode warn exit-0 → temuan menumpuk tak diperbaiki (PinButton `title=` native, WhiteboardCard, 6 ApiPage, TaskDetail ×2, ProjectPage ×3, dsb.). SEMUA dibungkus `<Tooltip title=sama-dengan-aria-label>` (bare `title=` dibuang); `ArchiveUndoToast` dismiss masuk ALLOWLIST; guard diperluas ke `<Button>` + test `guard-icon-buttons.test.mjs`; guard kini HIJAU 0 warning |
 | 2026-10-04 | Tooltip kolom ERD menutupi daftar (`showColTip` ikut kursor + `pointer-events:none`): ganti ke table-edge anchor `placeRightOrFlip` (selaras jalur keyboard) untuk hover maupun fokus; `placeRightOrFlip` dikeraskan (TIP 300×190, flip vertikal, clamp kiri/atas-bawah); clamp CSS disinkron `308/198px` + aman kontainer sempit; uji stabilitas posisi saat mouseMove |
 | 2026-10-04 | Unifikasi settings-row Team+Project ke pola Profile: Team ID/URL (`DashboardSettingsTab`) + Project ID/Team/Desc (`ProjectSettings`) dari `Input readOnly`/meta-block → `dl.settings-rows` + `SettingsRowGroup` dt/dd + mono + aksi Copy (pola: nilai read-only = settings-row); mirror skeleton; hapus CSS mati (`-id-row/-copy/-read-meta-block/-read-key/-read-desc-block/-team-status/-slug` + 2 rujukan list); `Input` import lepas di ProjectSettings; uji struktur +2 |
+| 2026-10-05 | Standardisasi padding pill/chip/trigger (keputusan owner): 2 varian kanonis — padat `4px 10px` (teks 11–12px) dan longgar `6px 12px` (teks 13px); 16 situs dilipat; micro badge `1px 5px`, ritme baris `3px 0`, dan padding input teks dikecualikan tercatat di fold map §7 |
+| 2026-10-05 | Lipat radius mentah → `var(--radius-*)` 1:1, nirvisual (keputusan owner): ±100 kemunculan (`999px/50%→pill`, `8→input`, `6→sm`, `12→card`, `16→lg`, `2/3/4→xs`, `10→8/12` per konteks); majemuk directional dikecualikan (tanpa padanan token) |
+| 2026-10-05 | Sweep token DITUTUP pada 133 temuan (dari 189, −56): hex/radius/pill/border-rgba/allowlist domain/1px selesai; sisa (spacing tersebar, inline per file, breakpoint) kembali ke lipat oportunistik per area — bukan sapu-jagat (keputusan owner) |
+| 2026-10-05 | Triase border-width non-1px (keputusan owner): 16 temuan semua teknik fungsional (gutter scrollbar, panah tooltip, ring overlap) — dicatat sebagai pengecualian di fold map §7, tanpa perubahan kode; border-rgba (13×, alpha beda dari token dim) ditunda ke migrasi per area masing-masing |
 
 ---
 
@@ -294,7 +298,7 @@ dilipat di bawah. Migrasi per area (never big-bang), preseden §2.
 
 | Token | Value | Role |
 |---|---|---|
-| space-* | 0/2/4/6/8/10/12/16/20/24/32/48 | Satu-satunya nilai padding/margin/gap |
+| space-* | 0/1/2/4/6/8/10/12/16/20/24/32/48 | Satu-satunya nilai padding/margin/gap (`1px` = tier hairline/mikro: rapat garis, micro badge, nudge, pola `.sr-only` — keputusan owner 2026-10-05) |
 | radius-xs | 4px (--radius-xs) | Elemen mikro (chip inset, marker) |
 | radius-sm | 6px (--radius-sm) | Kontrol kecil |
 | radius-input | 8px (--radius-input) | Input, tombol, kartu kecil |
@@ -315,6 +319,15 @@ Fold map:
 | 18px | 16/20 per konteks |
 | 22/26/28/30px | 20/24/32 per konteks |
 | 34/36/40/72/84px | 32/48 per konteks |
+| Padding pill/chip/trigger ganjil | 2 varian kanonis (2026-10-05): padat `4px 10px` (teks 11–12px: `.prop`, `.input--pill`, `.dp-field`, `.dp-btn`, `.composer-propbar .prop`, `.mini-toggle`, `.sort-menu-dir-row`, `.fp-seg`, `.detail-created` mobile, `.pricing-badge-pro`, `.detail-side .prop` mobile) dan longgar `6px 12px` (teks 13px: `.ss-trigger`, `.ss-option`, `.segment`, `.ws-option`, `.presence-popover-row`, `.release-flow-check`) |
+| Radius mentah | `var(--radius-*)` 1:1 (2026-10-05): `2/3/4px→xs`, `6px→sm`, `8px→input`, `12px→card`, `16px→lg`, `999px/50%→pill` (50% hanya di avatar/dot persegi = lingkaran identik), `10px→8/12` per konteks (tooltip-card/banner→card, consent-row→input); majemuk directional (`10px 10px 0 0` dsb.) DIKECUALIKAN — tanpa padanan token |
+| Nilai kecil `9px` (`.ss-input`, `.palette-item`, `.context-decision-btn` → `8px`), `11/13px` (`.docs-callout` → `12px 12px`), `34px` (`.timeline-date-col` → `32px`) | Dilipat genap terdekat (2026-10-05) |
+| Reserve `84px` (`.deleted-banner-item`, spacer bar Done Focus) | DIKECUALIKAN — cadangan ruang aksi seperti `72px` chat (keputusan owner 2026-10-05) |
+| Border-width non-1px terverifikasi (keputusan owner 2026-10-05) | DIKECUALIKAN — teknik fungsional, bukan drift: gutter scrollbar `3px transparent + background-clip` (`::-webkit-scrollbar-thumb` ×2), panah tooltip `5px transparent` (`.erd-col-tip::before`), ring overlap avatar/dot/timeline `1.5–2px` (5 titik). Angka guard tidak bergerak (tanpa mekanisme exempt per-baris — disengaja, bukan backlog) |
+| Border `rgba()` mentah → token `*-dim` (2026-10-05) | method/teal, status, aksen (compare/quota/pricing/unread/check/dag/banner/billing — 13 kemunculan): border makna = token makna; alpha sedikit menipis (0.18–0.3 → 0.10–0.12), perlu cek visual sekali |
+| Micro badge/kode `1px 5px` (sidebar-count, inline-code) | DIKECUALIKAN — micro-sizing disengaja, bukan drift (keputusan owner 2026-10-05) |
+| Ritme baris `3px 0` (`.detail-side .prop`, `.focus-detail-props .prop`) | DIKECUALIKAN — ritme densitas baris, bukan padding pill (keputusan owner 2026-10-05) |
+| Padding input teks (`.input/.textarea` 7px 10px) | DIKECUALIKAN — sizing kontrol form, bukan pill (keputusan owner 2026-10-05) |
 | radius 2/3px | --radius-xs (4px) |
 | radius 10px | 8/12 per konteks |
 | radius hardcoded 8/12/16px | var (--radius-input/card/lg) |
@@ -401,10 +414,19 @@ diperbolehkan (turunan, bukan warna baru). Sistem forced-colors
 
 Domain warna SAH di luar token UI (bukan drift):
 
-- **Kanvas whiteboard** (ColorPalette/tools/export/templates + fixture
-  McpDocsPage + cermin erd-export): palet konten pilihan user
+- **Kanvas whiteboard** (ColorPalette/tools/export/templates + contoh
+  payload MCP di McpDocsPage (docs dalam aplikasi) + cermin erd-export): palet konten pilihan user
   (#e4e4e7, #6ea8fe, #e8b955, #5db69b, #a78bfa, #f2b8c6, #f4706d, #06251a, dst.; #34c38e legacy hanya untuk konten lama;
   #1a1a1a = default warna teks sticky + fallback rgba, bukan chrome UI).
+  `#ffffff` = kertas kanvas `.wb-canvas` — putih di kedua tema, disengaja
+  (keputusan owner 2026-10-05; didaftar di `HEX_VALUE_ALLOWLIST`).
+- **Render konten kanvas whiteboard** (`WhiteboardCanvas`, `WhiteboardColorPanel`,
+  `WhiteboardEditorShell`, `WhiteboardTextControls` — didaftar di
+  `HEX_FILE_ALLOWLIST`, keputusan owner 2026-10-05): default warna edge/label,
+  fill teks SVG export & ref-card, array swatch dan default input warna adalah
+  data gambar, bukan chrome UI (toolbar di file yang sama sudah ter-token).
+- **Browser chrome** (`theme-context.tsx` meta `theme-color` `#f4f4f5`/`#0a0a0c` —
+  didaftar di `HEX_VALUE_ALLOWLIST`): warna browser, bukan UI aplikasi.
   Data milik modul (Tier-2); kemiripan dengan token UI adalah kebetulan.
   Cermin erd-export dijaga sinkron manual (utang tercatat).
   Keputusan owner 2026-09-15: #34c38e → accent #5db69b untuk default elemen BARU (templates) + swatch palet; #34c38e dipertahankan di isLightFill (WhiteboardCanvas + export, cermin sinkron) untuk konten lama.

@@ -2,9 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { Dispatch, SetStateAction } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  ArrowUUpLeft,
   CalendarBlank,
-  CaretDown,
   CaretLeft,
   ChartBar,
   CheckCircle,
@@ -14,10 +12,8 @@ import {
   LinkSimple,
   ListChecks,
   PencilSimple,
-  Plus,
   Rocket,
   Tag,
-  Trash,
   User,
 } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
@@ -56,13 +52,17 @@ import { Avatar } from '../../components/Avatar';
 import { AttachmentSection } from '../../components/AttachmentSection';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
+import { ChecklistSection } from '../../components/ChecklistSection';
 import { ComposerTextarea } from '../../components/ComposerTextarea';
 import { DatePicker } from '../../components/DatePicker';
 import { InlineError } from '../../components/InlineError';
 import { MarkdownField } from '../../components/MarkdownField';
+import { ParentPillSection } from '../../components/ParentPillSection';
 import { PlanLimitModal } from '../../components/PlanLimitModal';
 import { PropRow } from '../../components/PropRow';
 import { SearchableSelect } from '../../components/SearchableSelect';
+import { SubtaskCrumb } from '../../components/SubtaskCrumb';
+import { SubtaskSection } from '../../components/SubtaskSection';
 import { TaskStatusBadge } from '../../components/TaskStatusBadge';
 import { Tooltip } from '../../components/Tooltip';
 import { isTypingTarget } from '../../lib/keys';
@@ -106,17 +106,8 @@ export function FocusTaskDetail({ taskId, onClose, onNavigate }: FocusTaskDetail
   const [scrolled, setScrolled] = useState(false);
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [doneWarn, setDoneWarn] = useState<string | null>(null);
-  const [subDraft, setSubDraft] = useState('');
   const [subAdding, setSubAdding] = useState(false);
-  const [subAssignee, setSubAssignee] = useState<string | null>(null);
-  const [subPriority, setSubPriority] = useState<TaskPriority | null>(null);
-  const [subStart, setSubStart] = useState<string | null>(null);
-  const [subDue, setSubDue] = useState<string | null>(null);
-  const [subRangeErr, setSubRangeErr] = useState<string | null>(null);
-  const [subDatesOpen, setSubDatesOpen] = useState(false);
-  const [checkDraft, setCheckDraft] = useState('');
   const [checkAdding, setCheckAdding] = useState(false);
-  const [parentPicking, setParentPicking] = useState(false);
   const [pickingBlocker, setPickingBlocker] = useState(false);
   const [cycleWarn, setCycleWarn] = useState<string | null>(null);
   const [rangeWarn, setRangeWarn] = useState<string | null>(null);
@@ -132,10 +123,6 @@ export function FocusTaskDetail({ taskId, onClose, onNavigate }: FocusTaskDetail
   const [estimatePos, setEstimatePos] = useState<{ top: number; left: number } | null>(null);
   const estimateRowRef = useRef<HTMLDivElement>(null);
   const estimatePopRef = useRef<HTMLDivElement>(null);
-  const subDatesTriggerRef = useRef<HTMLButtonElement>(null);
-  const parentBtnRef = useRef<HTMLButtonElement>(null);
-  const subCardRef = useRef<HTMLDivElement>(null);
-  const checkCardRef = useRef<HTMLDivElement>(null);
 
   const task = state?.tasks.find((tt) => tt.id === taskId) ?? null;
   usePresenceStatus(t('board.taskModal.presenceEditing'), task != null);
@@ -257,47 +244,6 @@ export function FocusTaskDetail({ taskId, onClose, onNavigate }: FocusTaskDetail
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
-
-  // Klik di luar kartu composer menutup + reset total (panel portal
-  // .ss-panel/.dp-panel dikecualikan agar pilih assignee/tanggal tak menutup).
-  // Sengaja memakai 'click' (bubble) bukan 'pointerdown': handler klik target
-  // (mis. checkbox checklist, tombol + New item) jalan DULU baru outside-close,
-  // sehingga aksi target tak hilang saat composer menciut dan layout bergeser.
-  // Klik pada tombol pembuka ([data-composer-toggle]) diabaikan: listener
-  // terpasang mid-dispatch dan event pembuka masih mencapai document — tanpa
-  // pengecualian ini composer langsung menutup dirinya sendiri.
-  useEffect(() => {
-    if (!subAdding) return;
-    const onDown = (e: MouseEvent) => {
-      const el = e.target as Element | null;
-      if (el?.closest?.('[data-composer-toggle]')) return;
-      if (subCardRef.current?.contains(el as Node)) return;
-      if (el?.closest?.('.ss-panel,.dp-panel')) return;
-      setSubDraft('');
-      setSubAssignee(null);
-      setSubPriority(null);
-      setSubStart(null);
-      setSubDue(null);
-      setSubRangeErr(null);
-      setSubDatesOpen(false);
-      setSubAdding(false);
-    };
-    document.addEventListener('click', onDown);
-    return () => document.removeEventListener('click', onDown);
-  }, [subAdding]);
-
-  useEffect(() => {
-    if (!checkAdding) return;
-    const onDown = (e: MouseEvent) => {
-      const el = e.target as Element | null;
-      if (el?.closest?.('[data-composer-toggle]')) return;
-      if (checkCardRef.current?.contains(el as Node)) return;
-      setCheckDraft('');
-      setCheckAdding(false);
-    };
-    document.addEventListener('click', onDown);
-    return () => document.removeEventListener('click', onDown);
-  }, [checkAdding]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -423,73 +369,11 @@ export function FocusTaskDetail({ taskId, onClose, onNavigate }: FocusTaskDetail
 
   const titleEmpty = task.title.trim() === '';
   const chip = taskDueChip(task);
-  const checklist = task.checklist ?? [];
-  const doneCount = checklist.filter((c) => c.done).length;
-  const pct = checklist.length === 0 ? 0 : Math.round((doneCount / checklist.length) * 100);
-  const subtasks = state.tasks.filter((tt) => tt.parentTaskId === task.id);
   const parentTask = task.parentTaskId
     ? state.tasks.find((tt) => tt.id === task.parentTaskId)
     : undefined;
   const parentTitle = parentTask?.title ?? t('board.taskModal.parentMissing');
-  const subDone = subtasks.filter((tt) => tt.status === 'done').length;
-  const parentOptions = state.tasks.filter(
-    (tt) => tt.id !== task.id && !tt.parentTaskId && subtasks.every((ss) => ss.id !== tt.id),
-  );
   const showAdders = canEdit && !titleEmpty;
-
-  const toggleCheck = (cid: string) => {
-    update({ checklist: checklist.map((c) => (c.id === cid ? { ...c, done: !c.done } : c)) });
-  };
-  const removeCheck = (cid: string) => {
-    update({ checklist: checklist.filter((c) => c.id !== cid) });
-  };
-  const addCheck = () => {
-    const title = checkDraft.trim().slice(0, 200);
-    if (!title || checklist.length >= 20) return;
-    update({ checklist: [...checklist, { id: newId(), title, done: false }] });
-    setCheckDraft('');
-  };
-
-  const addSubtask = (): boolean => {
-    const title = subDraft.trim();
-    if (!title || task.parentTaskId) return false;
-    if (subRangeOutsideParent({ startDate: subStart, dueDate: subDue }, task)) {
-      setSubRangeErr(
-        t('board.taskModal.subRangeWarn', {
-          defaultValue: 'Date is outside the parent range ({{start}} – {{due}}).',
-          start: task.startDate ? formatDate(task.startDate) : '…',
-          due: task.dueDate ? formatDate(task.dueDate) : '…',
-        }),
-      );
-      return false;
-    }
-    setSubRangeErr(null);
-    const ts = new Date().toISOString();
-    dispatch({
-      type: 'task/add',
-      task: {
-        id: newId(),
-        createdAt: ts,
-        updatedAt: ts,
-        title: title.slice(0, 300),
-        status: 'todo',
-        priority: subPriority ?? task.priority,
-        labels: [],
-        blockedBy: [],
-        parentTaskId: task.id,
-        checklist: [],
-        milestoneId: task.milestoneId ?? null,
-        dueDate: subDue,
-        startDate: subStart,
-        completedAt: null,
-        assigneeId: subAssignee,
-        pinned: false,
-        description: '',
-      },
-    });
-    setSubDraft('');
-    return true;
-  };
 
   return (
     <div className="page">
@@ -551,52 +435,13 @@ export function FocusTaskDetail({ taskId, onClose, onNavigate }: FocusTaskDetail
       <div className="detail-grid">
         <div className="detail-main focus-detail">
           {task.parentTaskId && (
-            <div className="focus-detail-crumb">
-              {onNavigate && parentTask ? (
-                <button
-                  type="button"
-                  className="btn btn-ghost btn-sm focus-detail-parentbtn"
-                  onClick={() => onNavigate(parentTask.id)}
-                  aria-label={t('board.taskModal.backToParent')}
-                  title={parentTask.title}
-                >
-                  <ArrowUUpLeft size={14} aria-hidden="true" />
-                  <span
-                    style={{
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      fontSize: 13,
-                      fontWeight: 600,
-                    }}
-                  >
-                    {parentTitle}
-                  </span>
-                  <TaskStatusBadge status={parentTask.status} />
-                </button>
-              ) : (
-                <span className="focus-detail-parentbtn" style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-secondary)' }}>
-                  {parentTitle}
-                  {parentTask && (
-                    <TaskStatusBadge status={parentTask.status} />
-                  )}
-                </span>
-              )}
-              <span aria-hidden="true" style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-                ›
-              </span>
-              <span
-                style={{
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  fontSize: 13,
-                  color: 'var(--text-muted)',
-                }}
-              >
-                {task.title || t('board.taskModal.untitled')}
-              </span>
-            </div>
+            <SubtaskCrumb
+              parentTitle={parentTitle}
+              parentStatus={parentTask?.status ?? null}
+              parentFullTitle={parentTask?.title}
+              currentTitle={task.title}
+              onOpenParent={onNavigate && parentTask ? () => onNavigate(parentTask.id) : undefined}
+            />
           )}
           <div className="focus-detail-head">
           {canEdit ? (
@@ -653,640 +498,35 @@ export function FocusTaskDetail({ taskId, onClose, onNavigate }: FocusTaskDetail
           </div>
 
           {!task.parentTaskId ? (
-            <div className="focus-detail-check">
-              <div className="focus-detail-subhead">
-                <h4 className="detail-subtitle" style={{ marginBottom: 0, flex: 1, minWidth: 0 }}>
-                  {t('board.taskModal.subtasksLabel', { defaultValue: 'Subtasks' })}
-                  {subtasks.length > 0 && (
-                    <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>
-                      {' '}
-                      · {subDone}/{subtasks.length}
-                    </span>
-                  )}
-                </h4>
-                {canEdit && (
-                  subtasks.length > 0 ? (                    <Tooltip
-                      title={
-                        t('board.taskModal.setParentDisabledHint', {
-                          defaultValue: 'Sudah punya subtask',
-                        }) as string
-                      }
-                    >
-                      <span style={{ display: 'inline-flex' }}>
-                        <button
-                          type="button"
-                          disabled
-                          aria-label={
-                            t('board.taskModal.setParentDisabledHint', {
-                              defaultValue: 'Sudah punya subtask',
-                            }) as string
-                          }
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            cursor: 'default',
-                            color: 'var(--text-muted)',
-                            fontSize: 12,
-                            padding: 0,
-                            whiteSpace: 'nowrap',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 4,
-                            opacity: 0.55,
-                          }}
-                        >
-                          <CaretDown size={12} aria-hidden="true" />
-                          {t('board.taskModal.setParent', { defaultValue: 'Make subtask of…' })}
-                        </button>
-                      </span>
-                    </Tooltip>
-                  ) : (
-                    <button
-                      ref={parentBtnRef}
-                      type="button"
-                      onClick={() => setParentPicking((v) => !v)}
-                      aria-label={
-                        t('board.taskModal.setParent', {
-                          defaultValue: 'Make subtask of…',
-                        }) as string
-                      }
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: 'var(--text-muted)',
-                        fontSize: 12,
-                        padding: 0,
-                        whiteSpace: 'nowrap',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 4,
-                      }}
-                    >
-                      <CaretDown size={12} aria-hidden="true" />
-                      {t('board.taskModal.setParent', { defaultValue: 'Make subtask of…' })}
-                    </button>
-                  )
-                )}
-              </div>
-              <div className="focus-detail-div" aria-hidden="true" />
-              <div>
-                {subtasks.map((ss, i) => {
-                  const sc = taskDueChip(ss);
-                  const rowStyle = {
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 8,
-                    padding: '5px 0',
-                    borderTop: i === 0 ? 'none' : '1px solid var(--border-hairline)',
-                    cursor: onNavigate ? 'pointer' : undefined,
-                    background: 'none',
-                    borderLeft: 'none',
-                    borderRight: 'none',
-                    borderBottom: 'none',
-                    width: '100%',
-                    textAlign: 'left',
-                    font: 'inherit',
-                    color: 'inherit',
-                  } as const;
-                  const inner = (
-                    <>
-                      <span
-                        style={{
-                          width: 14,
-                          height: 14,
-                          borderRadius: 4,
-                          flexShrink: 0,
-                          border: '1px solid var(--border-strong)',
-                          background:
-                            ss.status === 'done' ? 'var(--status-success)' : 'transparent',
-                          color: 'var(--text-on-accent)',
-                          fontSize: 10,
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}
-                        aria-hidden="true"
-                      >
-                        {ss.status === 'done' ? '✓' : ''}
-                      </span>
-                      <span style={{ flex: 1, minWidth: 0 }}>
-                        <span
-                          style={{
-                            display: 'block',
-                            fontSize: 13,
-                            whiteSpace: 'normal',
-                            overflowWrap: 'anywhere',
-                            color: 'var(--text-secondary)',
-                          }}
-                          title={ss.title}
-                        >
-                          {ss.title}
-                        </span>
-                        {ss.dueDate && (
-                          <span
-                            style={{
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: 4,
-                              fontSize: 11,
-                              color: 'var(--text-muted)',
-                            }}
-                          >
-                            <Tooltip title={`${t('board.taskModal.dueDateLabel')}: ${formatDate(ss.dueDate)}`}>
-                              <span>{formatDate(ss.dueDate)}</span>
-                            </Tooltip>
-                            {sc.tone === 'danger' && sc.label && (
-                              <span
-                                className={`task-due task-due-${sc.tone}`}
-                                title={sc.title}
-                              >
-                                {sc.label}
-                              </span>
-                            )}
-                          </span>
-                        )}
-                      </span>
-                      <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>
-                        <TaskStatusBadge status={ss.status} size={11} />
-                      </span>
-                    </>
-                  );
-                  return onNavigate ? (
-                    <button
-                      key={ss.id}
-                      type="button"
-                      className="mini-row"
-                      onClick={() => onNavigate(ss.id)}
-                      aria-label={t('board.taskModal.openSubtask', {
-                        defaultValue: 'Open subtask {{title}}',
-                        title: ss.title,
-                      })}
-                      style={rowStyle}
-                    >
-                      {inner}
-                    </button>
-                  ) : (
-                    <div key={ss.id} className="mini-row" style={rowStyle}>
-                      {inner}
-                    </div>
-                  );
-                })}
-                {showAdders &&
-                  (subAdding ? (
-                    <div ref={subCardRef} style={{ marginTop: 4 }}>
-                      <ComposerTextarea
-                        autoFocus={AUTO_FOCUS_INPUT}
-                        value={subDraft}
-                        onChange={setSubDraft}
-                        onSubmit={() => { addSubtask(); }}
-                        onCancel={() => { setSubDraft(''); setSubAssignee(null); setSubPriority(null); setSubStart(null); setSubDue(null); setSubRangeErr(null); setSubAdding(false); }}
-                        maxLength={300}
-                        spellCheck={false}
-                        autoCorrect="off"
-                        autoCapitalize="off"
-                        placeholder={t('board.taskModal.addSubtask', {
-                          defaultValue: 'New subtask…',
-                        })}
-                        ariaLabel={t('board.taskModal.addSubtask', {
-                          defaultValue: 'New subtask…',
-                        })}
-                        style={{ fontSize: 13, fontWeight: 400 }}
-                      />
-                      <div
-                        className="composer-propbar"
-                        style={{ borderTop: 'none', background: 'transparent', padding: '6px 8px' }}
-                      >
-                        <span className="prop" data-prop="assignee">
-                          <span className="prop-ic" aria-hidden="true">
-                            <User size={14} />
-                          </span>
-                          <span className="sr-only">
-                            {t('board.taskModal.subAssignee', { defaultValue: 'Subtask assignee' })}
-                          </span>
-                          <SearchableSelect
-                            id="new-subtask-assignee"
-                            label=""
-                            ariaLabel={t('board.taskModal.subAssignee', {
-                              defaultValue: 'Subtask assignee',
-                            })}
-                            value={subAssignee}
-                            searchable={false}
-                            options={[
-                              ...(user?.id
-                                ? (() => {
-                                    const me = members.find((m) => m.id === user.id);
-                                    const n =
-                                      me?.displayName ||
-                                      me?.email ||
-                                      t('board.taskModal.assignToMe', {
-                                        defaultValue: 'Assign to me',
-                                      });
-                                    return [
-                                      {
-                                        value: user.id,
-                                        label: t('board.taskModal.assignToMe', {
-                                          defaultValue: 'Assign to me',
-                                        }),
-                                        icon: (
-                                          <Avatar
-                                            src={me?.avatarUrl ?? null}
-                                            name={n}
-                                            email={me?.email}
-                                            id={user.id}
-                                            size={20}
-                                            alt=""
-                                          />
-                                        ),
-                                      },
-                                    ];
-                                  })()
-                                : []),
-                              ...members
-                                .filter((m) => m.id !== user?.id)
-                                .map((m) => {
-                                  const n = m.displayName || m.email;
-                                  return {
-                                    value: m.id,
-                                    label: n,
-                                    icon: (
-                                      <Avatar
-                                        src={m.avatarUrl ?? null}
-                                        name={n}
-                                        email={m.email}
-                                        id={m.id}
-                                        size={20}
-                                        alt=""
-                                      />
-                                    ),
-                                  };
-                                }),
-                            ]}
-                            onChange={setSubAssignee}
-                            triggerEmptyLabel={t('board.taskModal.subAssignee', {
-                              defaultValue: 'Subtask assignee',
-                            })}
-                          />
-                        </span>
-                        <button
-                          ref={subDatesTriggerRef}
-                          type="button"
-                          className="prop"
-                          data-prop="dates"
-                          onClick={() => setSubDatesOpen((v) => !v)}
-                          aria-haspopup="dialog"
-                          aria-expanded={subDatesOpen}
-                        >
-                          <span className="prop-ic" aria-hidden="true">
-                            <CalendarBlank size={14} />
-                          </span>
-                          <span className="prop-text">
-                            {subStart || subDue
-                              ? subStart && subDue
-                                ? `${formatDate(subStart)} – ${formatDate(subDue)}`
-                                : formatDate(subStart || subDue)
-                              : t('board.taskModal.subDates', { defaultValue: 'Subtask dates' })}
-                          </span>
-                        </button>
-                        {subDatesOpen && (
-                          <DatePicker
-                            id="new-subtask-dates"
-                            mode="range"
-                            start={subStart}
-                            end={subDue}
-                            minDate={task.startDate?.slice(0, 10) ?? null}
-                            maxDate={task.dueDate?.slice(0, 10) ?? null}
-                            anchorEl={subDatesTriggerRef.current}
-                            onApply={(s, e) => {
-                              setSubStart(s);
-                              setSubDue(e);
-                              setSubRangeErr(null);
-                              setSubDatesOpen(false);
-                            }}
-                            onClose={() => setSubDatesOpen(false)}
-                          />
-                        )}
-                        <span className="prop" data-prop="priority">
-                          <span className="prop-ic" aria-hidden="true">
-                            <Flag size={14} />
-                          </span>
-                          <span className="sr-only">
-                            {t('board.taskModal.subPriority', {
-                              defaultValue: 'Subtask priority',
-                            })}
-                          </span>
-                          <SearchableSelect
-                            id="new-subtask-priority"
-                            label=""
-                            ariaLabel={t('board.taskModal.subPriority', {
-                              defaultValue: 'Subtask priority',
-                            })}
-                            value={subPriority}
-                            searchable={false}
-                            options={TASK_PRIORITY_ORDER.map((p) => ({
-                              value: p,
-                              label: TASK_PRIORITY[p].label,
-                              icon: <TaskPriorityIcon priority={p} size={13} />,
-                            }))}
-                            emptyLabel={t('board.taskModal.followParent', {
-                              defaultValue: 'Follow parent',
-                            })}
-                            triggerEmptyLabel={t('board.taskModal.subPriorityInherit', {
-                              defaultValue: '{{label}} (inherited)',
-                              label: TASK_PRIORITY[task.priority].label,
-                            })}
-                            onChange={(v) => setSubPriority(v as TaskPriority | null)}
-                          />
-                        </span>
-                        {subDraft.trim() ? (
-                          <span
-                            style={{
-                              marginLeft: 'auto',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              flexShrink: 0,
-                            }}
-                          >
-                            <Tooltip title={t('board.taskModal.addSubtask', { defaultValue: 'New subtask…' })}>
-                            <Button
-                              variant="primary"
-                              size="md"
-                              className="btn-icon"
-                              aria-label={t('board.taskModal.addSubtask', {
-                                defaultValue: 'New subtask…',
-                              })}
-                              onClick={() => {
-                                addSubtask();
-                              }}
-                            >
-                              <Plus size={16} aria-hidden="true" />
-                            </Button>
-                            </Tooltip>
-                          </span>
-                        ) : null}
-                      </div>
-                      {subRangeErr && (
-                        <div style={{ padding: '0 12px 8px' }}>
-                          <InlineError>{subRangeErr}</InlineError>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <Button
-                      variant="ghost"
-                      size="md"
-                      data-composer-toggle="subtask"
-                      style={{ width: '100%', justifyContent: 'flex-start' }}
-                      onClick={() => {
-                        setCheckDraft('');
-                        setCheckAdding(false);
-                        setSubAdding(true);
-                      }}
-                    >
-                      + {t('board.taskModal.addSubtask', { defaultValue: 'New subtask…' })}
-                    </Button>
-                  ))}
-              </div>
-              {canEdit && parentPicking && (
-                <SearchableSelect
-                  id="task-parent-picker"
-                  label=""
-                  defaultOpen
-                  hideTrigger
-                  anchorEl={parentBtnRef.current}
-                  ariaLabel={t('board.taskModal.parentLabel', { defaultValue: 'Parent:' })}
-                    value={task.parentTaskId ?? null}
-                    options={parentOptions.map((ot) => ({
-                      value: ot.id,
-                      label: `${ot.title} · ${TASK_STATUS[ot.status].label}`,
-                      icon: <TaskStatusIcon status={ot.status} size={13} />,
-                    }))}
-                    onOpenChange={(o) => {
-                      if (!o) setParentPicking(false);
-                    }}
-                    onChange={(v) => {
-                      update({ parentTaskId: v });
-                      setParentPicking(false);
-                      parentBtnRef.current?.focus();
-                    }}
-                    triggerEmptyLabel={t('board.taskModal.setParent', {
-                      defaultValue: 'Make subtask of…',
-                    })}
-                  />
-              )}
-            </div>
+            <SubtaskSection
+              key={task.id}
+              task={task}
+              canEdit={canEdit}
+              allowAdd={showAdders}
+              members={members}
+              userId={user?.id}
+              onNavigate={onNavigate}
+              open={subAdding}
+              onOpen={() => { setCheckAdding(false); setSubAdding(true); }}
+              onClose={() => setSubAdding(false)}
+            />
           ) : (
-            <div className="focus-detail-check">
-              <div className="focus-detail-subhead">
-                <h4 className="detail-subtitle" style={{ marginBottom: 0, flex: 'none', minWidth: 0 }}>
-                  {t('board.taskModal.subtasksLabel', { defaultValue: 'Subtasks' })}
-                </h4>
-                <span className="focus-detail-parentpill">
-                  <span aria-hidden="true">✓</span>
-                  <span className="focus-detail-parentpill-text">
-                    {t('board.taskModal.subtaskOf', {
-                      defaultValue: 'Subtask of {{parent}}',
-                      parent: parentTitle,
-                    })}
-                  </span>
-                </span>
-                {canEdit && (
-                  <Tooltip title={t('board.taskModal.detachParent')}>
-                    <button
-                      type="button"
-                      className="btn btn-ghost btn-icon focus-detail-detach"
-                      onClick={() => update({ parentTaskId: null })}
-                      aria-label={t('board.taskModal.detachParent')}
-                    >
-                      <span aria-hidden="true">×</span>
-                    </button>
-                  </Tooltip>
-                )}
-              </div>
-              <div className="focus-detail-childinfo">
-                {t('board.taskModal.subtaskChildInfo', {
-                  defaultValue:
-                    "This task is a subtask of '{{parent}}', so it can't have subtasks of its own.",
-                  parent: parentTitle,
-                })}
-              </div>
-            </div>
+            <ParentPillSection
+              parentTitle={parentTask?.title ?? null}
+              canEdit={canEdit}
+              onDetach={() => update({ parentTaskId: null })}
+            />
           )}
 
-          <div className="focus-detail-check">
-          <h4 className="detail-subtitle" style={{ marginBottom: 0 }}>
-            {t('board.taskModal.checklistLabel', { defaultValue: 'Checklist' })}
-            {checklist.length > 0 && (
-              <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>
-                {' '}
-                · {doneCount}/{checklist.length}
-              </span>
-            )}
-          </h4>
-          {checklist.length > 0 && (
-            <div
-              role="progressbar"
-              aria-valuenow={doneCount}
-              aria-valuemin={0}
-              aria-valuemax={checklist.length}
-              aria-label={t('board.taskModal.checklistLabel', { defaultValue: 'Checklist' })}
-              style={{
-                height: 4,
-                borderRadius: 'var(--radius-pill)',
-                background: 'color-mix(in srgb, var(--text-muted) 18%, transparent)',
-              }}
-            >
-              <div
-                style={{
-                  width: `${pct}%`,
-                  height: '100%',
-                  borderRadius: 'var(--radius-pill)',
-                  background: 'var(--accent-focus)',
-                }}
-              />
-            </div>
-          )}
-          <div>
-            {checklist.map((c, i) => (
-              <div
-                key={c.id}
-                className="mini-row"
-                style={{
-                  display: 'flex',
-                  alignItems: 'flex-start',
-                  gap: 8,
-                  padding: '5px 0',
-                  borderTop: i === 0 ? 'none' : '1px solid var(--border-hairline)',
-                }}
-              >
-                <Tooltip title={canEdit ? (c.done ? t('board.taskModal.uncheckItem', { defaultValue: 'Mark as todo' }) : t('board.taskModal.checkItem', { defaultValue: 'Mark done' })) : undefined}>
-                <button
-                  type="button"
-                  role="checkbox"
-                  aria-checked={c.done}
-                  aria-label={c.title}
-                  onClick={() => canEdit && toggleCheck(c.id)}
-                  disabled={!canEdit}
-                  style={{
-                    width: 16,
-                    height: 16,
-                    borderRadius: 5,
-                    flexShrink: 0,
-                    border: '1px solid var(--border-strong)',
-                    background: c.done ? 'var(--status-success)' : 'transparent',
-                    color: 'var(--text-on-accent)',
-                    cursor: canEdit ? 'pointer' : 'default',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 11,
-                  }}
-                >
-                  {c.done ? '✓' : ''}
-                </button>
-                </Tooltip>
-                <span
-                  className="mini-row-body"
-                  style={{
-                    flex: 1,
-                    minWidth: 0,
-                    fontSize: 13,
-                    whiteSpace: 'normal',
-                    overflowWrap: 'anywhere',
-                    textDecoration: c.done ? 'line-through' : 'none',
-                    color: c.done ? 'var(--text-muted)' : 'var(--text-secondary)',
-                  }}
-                >
-                  {c.title}
-                </span>
-                {canEdit && (
-                  <span className="mini-row-actions">
-                    <Tooltip title={`Remove ${c.title}`}>
-                    <button
-                      type="button"
-                      className="mini-del"
-                      onClick={() => removeCheck(c.id)}
-                      style={{
-                        background: 'none',
-                        border: 'none',
-                        cursor: 'pointer',
-                        color: 'var(--status-danger)',
-                        padding: '6px',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                      }}
-                      aria-label={`Remove ${c.title}`}
-                    >
-                      <Trash size={15} aria-hidden="true" />
-                    </button>
-                    </Tooltip>
-                  </span>
-                )}
-              </div>
-            ))}
-            {showAdders &&
-              checklist.length < 20 &&
-              (checkAdding ? (
-                <div ref={checkCardRef} style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-                  <ComposerTextarea
-                    autoFocus={AUTO_FOCUS_INPUT}
-                    value={checkDraft}
-                    onChange={setCheckDraft}
-                    onSubmit={() => { addCheck(); }}
-                    onCancel={() => { setCheckDraft(''); setCheckAdding(false); }}
-                    onBlur={() => {
-                      if (!checkDraft.trim()) setCheckAdding(false);
-                    }}
-                    maxLength={200}
-                    spellCheck={false}
-                    autoCorrect="off"
-                    autoCapitalize="off"
-                    placeholder={t('board.taskModal.addChecklist', { defaultValue: 'New item…' })}
-                    ariaLabel={t('board.taskModal.addChecklist', { defaultValue: 'New item…' })}
-                    wrapStyle={{ flex: 1, minWidth: 0 }}
-                    style={{ fontSize: 13, fontWeight: 400 }}
-                  />
-                  {checkDraft.trim() ? (
-                    <Tooltip title={t('board.taskModal.addChecklist', { defaultValue: 'New item…' })}>
-                    <Button
-                      variant="primary"
-                      size="md"
-                      className="btn-icon"
-                      aria-label={t('board.taskModal.addChecklist', {
-                        defaultValue: 'New item…',
-                      })}
-                      onClick={addCheck}
-                    >
-                      <Plus size={16} aria-hidden="true" />
-                    </Button>
-                    </Tooltip>
-                  ) : null}
-                </div>
-              ) : (
-                <Button
-                  variant="ghost"
-                  size="md"
-                  data-composer-toggle="checklist"
-                  style={{ width: '100%', justifyContent: 'flex-start' }}
-                  onClick={() => {
-                    setSubDraft('');
-                    setSubAssignee(null);
-                    setSubPriority(null);
-                    setSubStart(null);
-                    setSubDue(null);
-                    setSubRangeErr(null);
-                    setSubDatesOpen(false);
-                    setSubAdding(false);
-                    setCheckAdding(true);
-                  }}
-                >
-                  + {t('board.taskModal.addChecklist', { defaultValue: 'New item…' })}
-                </Button>
-              ))}
-          </div>
-          </div>
+          <ChecklistSection
+            key={`${task.id}-check`}
+            task={task}
+            canEdit={canEdit}
+            allowAdd={showAdders}
+            open={checkAdding}
+            onOpen={() => { setSubAdding(false); setCheckAdding(true); }}
+            onClose={() => setCheckAdding(false)}
+          />
 
           <div className="focus-detail-check">
             <AttachmentSection

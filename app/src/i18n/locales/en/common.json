@@ -114,6 +114,9 @@
     },
     "expandWithCount": "View full ({{count}} characters)",
     "collapse": "Hide",
+    "sectionTitle": "Activity",
+    "show": "Show",
+    "hide": "Hide",
     "identicalPreview": "Identical preview — click View full for change details"
   },
   "errorBoundary": {

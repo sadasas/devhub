@@ -1424,8 +1424,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                 <EndpointDocs endpoint={selectedEp} />
               </>
             )}
-            <h4 className="detail-subtitle">{t('api.activity')}</h4>
-            <ActivityList projectId={projectId} entity="apiEndpoints" entityId={selectedEp.id} />
+            <ActivityList collapsible projectId={projectId} entity="apiEndpoints" entityId={selectedEp.id} />
             </>
           ) : selectedColl ? (
             <div className="api-col-view">
@@ -1519,8 +1518,7 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
                   <p className="api-rows-empty">{t('api.collection.emptyEndpoints')}</p>
                 )}
               </div>
-              <h4 className="detail-subtitle">{t('api.activity')}</h4>
-              <ActivityList projectId={projectId} entity="apiCollections" entityId={selectedColl.id} />
+              <ActivityList collapsible projectId={projectId} entity="apiCollections" entityId={selectedColl.id} />
             </div>
           ) : (
             emptyWorkbench

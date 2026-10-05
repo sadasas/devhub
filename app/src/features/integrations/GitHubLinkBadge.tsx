@@ -6,7 +6,7 @@ import { Tooltip } from '../../components/Tooltip';
 
 /**
  * Badge 1 baris agregat PR untuk kartu task (pola GCalSyncedMark):
- * `PR #123 Open · CI failing`. Render null bila tanpa link PR (fail-soft).
+ * `PR 123 Open · CI failing`. Render null bila tanpa link PR (fail-soft).
  * Detail penuh (branch/commit/review) tinggal di GitHubTaskSection.
  */
 const TONE_COLOR: Record<string, string> = {

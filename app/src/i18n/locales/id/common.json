@@ -114,6 +114,9 @@
     },
     "expandWithCount": "Lihat lengkap ({{count}} karakter)",
     "collapse": "Sembunyikan",
+    "sectionTitle": "Aktivitas",
+    "show": "Tampilkan",
+    "hide": "Sembunyikan",
     "identicalPreview": "Pratinjau identik — klik Lihat lengkap untuk detail perubahan"
   },
   "errorBoundary": {

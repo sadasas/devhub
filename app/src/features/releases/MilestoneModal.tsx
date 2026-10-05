@@ -195,9 +195,13 @@ export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
               {statusLabels[milestone.status]}
             </span>
           )}
-          control={(
-            <SearchableSelect defaultOpen searchable={false} id="milestone-status" label="" ariaLabel={t("releases.modal.statusLabel")} value={milestone.status} allowEmpty={false} options={STATUS_OPTIONS.map((s) => ({ value: s, label: statusLabels[s] }))} onOpenChange={(o) => { if (!o) setHotProp(null); }} onChange={(v) => { if (v) { update({ status: v as MilestoneStatus }); setHotProp(null); } }} />
-          )}
+            control={(
+              <SearchableSelect defaultOpen searchable={false} id="milestone-status" label="" ariaLabel={t("releases.modal.statusLabel")} value={milestone.status} allowEmpty={false} triggerContent={(
+                <span style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "2px 8px", borderRadius: 6, background: milestone.status === "released" ? "var(--status-success-dim)" : milestone.status === "inProgress" ? "var(--status-info-dim)" : "var(--bg-inset)", fontSize: 12 }}>
+                  {statusLabels[milestone.status]}
+                </span>
+              )} options={STATUS_OPTIONS.map((s) => ({ value: s, label: statusLabels[s] }))} onOpenChange={(o) => { if (!o) setHotProp(null); }} onChange={(v) => { if (v) { update({ status: v as MilestoneStatus }); setHotProp(null); } }} />
+            )}
         />
         <PropRow
           propKey="version"
@@ -259,11 +263,8 @@ export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
         </h3>
       )}
       {nameEmpty && <InlineError>{t("tracker:issues.modal.titleRequired")}</InlineError>}
-      <div className="detail-created" style={{ display: "flex", alignItems: "center", gap: 12, fontSize: 13 }}>
-        <span style={{ width: 110, color: "var(--text-secondary)", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 6, fontSize: 12 }}>
-          {t("tracker:issues.modal.createdTimeLabel")}
-        </span>
-        <span style={{ color: "var(--text-secondary)" }}>{formatDate(milestone.createdAt)} {new Date(milestone.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+      <div className="detail-created" style={{ fontSize: 12, color: "var(--text-muted)" }}>
+        {t("tracker:issues.modal.createdTimeLabel")} {formatDate(milestone.createdAt)}, {new Date(milestone.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
       </div>
       <div className="editable-field" style={{ position: "relative" }}>
         <MarkdownField

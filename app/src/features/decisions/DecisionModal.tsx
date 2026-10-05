@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Scales, Clock, FileText, ListChecks, CheckCircle, Circle, CalendarBlank, Rocket } from '@phosphor-icons/react';
+import { Scales, FileText, ListChecks, CheckCircle, Circle, CalendarBlank, Rocket } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { formatDate, formatRelative } from '../../lib/utils';
 import type { Decision, DecisionStatus } from '../../lib/types';
@@ -98,7 +98,11 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
               </span>
             )}
             control={(
-              <SearchableSelect defaultOpen searchable={false} id="decision-status" label="" ariaLabel={t('decisions.modal.statusLabel')} value={decision.status} allowEmpty={false} options={STATUS_OPTIONS.map((s) => ({ value: s, label: t(`decisions.status.${s}`) }))} onOpenChange={(o) => { if (!o) setHotProp(null); }} onChange={(v) => { if (v) { update({ status: v as DecisionStatus }); setHotProp(null); } }} />
+              <SearchableSelect defaultOpen searchable={false} id="decision-status" label="" ariaLabel={t('decisions.modal.statusLabel')} value={decision.status} allowEmpty={false} triggerContent={(
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 6, background: decision.status === 'accepted' ? 'var(--status-success-dim)' : decision.status === 'rejected' ? 'var(--status-danger-dim)' : decision.status === 'superseded' ? 'var(--bg-inset)' : 'var(--status-info-dim)', border: decision.status === 'superseded' ? '1px solid var(--border-hairline)' : 'none', fontSize: 12 }}>
+                  {t(`decisions.status.${decision.status}`)}
+                </span>
+              )} options={STATUS_OPTIONS.map((s) => ({ value: s, label: t(`decisions.status.${s}`) }))} onOpenChange={(o) => { if (!o) setHotProp(null); }} onChange={(v) => { if (v) { update({ status: v as DecisionStatus }); setHotProp(null); } }} />
             )}
           />
           <PropRow
@@ -171,11 +175,8 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
         </h3>
       )}
       {titleEmpty && <InlineError>{t('tracker:issues.modal.titleRequired')}</InlineError>}
-      <div className="detail-created" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12 }}>
-        <span style={{ width: 110, color: 'var(--text-secondary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-          <Clock size={12} aria-hidden="true" /> {t('tracker:issues.modal.createdTimeLabel')}
-        </span>
-        <span style={{ color: 'var(--text-secondary)' }}>{formatDate(decision.createdAt)} {new Date(decision.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+      <div className="detail-created" style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+        {t('tracker:issues.modal.createdTimeLabel')} {formatDate(decision.createdAt)}, {new Date(decision.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
       </div>
 
       {canEdit ? (
@@ -294,8 +295,7 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
         </div>
       )}
 
-      <h4 className="detail-subtitle">{t('decisions.modal.activity')}</h4>
-      <ActivityList projectId={projectId} entity="decisions" entityId={decision.id} />
+      <ActivityList collapsible projectId={projectId} entity="decisions" entityId={decision.id} />
       <p className="field-helper">{t('decisions.modal.updated', { time: formatRelative(decision.updatedAt) })}</p>
     </DetailShell>
   );

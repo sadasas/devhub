@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { FileText, ListChecks, Clock, CheckCircle, Circle, Bug } from '@phosphor-icons/react';
+import { FileText, ListChecks, CheckCircle, Circle, Bug } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { formatDate, formatRelative } from '../../lib/utils';
 import type { TestCase, TestCaseStatus } from '../../lib/types';
@@ -93,9 +93,13 @@ export function TestModal({ testId, onClose }: TestModalProps) {
               {t(`tests.status.${test.status}`)}
             </span>
           )}
-          control={(
-            <SearchableSelect defaultOpen searchable={false} id="test-status" label="" ariaLabel={t('tests.modal.statusLabel')} value={test.status} allowEmpty={false} options={STATUS_OPTIONS.map((s) => ({ value: s, label: t(`tests.status.${s}`) }))} onOpenChange={(o) => { if (!o) setHotProp(null); }} onChange={(v) => { if (v) { update({ status: v as TestCaseStatus }); setHotProp(null); } }} />
-          )}
+            control={(
+              <SearchableSelect defaultOpen searchable={false} id="test-status" label="" ariaLabel={t('tests.modal.statusLabel')} value={test.status} allowEmpty={false} triggerContent={(
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 6, background: test.status === 'pass' ? 'var(--status-success-dim)' : test.status === 'fail' ? 'var(--status-danger-dim)' : 'var(--bg-inset)', border: test.status === 'pending' ? '1px solid var(--border-hairline)' : 'none', fontSize: 12 }}>
+                  {t(`tests.status.${test.status}`)}
+                </span>
+              )} options={STATUS_OPTIONS.map((s) => ({ value: s, label: t(`tests.status.${s}`) }))} onOpenChange={(o) => { if (!o) setHotProp(null); }} onChange={(v) => { if (v) { update({ status: v as TestCaseStatus }); setHotProp(null); } }} />
+            )}
         />
         <PropRow
           propKey="task"
@@ -159,11 +163,8 @@ export function TestModal({ testId, onClose }: TestModalProps) {
         </h3>
       )}
       {nameEmpty && <InlineError>{t('tracker:issues.modal.titleRequired')}</InlineError>}
-      <div className="detail-created" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12 }}>
-        <span style={{ width: 110, color: 'var(--text-secondary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-          <Clock size={12} aria-hidden="true" /> {t('tracker:issues.modal.createdTimeLabel')}
-        </span>
-        <span style={{ color: 'var(--text-secondary)' }}>{formatDate(test.createdAt)} {new Date(test.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+      <div className="detail-created" style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+        {t('tracker:issues.modal.createdTimeLabel')} {formatDate(test.createdAt)}, {new Date(test.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
       </div>
       {canEdit ? (
         <div className="editable-field" style={{ position: 'relative' }}>
@@ -213,8 +214,7 @@ export function TestModal({ testId, onClose }: TestModalProps) {
           </div>
         </div>
       )}
-      <h4 className="detail-subtitle">{t('tests.modal.activity')}</h4>
-      <ActivityList projectId={projectId} entity="testCases" entityId={test.id} />
+      <ActivityList collapsible projectId={projectId} entity="testCases" entityId={test.id} />
       <p className="field-helper">{t('tests.modal.updated', { time: formatRelative(test.updatedAt) })}</p>
     </DetailShell>
   );

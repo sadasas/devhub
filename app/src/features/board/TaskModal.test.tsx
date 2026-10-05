@@ -509,7 +509,7 @@ describe('TaskModal subtasks', () => {
 
   it('closes the add card on outside click and on Escape', () => {
     openAddRow();
-    fireEvent.pointerDown(document.body);
+    fireEvent.click(document.body);
     expect(screen.queryByRole('textbox', { name: 'New subtask…' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: '+ New subtask…' }));
     const reopened = screen.getByRole('textbox', { name: 'New subtask…' });
@@ -540,29 +540,52 @@ describe('TaskModal subtasks', () => {
     expect(onNavigate).toHaveBeenCalledWith(SUB_ID);
   });
 
-  it('shows a Subtask badge and breadcrumb back to the parent', () => {
+  it('shows the parent pill and detach action inside a subtask modal', () => {
     const SUB_ID = '66666666-6666-4666-8666-666666666666';
     mockState.tasks = [makeTask({ title: 'Parent task' }), makeTask({ id: SUB_ID, title: 'Sub A', parentTaskId: TASK_ID })];
     const onNavigate = vi.fn();
     render(<MemoryRouter><TaskModal taskId={SUB_ID} onClose={vi.fn()} onNavigate={onNavigate} /></MemoryRouter>);
-    expect(screen.getByText('Subtask')).toBeTruthy();
+    expect(screen.getByText('Subtask of Parent task')).toBeTruthy();
+    expect(screen.getByText(/can't have subtasks of its own/)).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Subtask of Parent task' }));
+    expect(onNavigate).toHaveBeenCalledWith(TASK_ID);
+    fireEvent.click(screen.getByRole('button', { name: 'Detach' }));
+    expect(mockDispatch).toHaveBeenCalledWith({ type: 'task/update', id: SUB_ID, patch: { parentTaskId: null } });
+  });
+
+  it('shows the parent pill instead of the subtask list inside a subtask modal', () => {
+    const SUB_ID = '66666666-6666-4666-8666-666666666666';
+    mockState.tasks = [makeTask({}), makeTask({ id: SUB_ID, title: 'Sub A', parentTaskId: TASK_ID })];
+    render(<MemoryRouter><TaskModal taskId={SUB_ID} onClose={vi.fn()} onNavigate={vi.fn()} /></MemoryRouter>);
+    expect(screen.getByText('Subtasks')).toBeTruthy();
+    expect(screen.getByText(/Subtask of/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: '+ New subtask…' })).toBeNull();
+  });
+
+  it('shows the crumb navigation back to the parent inside a subtask modal', () => {
+    const SUB_ID = '66666666-6666-4666-8666-666666666666';
+    mockState.tasks = [makeTask({ title: 'Parent task' }), makeTask({ id: SUB_ID, title: 'Sub A', parentTaskId: TASK_ID })];
+    const onNavigate = vi.fn();
+    render(<MemoryRouter><TaskModal taskId={SUB_ID} onClose={vi.fn()} onNavigate={onNavigate} /></MemoryRouter>);
     fireEvent.click(screen.getByRole('button', { name: 'Back to parent task' }));
     expect(onNavigate).toHaveBeenCalledWith(TASK_ID);
   });
 
-  it('hides the subtasks section entirely inside a subtask modal', () => {
-    const SUB_ID = '66666666-6666-4666-8666-666666666666';
-    mockState.tasks = [makeTask({}), makeTask({ id: SUB_ID, title: 'Sub A', parentTaskId: TASK_ID })];
-    render(<MemoryRouter><TaskModal taskId={SUB_ID} onClose={vi.fn()} onNavigate={vi.fn()} /></MemoryRouter>);
-    expect(screen.queryByText('Subtasks')).toBeNull();
-    expect(screen.queryByRole('button', { name: '+ New subtask…' })).toBeNull();
+  it('renders the checklist progress bar at full width when all items are done', () => {
+    mockState.tasks = [makeTask({ checklist: [{ id: 'c1', title: 'A', done: true }, { id: 'c2', title: 'B', done: true }] })];
+    render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} onNavigate={vi.fn()} /></MemoryRouter>);
+    const bar = screen.getByRole('progressbar', { name: 'Checklist' });
+    expect(bar.getAttribute('aria-valuenow')).toBe('2');
+    expect(bar.getAttribute('aria-valuemax')).toBe('2');
+    const fill = bar.firstElementChild as HTMLElement | null;
+    expect(fill?.style.width).toBe('100%');
   });
 
-  it('shows action icons on Detach and Make-subtask-of buttons', () => {
+  it('shows the detach action and Make-subtask-of affordance', () => {
     const SUB_ID = '66666666-6666-4666-8666-666666666666';
     mockState.tasks = [makeTask({ title: 'Parent task' }), makeTask({ id: SUB_ID, title: 'Sub A', parentTaskId: TASK_ID })];
     render(<MemoryRouter><TaskModal taskId={SUB_ID} onClose={vi.fn()} onNavigate={vi.fn()} /></MemoryRouter>);
-    expect(screen.getByRole('button', { name: 'Detach' }).querySelector('svg')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Detach' })).toBeTruthy();
     mockState.tasks = [makeTask({ title: 'Parent task' })];
     render(<MemoryRouter><TaskModal taskId={TASK_ID} onClose={vi.fn()} onNavigate={vi.fn()} /></MemoryRouter>);
     expect(screen.getByRole('button', { name: /Make subtask of/ }).querySelector('svg')).toBeTruthy();

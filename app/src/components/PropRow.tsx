@@ -62,7 +62,7 @@ export function PropRow({
           {!editAfterValue && <PencilSimple size={12} aria-hidden="true" className="prop-edit" />}
         </button>
       ) : (
-        <span className="prop-label">{icon}<span className="prop-label-text">{label}</span>{canEdit && !editAfterValue && <PencilSimple size={12} aria-hidden="true" className="prop-edit" />}</span>
+        <span className="prop-label">{icon}<span className="prop-label-text">{label}</span>{canEdit && !hot && !editAfterValue && <PencilSimple size={12} aria-hidden="true" className="prop-edit" />}</span>
       )}
       {hot ? control : canEdit ? (
         <button type="button" className="prop-view" onClick={() => setHot(propKey)}>

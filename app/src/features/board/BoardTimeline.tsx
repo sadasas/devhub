@@ -235,10 +235,10 @@ export function BoardTimeline({ filteredTasks, onOpenTask, members, unreadIds, o
                     const isDone=task.status==="done";
                     const isOverdue=!isDone && task.dueDate && task.dueDate < today;
                     const tone:string=isDone?"done":isOverdue?"danger":"neutral";
-                    let bg="#e0e7ff";
-                    if(isDone) bg="#6ee7b7";
-                    else if(tone==="danger") bg="#fecaca";
-                    const textColor = isDone ? "#064e3b" : "#1e293b";
+                    let bg="var(--status-info-dim)";
+                    if(isDone) bg="var(--status-success-dim)";
+                    else if(tone==="danger") bg="var(--status-danger-dim)";
+                    const textColor = isDone ? "var(--status-success)" : "var(--text-primary)";
                     const border = isDone ? "rgba(0,0,0,0.12)" : "rgba(0,0,0,0.08)";
                     const borderStyle = isDone ? "dashed" : "solid";
                     const shadow = isDone ? "none" : "0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.10)";
@@ -269,9 +269,9 @@ export function BoardTimeline({ filteredTasks, onOpenTask, members, unreadIds, o
                             {showAssigneeName && <span className="task-assignee-name" style={{maxWidth:72, fontSize:12}}>{assigneeName}</span>}
                           </span>
                         ) : (
-                          <span style={{fontSize:10,color:"#94a3b8",fontStyle:"italic"}}>—</span>
+                          <span style={{fontSize:10,color:"var(--text-muted)",fontStyle:"italic"}}>—</span>
                         )}
-                        {task.estimate!=null && <span className="tabular" style={{fontSize:10,color:isDone?"#065f46":"#475569",fontWeight:500,lineHeight:1,marginLeft:"auto"}}>{task.estimate}h</span>}
+                        {task.estimate!=null && <span className="tabular" style={{fontSize:10,color:isDone?"var(--status-success)":"var(--text-secondary)",fontWeight:500,lineHeight:1,marginLeft:"auto"}}>{task.estimate}h</span>}
                       </span>
                     </button>
                     </div>;

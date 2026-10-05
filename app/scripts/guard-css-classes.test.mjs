@@ -101,8 +101,9 @@ describe('guard-css-classes', () => {
 
 describe('guard-css-classes hex/spacing (pasal 7/8)', () => {
   it('SPACING_SCALE = tangga kanonis pasal 7', () => {
+    // '1' = tier hairline/mikro (keputusan owner 2026-10-05).
     expect(SPACING_SCALE).toEqual(
-      new Set(['0', '2', '4', '6', '8', '10', '12', '16', '20', '24', '32', '48']),
+      new Set(['0', '1', '2', '4', '6', '8', '10', '12', '16', '20', '24', '32', '48']),
     );
   });
 
@@ -117,13 +118,16 @@ describe('guard-css-classes hex/spacing (pasal 7/8)', () => {
   });
 
   it('extractHardcodedHex: lewati domain sah pasal 8', () => {
-    expect(extractHardcodedHex('.a{color:#111827}.b{color:#e4e4e7}')).toEqual(new Map());
-    expect(HEX_VALUE_ALLOWLIST.has('#111827')).toBe(true);
-    expect(HEX_VALUE_ALLOWLIST.has('#2f6df6')).toBe(true);
+    // Nilai tooltip lama (#111827/#2f6df6) SENGAJA tidak ada di allowlist:
+    // dilipat 2026-09-23 ke token inverse theme-aware. Uji domain yang sah.
+    expect(extractHardcodedHex('.a{color:#e4e4e7}.b{color:#5db69b}')).toEqual(new Map());
+    expect(HEX_VALUE_ALLOWLIST.has('#e4e4e7')).toBe(true);
+    expect(HEX_VALUE_ALLOWLIST.has('#5db69b')).toBe(true);
   });
 
   it('extractOffScaleSpacing: on-scale lolos, drift 14/5/7 tertangkap', () => {
     expect(extractOffScaleSpacing('.a{margin:12px;padding:0 16px;gap:8px}')).toEqual(new Map());
+    expect(extractOffScaleSpacing('.a{gap:1px;padding:1px 6px}')).toEqual(new Map());
     expect(extractOffScaleSpacing('.a{margin-top:14px;padding-inline:5px}')).toEqual(
       new Map([
         ['14', 1],
@@ -143,7 +147,7 @@ describe('guard-css-classes hex/spacing (pasal 7/8)', () => {
     const src = [
       {
         file: 'src/features/board/X.tsx',
-        src: 'const a = "#dc2626"; const b = "#DC2626"; const c = "#111827";',
+        src: 'const a = "#dc2626"; const b = "#DC2626"; const c = "#e4e4e7";',
       },
       { file: 'src/components/Logo.tsx', src: 'const a = "#123456";' },
       { file: 'src/foo.test.tsx', src: 'const a = "#123456";' },

@@ -119,7 +119,10 @@ export function findViolations(css) {
 // Hex/spacing/radius/border/btn/breakpoint/empty/settings-action dilaporkan
 // sebagai WARNING (exit 0) sampai migrasi per area selesai; flag --strict
 // mengubahnya jadi FAIL (aktivasi masa depan).
-export const SPACING_SCALE = new Set([0, 2, 4, 6, 8, 10, 12, 16, 20, 24, 32, 48].map(String));
+// 1px = tier hairline/mikro (keputusan owner 2026-10-05): rapat garis,
+// micro badge, nudge 1px, pola .sr-only — sah di luar grid 4pt.
+export const SPACING_SCALE = new Set([0, 1, 2, 4, 6, 8, 10, 12, 16, 20, 24, 32,
+48].map(String));
 
 // Domain warna SAH pasal 8 (bukan drift) — dikecualikan dari warn.
 // - File: karya brand/ilustrasi tetap (Logo, DoodleIllustration, AuthHeroArt).
@@ -131,6 +134,16 @@ export const HEX_FILE_ALLOWLIST = new Set([
   'src/components/Logo.tsx',
   'src/components/DoodleIllustration.tsx',
   'src/features/auth/AuthHeroArt.tsx',
+  // Contoh payload MCP di docs dalam aplikasi (konten dokumentasi, bukan
+  // chrome UI) — hex warna elemen whiteboard di snippet create_whiteboard.
+  'src/features/docs/McpDocsPage.tsx',
+  // Render konten kanvas whiteboard (bukan chrome UI): default warna edge/
+  // label, fill teks SVG export & ref-card, array swatch + default input
+  // warna. Toolbar di file yang sama sudah ter-token.
+  'src/features/whiteboard/WhiteboardCanvas.tsx',
+  'src/features/whiteboard/WhiteboardColorPanel.tsx',
+  'src/features/whiteboard/WhiteboardEditorShell.tsx',
+  'src/features/whiteboard/WhiteboardTextControls.tsx',
 ]);
 
 export const HEX_VALUE_ALLOWLIST = new Set([
@@ -144,6 +157,9 @@ export const HEX_VALUE_ALLOWLIST = new Set([
   '#f4706d',
   '#1a1a1a', // kanvas: default warna teks sticky + fallback rgba (ColorPalette/Inspector/EditorShell)
   '#06251a', // kanvas: swatch hijau gelap palet konten (ColorPalette)
+  '#ffffff', // kanvas: kertas putih .wb-canvas, putih di kedua tema (keputusan owner 2026-10-05)
+  '#f4f4f5', // browser: meta theme-color terang (bukan UI aplikasi)
+  '#0a0a0c', // browser: meta theme-color gelap (bukan UI aplikasi)
 ]);
 
 // Radius/border/btn-size/ghost/inline inventory (warn-first, pasal 7/8/9).

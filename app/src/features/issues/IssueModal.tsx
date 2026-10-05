@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Clock, Bug, FileText, CheckCircle, Warning, Circle, LinkSimple } from '@phosphor-icons/react';
+import { Bug, FileText, CheckCircle, Warning, Circle, LinkSimple } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { ISSUE_SEVERITY, ISSUE_STATUS } from '../../lib/labels';
 import { IssueStatusIcon, TaskSeverityIcon } from '../../lib/task-icons';
@@ -144,6 +144,38 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
                 ariaLabel={t('issues.modal.severityLabel')}
                 value={issue.severity}
                 allowEmpty={false}
+                triggerContent={(
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '2px 8px',
+                      borderRadius: 999,
+                      background:
+                        issue.severity === 'critical'
+                          ? 'var(--status-danger-dim)'
+                          : issue.severity === 'high'
+                            ? 'var(--status-warn-dim)'
+                            : issue.severity === 'medium'
+                              ? 'var(--status-info-dim)'
+                              : 'var(--bg-inset)',
+                      border: issue.severity === 'low' ? '1px solid var(--border-hairline)' : 'none',
+                      fontSize: 12,
+                      color:
+                        issue.severity === 'critical'
+                          ? 'var(--status-danger)'
+                          : issue.severity === 'high'
+                            ? 'var(--status-warn)'
+                            : issue.severity === 'medium'
+                              ? 'var(--status-info)'
+                              : 'var(--text-secondary)',
+                    }}
+                  >
+                    <TaskSeverityIcon severity={issue.severity} size={12} />
+                    {ISSUE_SEVERITY[issue.severity].label}
+                  </span>
+                )}
                 options={SEVERITY_OPTIONS.map((s) => ({ value: s, label: t(`issues.severity.${s}`), icon: <TaskSeverityIcon severity={s} size={13} /> }))}
                 onOpenChange={(o) => { if (!o) setHotProp(null); }}
                 onChange={(v) => { if (v) { update({ severity: v as IssueSeverity }); setHotProp(null); } }}
@@ -202,6 +234,42 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
                 ariaLabel={t('issues.modal.statusLabel')}
                 value={issue.status}
                 allowEmpty={false}
+                triggerContent={(
+                  <span
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      padding: '2px 8px',
+                      borderRadius: 999,
+                      background:
+                        issue.status === 'resolved'
+                          ? 'var(--status-success-dim)'
+                          : issue.status === 'fixing'
+                            ? 'var(--accent-dim)'
+                            : issue.status === 'reproduced'
+                              ? 'var(--status-warn-dim)'
+                              : issue.status === 'open'
+                                ? 'var(--status-info-dim)'
+                                : 'var(--bg-inset)',
+                      border: issue.status === 'wontfix' ? '1px solid var(--border-hairline)' : 'none',
+                      fontSize: 12,
+                      color:
+                        issue.status === 'resolved'
+                          ? 'var(--status-success)'
+                          : issue.status === 'fixing'
+                            ? 'var(--accent)'
+                            : issue.status === 'reproduced'
+                              ? 'var(--status-warn)'
+                              : issue.status === 'open'
+                                ? 'var(--status-info)'
+                                : 'var(--text-secondary)',
+                    }}
+                  >
+                    <IssueStatusIcon status={issue.status} size={12} />
+                    {ISSUE_STATUS[issue.status].label}
+                  </span>
+                )}
                 options={STATUS_OPTIONS.map((s) => ({ value: s, label: t(`issues.status.${s}`), icon: <IssueStatusIcon status={s} size={13} /> }))}
                 onOpenChange={(o) => { if (!o) setHotProp(null); }}
                 onChange={(v) => { if (v) { update({ status: v as IssueStatus }); setHotProp(null); } }}
@@ -366,14 +434,8 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
       {titleEmpty && (
         <InlineError>{t('issues.modal.titleRequired')}</InlineError>
       )}
-      <div className="detail-created" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12 }}>
-        <span style={{ width: 110, color: 'var(--text-secondary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-          <Clock size={12} aria-hidden="true" /> {t('issues.modal.createdTimeLabel')}
-        </span>
-        <span style={{ color: 'var(--text-secondary)' }}>
-          {formatDate(issue.createdAt)}{' '}
-          {new Date(issue.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </span>
+      <div className="detail-created" style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+        {t('issues.modal.createdTimeLabel')} {formatDate(issue.createdAt)}, {new Date(issue.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
       </div>
       {canEdit ? (
         <div className="editable-field" style={{ position: 'relative' }}>
@@ -446,8 +508,7 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
         onChanged={(next) => update({ attachments: next })}
         onQuotaExceeded={() => setStorageLimitOpen(true)}
       />
-      <h4 className="detail-subtitle">{t('issues.modal.activity')}</h4>
-      <ActivityList projectId={projectId} entity="issues" entityId={issue.id} />
+      <ActivityList collapsible projectId={projectId} entity="issues" entityId={issue.id} />
       <p className="field-helper">{t('issues.modal.updated', { time: formatRelative(issue.updatedAt) })}</p>
       {teamId && (
         <PlanLimitModal

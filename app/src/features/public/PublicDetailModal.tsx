@@ -1,4 +1,4 @@
-import { Bug, Clock, FileText, LinkSimple } from '@phosphor-icons/react';
+import { Bug, FileText, LinkSimple } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { DetailShell } from '../../components/DetailShell';
 import { Badge } from '../../components/Badge';
@@ -208,11 +208,8 @@ export function PublicTaskDetailModal({ task, state, onClose, onOpenTask }: Publ
       <h3 className="detail-title">
         {task.title || <DetailEmpty>{t('board.taskModal.untitled')}</DetailEmpty>}
       </h3>
-      <div className="detail-created" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12 }}>
-        <span style={{ width: 110, color: 'var(--text-secondary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-          <Clock size={12} aria-hidden="true" /> {t('issues.modal.createdTimeLabel')}
-        </span>
-        <span style={{ color: 'var(--text-secondary)' }}>{formatDate(task.createdAt)} {new Date(task.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+      <div className="detail-created" style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+        {t('issues.modal.createdTimeLabel')} {formatDate(task.createdAt)}, {new Date(task.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
       </div>
       <div className="md-bare">
         <div className="md-bare-head">
@@ -371,14 +368,8 @@ export function PublicIssueDetailModal({ issue, state, onClose, onOpenTask }: Pu
       <h3 className="detail-title">
         {issue.title || <DetailEmpty>{t('issues.modal.untitledIssue')}</DetailEmpty>}
       </h3>
-      <div className="detail-created" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12 }}>
-        <span style={{ width: 110, color: 'var(--text-secondary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-          <Clock size={12} aria-hidden="true" /> {t('issues.modal.createdTimeLabel')}
-        </span>
-        <span style={{ color: 'var(--text-secondary)' }}>
-          {formatDate(issue.createdAt)}{' '}
-          {new Date(issue.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-        </span>
+      <div className="detail-created" style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+        {t('issues.modal.createdTimeLabel')} {formatDate(issue.createdAt)}, {new Date(issue.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
       </div>
       <div className="md-bare">
         <div className="md-bare-head">

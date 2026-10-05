@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
+import type { ReactNode } from 'react';
 import { api, type ActivityEntry, type GranularEntity } from '../lib/api';
 import { useTranslation } from 'react-i18next';
 import { formatDate, formatRelative } from '../lib/utils';
@@ -11,6 +12,12 @@ interface ActivityListProps {
   projectId: string;
   entity: GranularEntity;
   entityId: string;
+  /**
+   * Tampilkan sebagai seksi collapse (judul + jumlah + tombol
+   * Tampilkan/Sembunyikan, default tertutup). Dipakai semua modal detail.
+   * Tanpa prop ini perilaku lama dipertahankan (langsung daftar penuh).
+   */
+  collapsible?: boolean;
 }
 
 const FIELD_KEYS = new Set([
@@ -141,13 +148,20 @@ function ActivityChangeRow({
   );
 }
 
-export function ActivityList({ projectId, entity, entityId }: ActivityListProps) {
+export function ActivityList({ projectId, entity, entityId, collapsible }: ActivityListProps) {
   const { user } = useOptionalAuth();
   const [items, setItems] = useState<ActivityEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loadErrorRaw, setLoadErrorRaw] = useState<unknown>(null);
   const [attempt, setAttempt] = useState(0);
+  const [open, setOpen] = useState(false);
+  const regionId = useId();
   const { t } = useTranslation();
+
+  // Ganti entitas (navigasi antar task di modal yang sama) selalu mulai tertutup.
+  useEffect(() => {
+    setOpen(false);
+  }, [entity, entityId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -169,41 +183,6 @@ export function ActivityList({ projectId, entity, entityId }: ActivityListProps)
       cancelled = true;
     };
   }, [projectId, entity, entityId, attempt]);
-
-  if (error) return <DataErrorState error={loadErrorRaw ?? error} onRetry={() => { setError(null); setLoadErrorRaw(null); setAttempt((a) => a + 1); }} />;
-  if (items === null) {
-    return (
-      <ul className="activity-list" role="status" aria-live="polite" aria-busy="true" aria-label={t("activity.loading")}>
-        <span className="sr-only">{t("activity.loading")}</span>
-        <div aria-hidden="true">
-          {[0, 1, 2].map((i) => (
-            <li key={i} className="activity-item">
-              <p className="activity-line" style={{ display: "flex", gap: 6, alignItems: "center" }}>
-                <span className="skeleton" style={{ width: 72, height: 13, borderRadius: 4 }} />
-                <span className="skeleton" style={{ width: 48, height: 18, borderRadius: 999 }} />
-                <span className="skeleton" style={{ width: "40%", height: 13, borderRadius: 4 }} />
-                <span className="skeleton" style={{ width: 52, height: 11, marginLeft: "auto", borderRadius: 4 }} />
-              </p>
-              <ul className="activity-changes">
-                <li className="activity-change" style={{ display: "flex", gap: 6 }}>
-                  <span className="skeleton" style={{ width: 64, height: 11, borderRadius: 4, fontFamily: "monospace" }} />
-                  <span className="skeleton" style={{ width: 120, height: 11, borderRadius: 4, fontFamily: "monospace" }} />
-                </li>
-              </ul>
-            </li>
-          ))}
-        </div>
-      </ul>
-    );
-  }
-  if (items.length === 0) {
-    return (
-      <DetailEmpty>
-        <DoodleIllustration variant="empty" size={52} />
-        <span>{t('activity.empty')}</span>
-      </DetailEmpty>
-    );
-  }
 
   const fieldLabel = (field: string): string =>
     FIELD_KEYS.has(field)
@@ -233,9 +212,43 @@ export function ActivityList({ projectId, entity, entityId }: ActivityListProps)
     return String(value);
   };
 
-  return (
-    <ul className="activity-list">
-      {items.map((entry) => {
+  let body: ReactNode;
+  if (error) body = <DataErrorState error={loadErrorRaw ?? error} onRetry={() => { setError(null); setLoadErrorRaw(null); setAttempt((a) => a + 1); }} />;
+  else if (items === null) {
+    body = (
+      <ul className="activity-list" role="status" aria-live="polite" aria-busy="true" aria-label={t("activity.loading")}>
+        <span className="sr-only">{t("activity.loading")}</span>
+        <div aria-hidden="true">
+          {[0, 1, 2].map((i) => (
+            <li key={i} className="activity-item">
+              <p className="activity-line" style={{ display: "flex", gap: 6, alignItems: "center" }}>
+                <span className="skeleton" style={{ width: 72, height: 13, borderRadius: 4 }} />
+                <span className="skeleton" style={{ width: 48, height: 18, borderRadius: 999 }} />
+                <span className="skeleton" style={{ width: "40%", height: 13, borderRadius: 4 }} />
+                <span className="skeleton" style={{ width: 52, height: 11, marginLeft: "auto", borderRadius: 4 }} />
+              </p>
+              <ul className="activity-changes">
+                <li className="activity-change" style={{ display: "flex", gap: 6 }}>
+                  <span className="skeleton" style={{ width: 64, height: 11, borderRadius: 4, fontFamily: "monospace" }} />
+                  <span className="skeleton" style={{ width: 120, height: 11, borderRadius: 4, fontFamily: "monospace" }} />
+                </li>
+              </ul>
+            </li>
+          ))}
+        </div>
+      </ul>
+    );
+  } else if (items.length === 0) {
+    body = (
+      <DetailEmpty>
+        <DoodleIllustration variant="empty" size={52} />
+        <span>{t('activity.empty')}</span>
+      </DetailEmpty>
+    );
+  } else {
+    body = (
+      <ul className="activity-list">
+      {(items ?? []).map((entry) => {
         const author =
           entry.authorId !== null && entry.authorId === user?.id
             ? t('activity.authorYou')
@@ -264,7 +277,35 @@ export function ActivityList({ projectId, entity, entityId }: ActivityListProps)
           </li>
         );
       })}
-    </ul>
+      </ul>
+    );
+  }
+
+  if (!collapsible) return body;
+  return (
+    <div className="activity-section">
+      <div className="activity-head">
+        <h4 className="detail-subtitle" style={{ marginBottom: 0, flex: 1, minWidth: 0 }}>
+          {t('activity.sectionTitle', { defaultValue: 'Activity' })}
+          {items && items.length > 0 && (
+            <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}> {items.length}</span>
+          )}
+        </h4>
+        <button
+          type="button"
+          className="btn btn-ghost btn-sm"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          aria-controls={regionId}
+          style={{ fontSize: 12, color: 'var(--text-muted)', flexShrink: 0 }}
+        >
+          {open
+            ? t('activity.hide', { defaultValue: 'Hide' })
+            : t('activity.show', { defaultValue: 'Show' })}
+        </button>
+      </div>
+      {open && <div id={regionId}>{body}</div>}
+    </div>
   );
 }
 

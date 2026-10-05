@@ -98,7 +98,7 @@ describe('TechModal composer', () => {
     expect(screen.queryByText(/board\.taskModal/)).toBeNull();
     expect(screen.queryByText(/issues\.modal/)).toBeNull();
     expect(screen.getByText('Properties')).toBeTruthy();
-    expect(screen.getByText('Created time')).toBeTruthy();
+    expect(screen.getByText(/Created time/)).toBeTruthy();
     // Badge tanpa dot 6px, teks + warna tetap
     expect(document.querySelector('[data-prop="category"] span[style*="width: 6px"]')).toBeNull();
     expect(document.querySelector('[data-prop="status"] span[style*="width: 6px"]')).toBeNull();
@@ -203,7 +203,7 @@ describe('TechModal composer', () => {
     render(<MemoryRouter><TechModal entryId={ENTRY_ID} onClose={vi.fn()} /></MemoryRouter>);
     expect(screen.getByText('All changes saved')).toBeTruthy();
     expect(screen.getByText('Properties')).toBeTruthy();
-    expect(screen.getByText('Created time')).toBeTruthy();
+    expect(screen.getByText(/Created time/)).toBeTruthy();
     expect(screen.queryByText(/board\.taskModal/)).toBeNull();
     expect(screen.queryByText(/issues\.modal/)).toBeNull();
   });

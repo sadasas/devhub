@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CheckCircle, CaretRight, Clock, FileText, Stack, Circle } from '@phosphor-icons/react';
+import { CheckCircle, CaretRight, FileText, Stack, Circle } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { TECH_CATEGORY } from '../../lib/labels';
 import { formatDate, formatRelative } from '../../lib/utils';
@@ -222,6 +222,11 @@ export function TechModal({ entryId, onClose }: TechModalProps) {
                 ariaLabel={t('stack.techModal.categoryLabel')}
                 value={entry.category}
                 allowEmpty={false}
+                triggerContent={(
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 6, background: categoryBg, fontSize: 12 }}>
+                    {t(`stack.category.${entry.category}`)}
+                  </span>
+                )}
                 options={CATEGORY_OPTIONS.map((c) => ({ value: c, label: t(`stack.optionCategory.${c}`) }))}
                 onOpenChange={(o) => { if (!o) setHotProp(null); }}
                 onChange={(v) => { if (v) { update({ category: v as TechEntryCategory }); setHotProp(null); } }}
@@ -249,6 +254,11 @@ export function TechModal({ entryId, onClose }: TechModalProps) {
                 ariaLabel={t('stack.techModal.statusLabel')}
                 value={entry.status}
                 allowEmpty={false}
+                triggerContent={(
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 6, background: statusBg, fontSize: 12 }}>
+                    {t(`stack.statusBadge.${entry.status}`)}
+                  </span>
+                )}
                 options={STATUS_OPTIONS.map((s) => ({ value: s, label: t(`stack.optionStatus.${s}`) }))}
                 onOpenChange={(o) => { if (!o) setHotProp(null); }}
                 onChange={(v) => { if (v) { update({ status: v as TechStatus }); setHotProp(null); } }}
@@ -345,11 +355,8 @@ export function TechModal({ entryId, onClose }: TechModalProps) {
         </h3>
       )}
       {nameEmpty && <InlineError>{t('tracker:issues.modal.titleRequired')}</InlineError>}
-      <div className="detail-created" style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 12 }}>
-        <span style={{ width: 110, color: 'var(--text-secondary)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }}>
-          <Clock size={12} aria-hidden="true" /> {t('tracker:issues.modal.createdTimeLabel')}
-        </span>
-        <span style={{ color: 'var(--text-secondary)' }}>{formatDate(entry.createdAt)} {new Date(entry.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+      <div className="detail-created" style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+        {t('tracker:issues.modal.createdTimeLabel')} {formatDate(entry.createdAt)}, {new Date(entry.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
       </div>
       {canEdit ? (
         <div className="editable-field" style={{ position: 'relative' }}>
@@ -377,8 +384,7 @@ export function TechModal({ entryId, onClose }: TechModalProps) {
           </div>
         </div>
       )}
-      <h4 className="detail-subtitle">{t('stack.techModal.activity')}</h4>
-      <ActivityList projectId={projectId} entity="techEntries" entityId={entry.id} />
+      <ActivityList collapsible projectId={projectId} entity="techEntries" entityId={entry.id} />
       <p className="field-helper">{t('stack.techModal.updated', { time: formatRelative(entry.updatedAt) })}</p>
     </DetailShell>
   );

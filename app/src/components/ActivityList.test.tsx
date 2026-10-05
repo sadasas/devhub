@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { ActivityList } from './ActivityList';
 import { api, type ActivityEntry } from '../lib/api';
 
@@ -119,5 +119,34 @@ describe('ActivityList', () => {
     expect(await screen.findByText(longTitle)).toBeTruthy();
     const summary = container.querySelector('.activity-summary');
     expect(summary?.textContent).toBe(longTitle);
+  });
+
+  it('collapsible starts closed with header count and expands on toggle', async () => {
+    vi.spyOn(api, 'fetchActivity').mockResolvedValue([
+      makeEntry({ summary: 'Ship search' }),
+      makeEntry({ id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', summary: 'Fix login' }),
+    ]);
+    render(<ActivityList collapsible projectId={PROJECT_ID} entity="tasks" entityId={ENTITY_ID} />);
+    expect(await screen.findByText('Activity')).toBeTruthy();
+    expect(screen.getByText('2')).toBeTruthy();
+    expect(screen.queryByText('Ship search')).toBeNull();
+    const toggle = screen.getByRole('button', { name: 'Show' });
+    expect(toggle.getAttribute('aria-expanded')).toBe('false');
+    fireEvent.click(toggle);
+    expect(screen.getByText('Ship search')).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'Hide' })).toBeTruthy();
+  });
+
+  it('collapsible resets to closed when the entity changes', async () => {
+    vi.spyOn(api, 'fetchActivity').mockResolvedValue([makeEntry({ summary: 'Ship search' })]);
+    const { rerender } = render(
+      <ActivityList collapsible projectId={PROJECT_ID} entity="tasks" entityId={ENTITY_ID} />,
+    );
+    expect(await screen.findByText('Activity')).toBeTruthy();
+    fireEvent.click(screen.getByRole('button', { name: 'Show' }));
+    expect(screen.getByText('Ship search')).toBeTruthy();
+    rerender(<ActivityList collapsible projectId={PROJECT_ID} entity="tasks" entityId="other-entity" />);
+    expect(screen.queryByText('Ship search')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Show' })).toBeTruthy();
   });
 });
