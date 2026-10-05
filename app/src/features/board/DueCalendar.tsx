@@ -79,12 +79,8 @@ interface CalTaskChipProps {
   readOnly?: boolean;
 }
 
-const STATUS_ICON: Record<string, React.ReactNode> = {
-  todo: <TaskStatusIcon status="todo" size={14} />,
-  inProgress: <TaskStatusIcon status="inProgress" size={14} />,
-  review: <TaskStatusIcon status="review" size={14} />,
-  done: <TaskStatusIcon status="done" size={14} />,
-};
+/** Ikon status kalender — satu sumber (TaskStatusIcon), bukan map salinan. */
+const statusIcon = (status: Task['status']) => <TaskStatusIcon status={status} size={14} />;
 
 function useMediaQuery(query: string): boolean {
   const [matches, setMatches] = useState(() =>
@@ -156,7 +152,7 @@ function CalTaskChip({ task, date, segmentStart, span, members, onOpenTask, onTo
     <Tooltip
       side="top"
       title={task.title}
-      icon={STATUS_ICON[task.status]}
+      icon={statusIcon(task.status)}
       disabled={dragging}
       description={
         <span className="task-activity-tip-rows">
@@ -167,7 +163,7 @@ function CalTaskChip({ task, date, segmentStart, span, members, onOpenTask, onTo
             </span>
           )}
           <span className="task-activity-tip-row">
-            {STATUS_ICON[task.status]}
+            {statusIcon(task.status)}
             {TASK_STATUS[task.status].label}
           </span>
           <span className="task-activity-tip-row">
@@ -240,7 +236,7 @@ function CalTaskChip({ task, date, segmentStart, span, members, onOpenTask, onTo
     >
       <span aria-hidden="true" style={{ display: 'inline-flex', alignItems: 'center', flexShrink: 0, opacity: 0.9 }}>
         {parentTitle && <GitBranch size={12} weight="bold" style={{ marginRight: 2 }} />}
-        {STATUS_ICON[task.status]}
+        {statusIcon(task.status)}
       </span>
       <span className="due-cal-task-title">{task.title}</span>
       <GCalSyncedMark taskId={task.id} projectId={project?.projectId} />

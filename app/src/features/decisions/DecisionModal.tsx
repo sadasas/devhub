@@ -1,5 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Scales, Clock, FileText, ListChecks, CheckCircle, Circle, CalendarBlank, Rocket, PencilSimple } from '@phosphor-icons/react';
+import { useEffect, useState } from 'react';
+import { Scales, Clock, FileText, ListChecks, CheckCircle, Circle, CalendarBlank, Rocket } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { formatDate, formatRelative } from '../../lib/utils';
 import type { Decision, DecisionStatus } from '../../lib/types';
@@ -7,6 +7,7 @@ import type { UpdatePatch } from '../../state/project-context';
 import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { ActivityList } from '../../components/ActivityList';
+import { ComposerTextarea } from '../../components/ComposerTextarea';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { DetailEmpty } from '../../components/DetailList';
 import { InlineError } from '../../components/InlineError';
@@ -34,27 +35,11 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
   const { state, dispatch, canEdit, projectId, saving, lastSavedAt } = useProject();
   const [hotProp, setHotProp] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const titleRef = useRef<HTMLTextAreaElement | null>(null);
-  const optionsRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     setHotProp(null);
     setConfirmOpen(false);
   }, [decisionId]);
-
-  // Judul autogrow tanpa batas — yang scroll .composer-scroll, bukan textarea.
-  useLayoutEffect(() => {
-    const ta = titleRef.current;
-    if (ta) {
-      ta.style.height = 'auto';
-      ta.style.height = `${ta.scrollHeight}px`;
-    }
-    const opt = optionsRef.current;
-    if (opt) {
-      opt.style.height = 'auto';
-      opt.style.height = `${opt.scrollHeight}px`;
-    }
-  });
 
   const decision = decisionId ? state?.decisions.find((d) => d.id === decisionId) : undefined;
   usePresenceStatus('Editing decision', decision != null);
@@ -169,20 +154,16 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
     >
       {canEdit ? (
         <div className="editable-field editable-field-title" style={{ position: 'relative' }}>
-          <textarea
-            ref={titleRef}
-            className="composer-title"
-            rows={1}
+          <ComposerTextarea
             value={decision.title}
+            onChange={(v) => update({ title: v })}
             autoFocus={AUTO_FOCUS_INPUT}
             maxLength={LIMITS.DECISION_TITLE}
-            onChange={(e) => update({ title: e.target.value })}
-            aria-label={t('decisions.modal.titleLabel')}
-            aria-invalid={titleEmpty}
+            ariaLabel={t('decisions.modal.titleLabel')}
+            invalid={titleEmpty}
             placeholder={t('decisions.newModal.titlePlaceholder')}
             style={{ paddingRight: 20 }}
           />
-          <PencilSimple size={12} aria-hidden="true" className="editable-pencil" />
         </div>
       ) : (
         <h3 className="detail-title">
@@ -232,16 +213,14 @@ export function DecisionModal({ decisionId, onClose }: DecisionModalProps) {
                 <ListChecks size={12} aria-hidden="true" /> {t('decisions.modal.optionsLabel')}
               </span>
               <span className="spacer" />
-              <PencilSimple size={12} aria-hidden="true" className="editable-pencil" />
             </div>
-            <textarea
-              ref={optionsRef}
+            <ComposerTextarea
               className="textarea-bare"
               rows={3}
               value={decision.options.join('\n')}
-              onChange={(e) => update({ options: e.target.value.split('\n').map((o) => o.trim()).filter(Boolean).slice(0, LIMITS.DECISION_OPTIONS) })}
+              onChange={(v) => update({ options: v.split('\n').map((o) => o.trim()).filter(Boolean).slice(0, LIMITS.DECISION_OPTIONS) })}
               placeholder={t('decisions.newModal.optionsPlaceholder')}
-              aria-label={t('decisions.modal.optionsLabel')}
+              ariaLabel={t('decisions.modal.optionsLabel')}
               maxLength={LIMITS.DECISION_OPTION}
             />
           </div>

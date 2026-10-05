@@ -9,7 +9,8 @@ import type { Task } from '../../lib/types';
 import { useProject } from '../../state/project-context';
 import { Avatar } from '../../components/Avatar';
 import { Badge } from '../../components/Badge';
-import { TaskPriorityIcon, TaskStatusIcon } from '../../lib/task-icons';
+import { TaskStatusBadge } from '../../components/TaskStatusBadge';
+import { TaskPriorityIcon } from '../../lib/task-icons';
 import { PinButton } from '../../components/PinButton';
 import { Tooltip } from '../../components/Tooltip';
 import { GCalSyncedMark } from '../integrations/GCalSyncedMark';
@@ -88,10 +89,7 @@ export const TaskCard = memo(function TaskCard({
     : null;
 
   const statusChip = showStatus && (
-    <Badge tone={TASK_STATUS[task.status].tone}>
-      <TaskStatusIcon status={task.status} size={11} />
-      {TASK_STATUS[task.status].label}
-    </Badge>
+    <TaskStatusBadge status={task.status} size={11} />
   );
   const milestoneChip = showMilestone && milestone && (
     <span className="task-label" title={milestone.name}>

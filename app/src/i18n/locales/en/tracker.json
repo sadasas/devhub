@@ -160,6 +160,8 @@
       "parentLabel": "Parent",
       "parentMissing": "(missing)",
       "detachParent": "Detach",
+      "subtaskOf": "Subtask of {{parent}}",
+      "subtaskChildInfo": "This task is a subtask of '{{parent}}', so it can't have subtasks of its own.",
       "subtasksLabel": "Subtasks",
       "setParent": "Make subtask of…",
       "setParentDisabledHint": "Already has subtasks",

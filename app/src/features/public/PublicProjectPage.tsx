@@ -19,6 +19,7 @@ import { MarkdownBlocks, renderInline } from '../../lib/markdown';
 import { useAuth } from '../../state/auth-context';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
+import { TaskStatusBadge } from '../../components/TaskStatusBadge';
 import { LinkButton } from '../../components/LinkButton';
 import { EmptyState } from '../../components/EmptyState';
 import { DataErrorState } from '../../components/DataErrorState';
@@ -413,7 +414,7 @@ function PublicTaskCard({
         <span className="task-card-title">{task.title}</span>
       </span>
       <span className="task-card-labels">
-        {showStatus && <span className="task-label">{TASK_STATUS[task.status].label}</span>}
+        {showStatus && <TaskStatusBadge status={task.status} size={11} />}
         {showMilestone && milestone && <span className="task-label">{milestone.name}</span>}
         <span key="priority" className="task-label">
           {task.priority}

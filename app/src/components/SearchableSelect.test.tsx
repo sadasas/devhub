@@ -167,8 +167,7 @@ describe('SearchableSelect', () => {
     expect(onOpenChange).toHaveBeenLastCalledWith(false);
   });
 
-  it('does not emit onOpenChange on mount under StrictMode double-effects (dev parent-picker regression)', () => {
-    const onOpenChange = vi.fn();
+  it('does not emit onOpenChange on mount under StrictMode double-effects (dev parent-picker regression)', () => {    const onOpenChange = vi.fn();
     render(
       <StrictMode>
         <SearchableSelect
@@ -184,5 +183,20 @@ describe('SearchableSelect', () => {
     // perbandingan-nilai harus diam di kedua setup (nilai sama), sehingga
     // parent-picker tidak menerima false dan panel tidak gugur seketika.
     expect(onOpenChange).not.toHaveBeenCalled();
+  });
+
+  it('hides the trigger and opens immediately when hideTrigger + defaultOpen', () => {
+    const anchor = document.createElement('button');
+    anchor.textContent = 'anchor';
+    document.body.appendChild(anchor);
+    try {
+      renderSelect({ defaultOpen: true, hideTrigger: true, anchorEl: anchor, ariaLabel: 'Pick' });
+      // Trigger internal tersembunyi (tidak terekspos), popup langsung terbuka.
+      expect(screen.queryByRole('button', { name: 'Pick' })).toBeNull();
+      expect(screen.getByRole('listbox')).toBeTruthy();
+      expect(screen.getByRole('option', { name: 'Alpha' })).toBeTruthy();
+    } finally {
+      anchor.remove();
+    }
   });
 });

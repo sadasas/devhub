@@ -143,17 +143,20 @@ describe('FocusPage', () => {
     expect(screen.queryByText('Ship chat')).toBeNull();
   });
 
-  it('shows title, sidebar and timer', () => {
+  it('shows title, props list and timer', () => {
     renderFocus(`/project/${PROJECT_ID}/focus/${TASK_ID}`);
     expect(screen.getByText('Ship chat')).toBeTruthy();
-    expect(document.querySelector('[data-prop="status"]')).toBeTruthy();
+    const props = document.querySelector('.focus-detail-props') as HTMLElement;
+    expect(props).toBeTruthy();
+    expect(props.textContent).toContain('Status');
+    expect(props.textContent).toContain('Priority');
     expect(screen.getByText('25:00')).toBeTruthy();
   });
 
   it('dispatches mark-done from the topbar', () => {
     renderFocus(`/project/${PROJECT_ID}/focus/${TASK_ID}`);
     const topbar = document.querySelector('.focus-topbar') as HTMLElement;
-    fireEvent.click(within(topbar).getByRole('button', { name: 'Mark done' }));
+    fireEvent.click(within(topbar).getByRole('button', { name: 'Done' }));
     expect(mockDispatch).toHaveBeenCalledWith({
       type: 'task/update',
       id: TASK_ID,
@@ -207,13 +210,16 @@ describe('FocusPage', () => {
     expect(() => window.dispatchEvent(new Event('scroll'))).not.toThrow();
   });
 
-  it('bottom bar renders when todo and dispatches mark-done', () => {
+  it('has no bottombar (wireframe 02: single Done action lives in the topbar)', () => {
     renderFocus(`/project/${PROJECT_ID}/focus/${TASK_ID}`);
-    const bar = document.querySelector('.focus-bottombar');
+    expect(document.querySelector('.focus-bottombar')).toBeNull();
+  });
+
+  it('shows full-width Done bar and marks done on click', () => {
+    renderFocus(`/project/${PROJECT_ID}/focus/${TASK_ID}`);
+    const bar = document.querySelector('.focus-done-bar') as HTMLElement;
     expect(bar).toBeTruthy();
-    const btn = bar!.querySelector('button');
-    expect(btn?.textContent).toContain('Mark done');
-    fireEvent.click(btn!);
+    fireEvent.click(within(bar).getByRole('button', { name: 'Done' }));
     expect(mockDispatch).toHaveBeenCalledWith({
       type: 'task/update',
       id: TASK_ID,
@@ -221,27 +227,112 @@ describe('FocusPage', () => {
     });
   });
 
-  it('bottom bar is absent when the task is done', () => {
-    mockState.tasks[0]!.status = 'done';
+  it('hides the full-width Done bar when task is done', () => {
+    mockState.tasks[0] = makeTask({ status: 'done' });
     renderFocus(`/project/${PROJECT_ID}/focus/${TASK_ID}`);
-    expect(document.querySelector('.focus-bottombar')).toBeNull();
+    expect(document.querySelector('.focus-done-bar')).toBeNull();
   });
 
-  it('props toggle collapses the sidebar rows', () => {
+  it('props toggle collapses the 10-row properties list', () => {
     renderFocus(`/project/${PROJECT_ID}/focus/${TASK_ID}`);
-    expect(document.querySelector('[data-prop="status"]')).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Hide' }));
-    expect(document.querySelector('[data-prop="status"]')).toBeNull();
-    expect(document.querySelector('[data-prop="priority"]')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'Show' }));
-    expect(document.querySelector('[data-prop="status"]')).toBeTruthy();
+    expect(document.querySelector('.focus-detail-props')).toBeTruthy();
+    const toggle = screen.getByRole('button', { name: 'Hide details' });
+    fireEvent.click(toggle);
+    expect(document.querySelector('.focus-detail-props')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'Show task details' }));
+    const props = document.querySelector('.focus-detail-props') as HTMLElement;
+    expect(props).toBeTruthy();
+    expect(props.textContent).toContain('Status');
+    expect(props.textContent).toContain('Test cases');
   });
 
-  it('badges row exists with status and priority chips', () => {
+  it('meta row shows priority without legacy badges/created rows', () => {
     renderFocus(`/project/${PROJECT_ID}/focus/${TASK_ID}`);
-    const badges = document.querySelector('.focus-badges');
-    expect(badges).toBeTruthy();
-    expect(badges!.textContent).toContain('Todo');
-    expect(badges!.textContent).toContain('Medium');
+    expect(document.querySelector('.focus-badges')).toBeNull();
+    expect(document.querySelector('.detail-created')).toBeNull();
+    expect(document.querySelector('.focus-detail-meta')).toBeTruthy();
+    expect(document.querySelector('.focus-detail-meta')!.textContent).toContain('Medium');
+  });
+
+  it('subtask composer shows no hint and outside click closes + resets', () => {
+    renderFocus(`/project/${PROJECT_ID}/focus/${TASK_ID}`);
+    expect(screen.queryByText('Enter to add')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /New subtask/i }));
+    const box = screen.getByRole('textbox', { name: 'New subtask…' });
+    fireEvent.change(box, { target: { value: 'draft yarg' } });
+    expect(screen.queryByText('Enter to add')).toBeNull();
+    fireEvent.click(document.body);
+    expect(screen.queryByRole('textbox', { name: 'New subtask…' })).toBeNull();
+  });
+
+  it('checklist input closes + resets on outside click', () => {
+    renderFocus(`/project/${PROJECT_ID}/focus/${TASK_ID}`);
+    fireEvent.click(screen.getByRole('button', { name: /New item/i }));
+    const box = screen.getByRole('textbox', { name: 'New item…' });
+    fireEvent.change(box, { target: { value: 'draft item' } });
+    fireEvent.click(document.body);
+    expect(screen.queryByRole('textbox', { name: 'New item…' })).toBeNull();
+  });
+
+  it('clicking checklist add while subtask composer open switches composers', () => {
+    renderFocus(`/project/${PROJECT_ID}/focus/${TASK_ID}`);
+    fireEvent.click(screen.getByRole('button', { name: /New subtask/i }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'New subtask…' }), {
+      target: { value: 'draft yarg' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /New item/i }));
+    expect(screen.queryByRole('textbox', { name: 'New subtask…' })).toBeNull();
+    expect(screen.getByRole('textbox', { name: 'New item…' })).toBeTruthy();
+  });
+
+  it('parent picker opens its popup immediately on click', () => {
+    mockState.tasks.push(makeTask({ id: 'parent-1-id', title: 'Parent candidate' }));
+    renderFocus(`/project/${PROJECT_ID}/focus/${TASK_ID}`);
+    fireEvent.click(screen.getByRole('button', { name: 'Make subtask of…' }));
+    // Tombol pembuka tetap tampil (jangkar popup), tanpa baris trigger tambahan.
+    expect(screen.getByRole('button', { name: 'Make subtask of…' })).toBeTruthy();
+    expect(document.querySelector('#task-parent-picker')).toBeNull();
+    expect(screen.getByRole('listbox')).toBeTruthy();
+    expect(screen.getByRole('option', { name: /Parent candidate/ })).toBeTruthy();
+  });
+
+  it('clicking subtask add while checklist input open switches composers', () => {    renderFocus(`/project/${PROJECT_ID}/focus/${TASK_ID}`);
+    fireEvent.click(screen.getByRole('button', { name: /New item/i }));
+    fireEvent.change(screen.getByRole('textbox', { name: 'New item…' }), {
+      target: { value: 'draft item' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: /New subtask/i }));
+    expect(screen.queryByRole('textbox', { name: 'New item…' })).toBeNull();
+    expect(screen.getByRole('textbox', { name: 'New subtask…' })).toBeTruthy();
+  });
+
+  it('subtask detail shows parent pill and info without subtask tools', () => {
+    mockState.tasks.push(makeTask({ id: 'parent-9', title: 'Rapikan halaman login', status: 'todo' }));
+    mockState.tasks[0] = makeTask({ parentTaskId: 'parent-9', title: 'd' });
+    renderFocus(`/project/${PROJECT_ID}/focus/${TASK_ID}`);
+    expect(screen.getByText('Subtask of Rapikan halaman login')).toBeTruthy();
+    expect(screen.getByText(/can't have subtasks of its own/)).toBeTruthy();
+    expect(screen.queryByRole('button', { name: /New subtask/i })).toBeNull();
+    expect(screen.queryByText('Make subtask of…')).toBeNull();
+  });
+
+  it('subtask crumb navigates back to the parent', () => {
+    mockState.tasks.push(makeTask({ id: 'parent-9', title: 'Rapikan halaman login', status: 'todo' }));
+    mockState.tasks[0] = makeTask({ parentTaskId: 'parent-9', title: 'd' });
+    renderFocus(`/project/${PROJECT_ID}/focus/${TASK_ID}`);
+    fireEvent.click(screen.getByRole('button', { name: 'Back to parent task' }));
+    expect(screen.getByRole('button', { name: /New subtask/i })).toBeTruthy();
+  });
+
+  it('subtask detach dispatches parentTaskId null', () => {
+    mockState.tasks.push(makeTask({ id: 'parent-9', title: 'Rapikan halaman login', status: 'todo' }));
+    mockState.tasks[0] = makeTask({ parentTaskId: 'parent-9', title: 'd' });
+    renderFocus(`/project/${PROJECT_ID}/focus/${TASK_ID}`);
+    fireEvent.click(screen.getByRole('button', { name: 'Detach' }));
+    expect(mockDispatch).toHaveBeenCalledWith({
+      type: 'task/update',
+      id: TASK_ID,
+      patch: { parentTaskId: null },
+    });
   });
 });

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import { CalendarBlank as CalendarIcon, FileText, ListChecks, Scales } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
@@ -7,6 +7,7 @@ import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { formatDate, newId, nowIso } from '../../lib/utils';
 import type { DecisionStatus } from '../../lib/types';
 import { Button } from '../../components/Button';
+import { ComposerTextarea } from '../../components/ComposerTextarea';
 import { Modal } from '../../components/Modal';
 import { ModalFooter } from '../../components/ModalFooter';
 import { SearchableSelect } from '../../components/SearchableSelect';
@@ -38,19 +39,9 @@ export function NewDecisionModal({ onClose }: NewDecisionModalProps) {
   const [milestoneId, setMilestoneId] = useState<string | null>(null);
   const [dateOpen, setDateOpen] = useState(false);
   const datePillRef = useRef<HTMLButtonElement | null>(null);
-  const titleRef = useRef<HTMLTextAreaElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const barRef = useRef<HTMLDivElement | null>(null);
   const [expanded, setExpanded] = useState(false);
-
-  // Judul autogrow tanpa batas — yang scroll .composer-scroll, bukan textarea.
-  useLayoutEffect(() => {
-    const ta = titleRef.current;
-    if (ta) {
-      ta.style.height = 'auto';
-      ta.style.height = `${ta.scrollHeight}px`;
-    }
-  });
 
   // Fullscreen toggle via tombol header maupun Ctrl/Cmd+Shift+F.
   useEffect(() => {
@@ -123,17 +114,14 @@ export function NewDecisionModal({ onClose }: NewDecisionModalProps) {
             barRef.current?.classList.toggle('is-stuck', (e.target as HTMLDivElement).scrollTop > 4);
           }}
         >
-          <textarea
-            ref={titleRef}
-            className="composer-title"
-            rows={1}
+          <ComposerTextarea
             required
             autoFocus={AUTO_FOCUS_INPUT}
             placeholder={t('decisions.newModal.titlePlaceholder')}
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={setTitle}
             maxLength={LIMITS.DECISION_TITLE}
-            aria-label={t('decisions.newModal.titleLabel')}
+            ariaLabel={t('decisions.newModal.titleLabel')}
           />
           <MarkdownField
             label={t('decisions.newModal.contextLabel')}

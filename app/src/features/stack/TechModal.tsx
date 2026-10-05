@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { CheckCircle, CaretRight, Clock, FileText, Stack, Circle, PencilSimple } from '@phosphor-icons/react';
+import { CheckCircle, CaretRight, Clock, FileText, Stack, Circle } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { TECH_CATEGORY } from '../../lib/labels';
 import { formatDate, formatRelative } from '../../lib/utils';
@@ -9,6 +9,7 @@ import type { UpdatePatch } from '../../state/project-context';
 import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { ActivityList } from '../../components/ActivityList';
+import { ComposerTextarea } from '../../components/ComposerTextarea';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { DetailEmpty } from '../../components/DetailList';
 import { InlineError } from '../../components/InlineError';
@@ -36,7 +37,6 @@ export function TechModal({ entryId, onClose }: TechModalProps) {
   const { state, dispatch, canEdit, projectId, saving, lastSavedAt } = useProject();
   const [hotProp, setHotProp] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const nameRef = useRef<HTMLTextAreaElement | null>(null);
   const [versionPopup, setVersionPopup] = useState<{ anchor: { top: number; bottom: number; left: number } } | null>(null);
   const [versionPos, setVersionPos] = useState<{ top: number; left: number } | null>(null);
   const versionPopRef = useRef<HTMLDivElement | null>(null);
@@ -51,15 +51,6 @@ export function TechModal({ entryId, onClose }: TechModalProps) {
     setVersionDraft(null);
     versionCancelRef.current = false;
   }, [entryId]);
-
-  // Nama autogrow tanpa batas — yang scroll .composer-scroll, bukan textarea.
-  useLayoutEffect(() => {
-    const ta = nameRef.current;
-    if (ta) {
-      ta.style.height = 'auto';
-      ta.style.height = `${ta.scrollHeight}px`;
-    }
-  });
 
   const entry = entryId ? state?.techEntries.find((x) => x.id === entryId) : undefined;
   usePresenceStatus('Editing tech entry', entry != null);
@@ -337,20 +328,16 @@ export function TechModal({ entryId, onClose }: TechModalProps) {
     >
       {canEdit ? (
         <div className="editable-field editable-field-title" style={{ position: 'relative' }}>
-          <textarea
-            ref={nameRef}
-            className="composer-title"
-            rows={1}
+          <ComposerTextarea
             value={entry.name}
+            onChange={(v) => update({ name: v })}
             autoFocus={AUTO_FOCUS_INPUT}
             maxLength={FE_LIMITS.TECH_NAME}
-            onChange={(e) => update({ name: e.target.value })}
-            aria-label={t('stack.techModal.nameLabel')}
-            aria-invalid={nameEmpty}
+            ariaLabel={t('stack.techModal.nameLabel')}
+            invalid={nameEmpty}
             placeholder={t('stack.newTechModal.namePlaceholder')}
             style={{ paddingRight: 20 }}
           />
-          <PencilSimple size={12} aria-hidden="true" className="editable-pencil" />
         </div>
       ) : (
         <h3 className="detail-title">

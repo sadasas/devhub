@@ -7,6 +7,7 @@ import { usePresenceStatus } from "../../hooks/usePresenceStatus";
 import { newId, nowIso } from "../../lib/utils";
 import type { TechEntryCategory, TechStatus } from "../../lib/types";
 import { Button } from "../../components/Button";
+import { ComposerTextarea } from "../../components/ComposerTextarea";
 import { Modal } from "../../components/Modal";
 import { ModalFooter } from "../../components/ModalFooter";
 import { MarkdownField } from "../../components/MarkdownField";
@@ -34,7 +35,6 @@ export function NewTechModal({ open, onClose }: NewTechModalProps) {
   const [status, setStatus] = useState<TechStatus | "">("");
   const [expanded, setExpanded] = useState(false);
   const [notes, setNotes] = useState("");
-  const titleRef = useRef<HTMLTextAreaElement | null>(null);
   const [popup, setPopup] = useState<{ key: "version"; anchor: { top: number; bottom: number; left: number } } | null>(null);
   const [popupPos, setPopupPos] = useState<{ top: number; left: number } | null>(null);
   const popRef = useRef<HTMLDivElement | null>(null);
@@ -66,15 +66,6 @@ export function NewTechModal({ open, onClose }: NewTechModalProps) {
       cancelRef.current = false;
     }
   }, [open]);
-
-  // Judul autogrow tanpa batas — yang scroll .composer-scroll, bukan textarea.
-  useLayoutEffect(() => {
-    const ta = titleRef.current;
-    if (ta) {
-      ta.style.height = 'auto';
-      ta.style.height = `${ta.scrollHeight}px`;
-    }
-  });
 
   useEffect(() => {
     if (!popup) return;
@@ -237,17 +228,14 @@ export function NewTechModal({ open, onClose }: NewTechModalProps) {
       }
     >
       <div className="composer-scroll">
-        <textarea
-          ref={titleRef}
-          className="composer-title"
-          rows={1}
+        <ComposerTextarea
           required
           autoFocus={AUTO_FOCUS_INPUT}
           placeholder={t("stack.newTechModal.namePlaceholder")}
           value={name}
-          onChange={(e) => setName(e.target.value)}
+          onChange={setName}
           maxLength={FE_LIMITS.TECH_NAME}
-          aria-label={t("stack.newTechModal.nameLabel")}
+          ariaLabel={t("stack.newTechModal.nameLabel")}
         />
         <MarkdownField
           label={t("stack.newTechModal.notesLabel")}

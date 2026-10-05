@@ -265,6 +265,8 @@ Rules:
 | 2026-10-01 | Doodle v2 Batch 3 tour restructure (keputusan owner): 7→14 step (1 fitur 1 step: welcome/team/project/board/issues/tests/schema/decisions/releases/api/whiteboard/overview/finish); 7 spot baru (`tour-welcome/issues/tests/schema/releases/api/overview`, reuse 6 lama); `TOUR_TOTAL=14`; popover head kolom-tengah 64px ala welcome modal; finish modal debut `success`; `ZeroTeamOnboarding` → `tour-team`; i18n EN/ID 14 kunci paritas |
 | 2026-10-01 | Tour step-skip fix (bug Batch 3): `readTourStep` polos + `ProjectPage` resume step ≥3 + `tour-events.test.ts` (verbatim 0–13, snapshot stabil 3→4→5→6); 84 test hijau |
 | 2026-10-01 | Illustration system doc (keputusan owner): gaya doodle dikunci di `illustration-system.md` (kontrak visual, palet+tone, taksonomi state/`tour-*`, matriks pakai, anti-pola, checklist varian baru); §8 Brand/ilustrasi merujuk ke sana |
+| 2026-10-04 | Composer bare cue = garis atas-bawah saja (keputusan owner): `.composer-title:focus-visible` tanpa outline/halo — `border-strong` atas-bawah, kiri-kanan kosong; base transparan cegah lompatan layout; pengecualian Tier-1 §9 (indikator fokus keyboard penuh di composer, preseden Notion/Linear); guard tak perlu diubah (1px + var existing) |
+| 2026-10-04 | Badge priority diseragamkan (keputusan owner): `Badge tone=tone + TaskPriorityIcon 11 + label` di meta Focus, TaskDetail (meta+sidebar+badges), PublicDetailModal; timeline Board memakai teks pendek `TASK_PRIORITY_SHORT` (Urg/Hi/Med/Lo) sebagai pengecualian densitas eksplisit; hapus `.focus-detail-prio` + `as any` BoardTimeline |
 
 ---
 

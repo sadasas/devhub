@@ -29,6 +29,7 @@ import { AttachmentSection } from '../../components/AttachmentSection';
 import { Avatar } from '../../components/Avatar';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
+import { ComposerTextarea } from '../../components/ComposerTextarea';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { PlanLimitModal } from '../../components/PlanLimitModal';
 import { PropRow } from '../../components/PropRow';
@@ -40,6 +41,7 @@ import { InlineError } from '../../components/InlineError';
 import { Tooltip } from '../../components/Tooltip';
 import { MarkdownField } from '../../components/MarkdownField';
 import { SearchableSelect } from '../../components/SearchableSelect';
+import { TaskStatusBadge } from '../../components/TaskStatusBadge';
 import { FE_LIMITS, LIMITS } from '../../lib/limits';
 import { isTypingTarget } from '../../lib/keys';
 import { FocusTimer } from './FocusTimer';
@@ -262,12 +264,9 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
   const [subDatesOpen, setSubDatesOpen] = useState(false);
   const subDatesTriggerRef = useRef<HTMLButtonElement>(null);
   const subCardRef = useRef<HTMLDivElement>(null);
-  const subTitleRef = useRef<HTMLTextAreaElement>(null);
   const [checkAdding, setCheckAdding] = useState(false);
   const [parentPicking, setParentPicking] = useState(false);
   const [members, setMembers] = useState<TeamMember[]>([]);
-  const titleRef = useRef<HTMLTextAreaElement | null>(null);
-
   useEffect(() => {
     if (teamId) {
       api
@@ -303,19 +302,7 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
     setParentPicking(false);
   }, [taskId]);
 
-  // Judul autogrow tanpa batas — yang scroll .composer-scroll, bukan textarea.
-  useLayoutEffect(() => {
-    const ta = titleRef.current;
-    if (ta) {
-      ta.style.height = 'auto';
-      ta.style.height = `${ta.scrollHeight}px`;
-    }
-    const sub = subTitleRef.current;
-    if (sub) {
-      sub.style.height = 'auto';
-      sub.style.height = `${sub.scrollHeight}px`;
-    }
-  });
+  // Judul autogrow kini di dalam ComposerTextarea.
 
   // Popup tanggal subtask menutup saat klik di luar (panel dp-portal dikecualikan).
   useEffect(() => {
@@ -419,6 +406,20 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
   const dateWarn = startAfterDue(task.startDate, task.dueDate)
     ? t('board.taskModal.dateWarn')
     : null;
+  /** Nilai assignee (avatar + nama) — dipakai view idle & trigger hot. */
+  const renderAssigneeValue = () => {
+    if (!task.assigneeId) {
+      return <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>—</span>;
+    }
+    const am = members.find((m) => m.id === task.assigneeId);
+    const an = am?.displayName || am?.email || '?';
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        <Avatar src={am?.avatarUrl ?? null} name={an} email={am?.email} id={task.assigneeId!} size={24} style={{ border: '2px solid var(--bg-overlay)' }} />
+        <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{an}</span>
+      </span>
+    );
+  };
   const testCases = linkedTestCases(task.id, state!.testCases);
   const blockedTasks = [...new Set(task.blockedBy)]
     .map((id) => state!.tasks.find((t) => t.id === id))
@@ -564,7 +565,7 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
       variant={variant}
       topbar={
         variant === 'page' ? (
-          <div className={`focus-topbar${scrolled ? ' focus-topbar--scrolled' : ''}`} style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 8, padding: '8px 0', marginBottom: 4 }}>
+          <div className={`focus-topbar${scrolled ? ' focus-topbar--scrolled' : ''}`} style={{ display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center', gap: 8, padding: '8px 0', marginBottom: 16 }}>
             <button
               type="button"
               className="btn btn-ghost btn-sm"
@@ -663,13 +664,10 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
                 setHot={setHotProp}
                 canEdit={canEdit}
                 view={(
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 6, background: task.status === 'done' ? 'var(--status-success-dim)' : task.status === 'review' ? 'var(--status-warn-dim)' : task.status === 'inProgress' ? 'var(--status-info-dim)' : 'var(--bg-inset)', fontSize: 12 }}>
-                    <TaskStatusIcon status={task.status} size={12} />
-                    {TASK_STATUS[task.status].label}
-                  </span>
+                  <TaskStatusBadge status={task.status} />
                 )}
                 control={(
-                  <SearchableSelect defaultOpen searchable={false} id="task-status" label="" ariaLabel={t('board.taskModal.statusLabel')} value={task.status} allowEmpty={false} options={STATUS_OPTIONS.map((s) => ({ value: s, label: TASK_STATUS[s].label, icon: <TaskStatusIcon status={s} size={13} /> }))} onOpenChange={(o) => { if (!o) setHotProp(null); }} onChange={(v) => { if (v) { changeStatus(v as TaskStatus, 'status'); setHotProp(null); } }} />
+                  <SearchableSelect defaultOpen searchable={false} id="task-status" label="" ariaLabel={t('board.taskModal.statusLabel')} value={task.status} allowEmpty={false} triggerContent={<TaskStatusBadge status={task.status} />} options={STATUS_OPTIONS.map((s) => ({ value: s, label: TASK_STATUS[s].label, icon: <TaskStatusIcon status={s} size={13} /> }))} onOpenChange={(o) => { if (!o) setHotProp(null); }} onChange={(v) => { if (v) { changeStatus(v as TaskStatus, 'status'); setHotProp(null); } }} />
                 )}
               />
               {doneWarn && doneWarnSource === 'status' && <InlineError>{doneWarn}</InlineError>}
@@ -682,13 +680,13 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
                 setHot={setHotProp}
                 canEdit={canEdit}
                 view={(
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 6, background: task.priority === 'urgent' ? 'var(--status-danger-dim)' : task.priority === 'high' ? 'var(--status-warn-dim)' : task.priority === 'medium' ? 'var(--status-info-dim)' : 'var(--bg-inset)', fontSize: 12, color: task.priority === 'urgent' ? 'var(--status-danger)' : task.priority === 'high' ? 'var(--status-warn)' : task.priority === 'medium' ? 'var(--status-info)' : 'var(--text-secondary)' }}>
-                    <TaskPriorityIcon priority={task.priority} size={12} />
+                  <Badge tone={TASK_PRIORITY[task.priority].tone}>
+                    <TaskPriorityIcon priority={task.priority} size={11} />
                     {TASK_PRIORITY[task.priority].label}
-                  </span>
+                  </Badge>
                 )}
                 control={(
-                  <SearchableSelect defaultOpen searchable={false} id="task-priority" label="" ariaLabel={t('board.newTaskModal.priorityLabel')} value={task.priority} allowEmpty={false} options={TASK_PRIORITY_ORDER.map((p) => ({ value: p, label: TASK_PRIORITY[p].label, icon: <TaskPriorityIcon priority={p} size={13} /> }))} onOpenChange={(o) => { if (!o) setHotProp(null); }} onChange={(v) => { if (v) { update({ priority: v as TaskPriority }); setHotProp(null); } }} />
+                  <SearchableSelect defaultOpen searchable={false} id="task-priority" label="" ariaLabel={t('board.newTaskModal.priorityLabel')} value={task.priority} allowEmpty={false} triggerContent={(<Badge tone={TASK_PRIORITY[task.priority].tone}><TaskPriorityIcon priority={task.priority} size={11} />{TASK_PRIORITY[task.priority].label}</Badge>)} options={TASK_PRIORITY_ORDER.map((p) => ({ value: p, label: TASK_PRIORITY[p].label, icon: <TaskPriorityIcon priority={p} size={13} /> }))} onOpenChange={(o) => { if (!o) setHotProp(null); }} onChange={(v) => { if (v) { update({ priority: v as TaskPriority }); setHotProp(null); } }} />
                 )}
               />
 
@@ -836,22 +834,9 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
                 hot={hotProp === 'assignee'}
                 setHot={setHotProp}
                 canEdit={canEdit}
-                view={task.assigneeId ? (
-                  (() => {
-                    const am = members.find((m) => m.id === task.assigneeId);
-                    const an = am?.displayName || am?.email || '?';
-                    return (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                        <Avatar src={am?.avatarUrl ?? null} name={an} email={am?.email} id={task.assigneeId!} size={24} style={{ border: '2px solid var(--bg-overlay)' }} />
-                        <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{an}</span>
-                      </span>
-                    );
-                  })()
-                ) : (
-                  <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>—</span>
-                )}
+                view={renderAssigneeValue()}
                 control={(
-                  <SearchableSelect defaultOpen id="task-assignee-inline" label="" ariaLabel={t('board.taskModal.assigneeLabel')} value={task.assigneeId ?? null} options={[
+                  <SearchableSelect defaultOpen id="task-assignee-inline" label="" ariaLabel={t('board.taskModal.assigneeLabel')} value={task.assigneeId ?? null} triggerContent={renderAssigneeValue()} options={[
                     ...(user?.id && task.assigneeId !== user.id
                       ? (() => {
                         const me = members.find((m) => m.id === user.id);
@@ -986,7 +971,7 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
                     onClick={() => setPickingBlocker(true)}
                     aria-label={`${t('board.taskModal.blockedByLabel', { defaultValue: 'Blocked by' })} — edit`}
                   >
-                    <LinkSimple size={12} aria-hidden="true" /><span className="prop-label-text">{t('board.taskModal.blockedByLabel', { defaultValue: 'Blocked by' })}</span><PencilSimple size={12} aria-hidden="true" className="prop-edit" />
+                    <LinkSimple size={12} aria-hidden="true" /><span className="prop-label-text">{t('board.taskModal.blockedByLabel', { defaultValue: 'Blocked by' })}</span>
                   </button>
                 ) : (
                   <span className="prop-label"><LinkSimple size={12} aria-hidden="true" /><span className="prop-label-text">{t('board.taskModal.blockedByLabel', { defaultValue: 'Blocked by' })}</span></span>
@@ -996,7 +981,7 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
                     <>
                       {blockedTasks.map((bt) => blockerChip(bt, true))}
                       {pickingBlocker ? (
-                        <SearchableSelect defaultOpen id="blockedBy-picker" label="" value={null} options={otherTasks.filter(ot => !task.blockedBy.includes(ot.id) && !ot.parentTaskId).map(ot => ({ value: ot.id, label: `${ot.title} · ${ot.status}` }))} onOpenChange={(o) => { if (!o) setPickingBlocker(false); }} onChange={(v) => { if (v) { toggleBlocker(v); setPickingBlocker(false); } }} />
+                        <SearchableSelect defaultOpen id="blockedBy-picker" label="" value={null} options={otherTasks.filter(ot => !task.blockedBy.includes(ot.id) && !ot.parentTaskId).map(ot => ({ value: ot.id, label: `${ot.title} · ${TASK_STATUS[ot.status].label}`, icon: <TaskStatusIcon status={ot.status} size={13} /> }))} onOpenChange={(o) => { if (!o) setPickingBlocker(false); }} onChange={(v) => { if (v) { toggleBlocker(v); setPickingBlocker(false); } }} />
                       ) : (
                         <button type="button" onClick={() => setPickingBlocker(true)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: 12, padding: '6px 8px', minWidth: 24, minHeight: 24 }}>+ Add</button>
                       )}
@@ -1026,20 +1011,16 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
     >
             {canEdit ? (
               <div className="editable-field editable-field-title" style={{ position: 'relative' }}>
-                <textarea
-                  ref={titleRef}
-                  className="composer-title"
-                  rows={1}
+                <ComposerTextarea
                   value={task.title}
+                  onChange={(v) => update({ title: v })}
                   autoFocus={AUTO_FOCUS_INPUT}
                   maxLength={LIMITS.TASK_TITLE}
-                  onChange={(e) => update({ title: e.target.value })}
-                  aria-label={t('board.taskModal.titleLabel')}
-                  aria-invalid={titleEmpty}
+                  ariaLabel={t('board.taskModal.titleLabel')}
+                  invalid={titleEmpty}
                   placeholder={t('board.taskModal.untitled')}
                   style={{ paddingRight: 20 }}
                 />
-                <PencilSimple size={12} aria-hidden="true" className="editable-pencil" />
               </div>
             ) : (
               <h3 className="detail-title">
@@ -1049,9 +1030,10 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
             {titleEmpty && <InlineError>{t('issues.modal.titleRequired')}</InlineError>}
             {variant === 'page' && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{ display: 'inline-flex', alignItems: 'center', padding: '2px 10px', borderRadius: 'var(--radius-pill)', background: 'var(--status-info-dim)', color: 'var(--status-info)', fontSize: 11, fontWeight: 600 }}>
+                <Badge tone={TASK_PRIORITY[task.priority].tone}>
+                  <TaskPriorityIcon priority={task.priority} size={11} />
                   {TASK_PRIORITY[task.priority].label}
-                </span>
+                </Badge>
                 {(task.startDate || task.dueDate) && (
                   <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
                     {task.startDate ? `${t('board.taskModal.startDateLabel')} – ${formatDate(task.startDate)}` : formatDate(task.dueDate!)}
@@ -1082,14 +1064,11 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
               onClick={scrollToProps}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); scrollToProps(); } }}
             >
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 6, background: task.status === 'done' ? 'var(--status-success-dim)' : task.status === 'review' ? 'var(--status-warn-dim)' : task.status === 'inProgress' ? 'var(--status-info-dim)' : 'var(--bg-inset)', fontSize: 12 }}>
-                <TaskStatusIcon status={task.status} size={12} />
-                {TASK_STATUS[task.status].label}
-              </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 6, background: task.priority === 'urgent' ? 'var(--status-danger-dim)' : task.priority === 'high' ? 'var(--status-warn-dim)' : task.priority === 'medium' ? 'var(--status-info-dim)' : 'var(--bg-inset)', fontSize: 12, color: task.priority === 'urgent' ? 'var(--status-danger)' : task.priority === 'high' ? 'var(--status-warn)' : task.priority === 'medium' ? 'var(--status-info)' : 'var(--text-secondary)' }}>
-                <TaskPriorityIcon priority={task.priority} size={12} />
+              <TaskStatusBadge status={task.status} />
+              <Badge tone={TASK_PRIORITY[task.priority].tone}>
+                <TaskPriorityIcon priority={task.priority} size={11} />
                 {TASK_PRIORITY[task.priority].label}
-              </span>
+              </Badge>
               {task.dueDate && focusDueChip.tone === 'danger' && (
                 <span className={`task-due task-due-${focusDueChip.tone}`} title={focusDueChip.title}>{focusDueChip.label}</span>
               )}
@@ -1152,10 +1131,9 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
                   const chip = taskDueChip(ss);
                   const sm = ss.assigneeId ? members.find((m) => m.id === ss.assigneeId) : undefined;
                   const sname = sm?.displayName || sm?.email;
-                  const meta = [sname, ss.dueDate ? formatDate(ss.dueDate) : null].filter(Boolean).join(' · ');
                   const openLabel = t('board.taskModal.openSubtask', { defaultValue: 'Open subtask {{title}}', title: ss.title });
                   const rowStyle = {
-                    display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0',
+                    display: 'flex', alignItems: 'flex-start', gap: 8, padding: '5px 0',
                     borderTop: i === 0 ? 'none' : '1px solid var(--border-hairline)',
                     cursor: onNavigate ? 'pointer' : undefined,
                     background: 'none', borderLeft: 'none', borderRight: 'none', borderBottom: 'none',
@@ -1175,20 +1153,30 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
                       {ss.status === 'done' ? '✓' : ''}
                     </span>
                     <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ display: 'block', fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: 'var(--text-secondary)' }} title={ss.title}>{ss.title}</span>
-                      {meta && (
+                      <span style={{ display: 'block', fontSize: 13, whiteSpace: 'normal', overflowWrap: 'anywhere', color: 'var(--text-secondary)' }} title={ss.title}>{ss.title}</span>
+                      {(sname || ss.dueDate) && (
                         <span style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: 'var(--text-muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {sm && sname && (
                             <Avatar src={sm.avatarUrl ?? null} name={sname} email={sm.email} id={ss.assigneeId!} size={14} alt="" />
                           )}
-                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{meta}</span>
+                          {sm && sname && ss.dueDate && (
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sname} ·&nbsp;</span>
+                          )}
+                          {sm && sname && !ss.dueDate && (
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{sname}</span>
+                          )}
+                          {ss.dueDate && (
+                            <Tooltip title={`${t('board.taskModal.dueDateLabel')}: ${formatDate(ss.dueDate)}`}>
+                              <span>{formatDate(ss.dueDate)}</span>
+                            </Tooltip>
+                          )}
                           {ss.dueDate && chip.tone === 'danger' && chip.label && (
                             <span className={`task-due task-due-${chip.tone}`} title={chip.title}>{chip.label}</span>
                           )}
                         </span>
                       )}
                     </span>
-                    <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}>{ss.status}</span>
+                      <span style={{ fontSize: 11, color: 'var(--text-muted)', flexShrink: 0 }}><TaskStatusBadge status={ss.status} size={11} /></span>
                     </>
                   );
                   return onNavigate ? (
@@ -1214,20 +1202,15 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
                   subAdding ? (
                     <div ref={subCardRef} style={variant === 'page' ? { marginTop: 4 } : { marginTop: 4, border: '1px solid var(--border-hairline)', borderRadius: 'var(--radius-card)', background: 'var(--bg-inset)', overflow: 'hidden' }}>
                       <div style={{ padding: '6px 12px 0' }}>
-                        <textarea
-                          ref={subTitleRef}
+                        <ComposerTextarea
                           autoFocus={AUTO_FOCUS_INPUT}
-                          className="composer-title"
-                          rows={1}
                           value={subDraft}
+                          onChange={setSubDraft}
+                          onSubmit={() => { addSubtask(); }}
+                          onCancel={() => { setSubDraft(''); setSubAssignee(null); setSubPriority(null); setSubStart(null); setSubDue(null); setSubRangeErr(null); setSubAdding(false); }}
                           maxLength={300}
-                          onChange={(e) => setSubDraft(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); addSubtask(); }
-                            else if (e.key === 'Escape') { setSubDraft(''); setSubAssignee(null); setSubPriority(null); setSubStart(null); setSubDue(null); setSubRangeErr(null); setSubAdding(false); }
-                          }}
                           placeholder={t('board.taskModal.addSubtask', { defaultValue: 'New subtask…' })}
-                          aria-label={t('board.taskModal.addSubtask', { defaultValue: 'New subtask…' })}
+                          ariaLabel={t('board.taskModal.addSubtask', { defaultValue: 'New subtask…' })}
                           style={{ fontSize: 13, fontWeight: 400 }}
                         />
                       </div>
@@ -1352,7 +1335,7 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
                   label=""
                   ariaLabel={t('board.taskModal.parentLabel', { defaultValue: 'Parent:' })}
                   value={task.parentTaskId ?? null}
-                  options={parentOptions.map((ot) => ({ value: ot.id, label: `${ot.title} · ${ot.status}` }))}
+                  options={parentOptions.map((ot) => ({ value: ot.id, label: `${ot.title} · ${TASK_STATUS[ot.status].label}`, icon: <TaskStatusIcon status={ot.status} size={13} /> }))}
                   onOpenChange={(o) => { if (!o) setParentPicking(false); }}
                   onChange={(v) => { update({ parentTaskId: v }); setParentPicking(false); }}
                   triggerEmptyLabel={t('board.taskModal.setParent', { defaultValue: 'Make subtask of…' })}
@@ -1374,7 +1357,7 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
                   aria-valuemin={0}
                   aria-valuemax={checklist.length}
                   aria-label={t('board.taskModal.checklistLabel', { defaultValue: 'Checklist' })}
-                  style={{ height: 4, borderRadius: 'var(--radius-pill)', background: 'var(--bg-inset)', marginTop: 8 }}
+                  style={{ height: 4, borderRadius: 'var(--radius-pill)', background: 'color-mix(in srgb, var(--text-muted) 18%, transparent)', marginTop: 8 }}
                 >
                   <div style={{ width: `${pct}%`, height: '100%', borderRadius: 'var(--radius-pill)', background: 'var(--accent-focus)' }} />
                 </div>
@@ -1387,7 +1370,7 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
                   key={c.id}
                   className="mini-row"
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 8, padding: '5px 0',
+                    display: 'flex', alignItems: 'flex-start', gap: 8, padding: '5px 0',
                     borderTop: i === 0 ? 'none' : '1px solid var(--border-hairline)',
                   }}
                 >
@@ -1410,29 +1393,32 @@ export function TaskDetail({ taskId, variant, onClose, onNavigate, onEnterFocus 
                       {c.done ? '✓' : ''}
                     </button>
                   </Tooltip>
-                  <span style={{ flex: 1, minWidth: 0, fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: c.done ? 'line-through' : 'none', color: c.done ? 'var(--text-muted)' : 'var(--text-secondary)' }}>{c.title}</span>
+                  <span style={{ flex: 1, minWidth: 0, fontSize: 13, whiteSpace: 'normal', overflowWrap: 'anywhere', textDecoration: c.done ? 'line-through' : 'none', color: c.done ? 'var(--text-muted)' : 'var(--text-secondary)' }}>{c.title}</span>
                   {canEdit && (
+                    <Tooltip title={`Remove ${c.title}`}>
                     <button type="button" className="mini-del" onClick={() => removeCheck(c.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--status-danger)', padding: '6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }} aria-label={`Remove ${c.title}`}><Trash size={15} aria-hidden="true" /></button>
+                    </Tooltip>
                   )}
                 </div>
               ))}
               {canEdit && checklist.length < 20 && (
                 checkAdding ? (
                   <div style={{ display: 'flex', gap: 6, marginTop: 4 }}>
-                    <input
+                    <ComposerTextarea
                       autoFocus={AUTO_FOCUS_INPUT}
-                      className="input"
                       value={checkDraft}
-                      maxLength={200}
-                      onChange={(e) => setCheckDraft(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') { e.preventDefault(); addCheck(); }
-                        else if (e.key === 'Escape') { setCheckDraft(''); setCheckAdding(false); }
-                      }}
+                      onChange={setCheckDraft}
+                      onSubmit={() => { addCheck(); }}
+                      onCancel={() => { setCheckDraft(''); setCheckAdding(false); }}
                       onBlur={() => { if (!checkDraft.trim()) setCheckAdding(false); }}
+                      maxLength={200}
+                      spellCheck={false}
+                      autoCorrect="off"
+                      autoCapitalize="off"
                       placeholder={t('board.taskModal.addChecklist', { defaultValue: 'New item…' })}
-                      aria-label={t('board.taskModal.addChecklist', { defaultValue: 'New item…' })}
-                      style={{ flex: 1, minWidth: 0 }}
+                      ariaLabel={t('board.taskModal.addChecklist', { defaultValue: 'New item…' })}
+                      wrapStyle={{ flex: 1, minWidth: 0 }}
+                      style={{ fontSize: 13, fontWeight: 400 }}
                     />
                     {checkDraft.trim() ? (
                       <Button variant="primary" size="md" className="btn-icon" aria-label={t('board.taskModal.addChecklist', { defaultValue: 'New item…' })} onClick={addCheck}><Plus size={16} aria-hidden="true" /></Button>

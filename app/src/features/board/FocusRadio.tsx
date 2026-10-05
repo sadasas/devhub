@@ -32,6 +32,14 @@ function errorMessageKey(kind: RadioErrorKind): string {
 }
 
 /**
+ * Jangkar popup = panel pill gabungan (.focus-combined), bukan tombol
+ * pemicu masing-masing — popup timer & radio selalu di tengah bawah panel.
+ * Fallback ke tombol sendiri bila di luar pill (mis. render terisolasi di test).
+ */
+const anchorToCombined = (el: HTMLElement | null): HTMLElement | null =>
+  (el?.closest?.('.focus-combined') as HTMLElement | null) ?? el;
+
+/**
  * Song radio pill + panel (YouTube embeds): search becomes the queue,
  * auto-advances, visible player. Sits next to the timer pill in the focus
  * topbar. Search metadata flows through our backend proxy; media streams
@@ -47,8 +55,9 @@ export function FocusRadio() {
   const displayButtonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const radioLabel = t('board.focus.radioLabel') as string;
-  // Viewport-clamped popover (PresenceChip pattern) — never cut off at edges.
-  const panelPos = useViewportPanel(displayButtonRef, 340);
+  // Popup di tengah bawah PANEL gabungan (.focus-combined), bukan di bawah
+  // tombol judul lagu — timer di kiri pill, radio di kanan, satu jangkar.
+  const panelPos = useViewportPanel(displayButtonRef, 340, anchorToCombined);
 
   const {
     results,
@@ -645,7 +654,7 @@ export function FocusRadio() {
         </Tooltip>
       </div>
       {coarse ? (
-        <BottomSheet open={panelOpen} title={radioLabel} onClose={() => setPanelOpen(false)}>
+        <BottomSheet open={panelOpen} title={radioLabel} onClose={() => setPanelOpen(false)} hideClose>
           {panelBody}
         </BottomSheet>
       ) : panelOpen ? (

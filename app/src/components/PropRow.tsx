@@ -27,6 +27,7 @@ export function PropRow({
   hot,
   setHot,
   canEdit,
+  editAfterValue,
 }: {
   propKey: string;
   label: string;
@@ -37,6 +38,8 @@ export function PropRow({
   hot: boolean;
   setHot: (v: string | null) => void;
   canEdit: boolean;
+  /** Pensil edit di kanan value (bukan di label) — untuk baris kiri-kanan Focus. */
+  editAfterValue?: boolean;
 }) {
   return (
     <div
@@ -56,16 +59,21 @@ export function PropRow({
         >
           {icon}
           <span className="prop-label-text">{label}</span>
-          <PencilSimple size={12} aria-hidden="true" className="prop-edit" />
+          {!editAfterValue && <PencilSimple size={12} aria-hidden="true" className="prop-edit" />}
         </button>
       ) : (
-        <span className="prop-label">{icon}<span className="prop-label-text">{label}</span>{canEdit && <PencilSimple size={12} aria-hidden="true" className="prop-edit" />}</span>
+        <span className="prop-label">{icon}<span className="prop-label-text">{label}</span>{canEdit && !editAfterValue && <PencilSimple size={12} aria-hidden="true" className="prop-edit" />}</span>
       )}
       {hot ? control : canEdit ? (
         <button type="button" className="prop-view" onClick={() => setHot(propKey)}>
           {view}
         </button>
       ) : view}
+      {canEdit && !hot && editAfterValue && (
+        <span className="prop-pencil" aria-hidden="true">
+          <PencilSimple size={12} aria-hidden="true" />
+        </span>
+      )}
       {trailing}
     </div>
   );

@@ -42,6 +42,16 @@ describe("BottomSheet", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
+  it("hides the header close button when hideClose", () => {
+    render(
+      <BottomSheet open title="Sort" onClose={() => {}} hideClose>
+        body
+      </BottomSheet>,
+    );
+    expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
+    expect(screen.getByText("Sort")).toBeTruthy();
+  });
+
   it("calls onClose on Escape", () => {
     const onClose = vi.fn();
     render(

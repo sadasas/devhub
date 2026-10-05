@@ -1,13 +1,14 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
-import { CheckCircle, FileText, Circle, Tag, CalendarBlank, PencilSimple } from "@phosphor-icons/react";
+import { CheckCircle, FileText, Circle, Tag, CalendarBlank } from "@phosphor-icons/react";
 import { formatDate, formatRelative } from "../../lib/utils";
 import type { Milestone, MilestoneStatus } from "../../lib/types";
 import type { UpdatePatch } from "../../state/project-context";
 import { useProject } from "../../state/project-context";
 import { usePresenceStatus } from "../../hooks/usePresenceStatus";
 import { ConfirmDeleteDialog } from "../../components/ConfirmDeleteDialog";
+import { ComposerTextarea } from "../../components/ComposerTextarea";
 import { InlineError } from "../../components/InlineError";
 import { DatePicker } from "../../components/DatePicker";
 import { DetailShell } from "../../components/DetailShell";
@@ -32,7 +33,6 @@ export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
   const { state, dispatch, canEdit, saving, lastSavedAt } = useProject();
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [hotProp, setHotProp] = useState<string | null>(null);
-  const titleRef = useRef<HTMLTextAreaElement | null>(null);
   const [versionOpen, setVersionOpen] = useState(false);
   const [versionDraft, setVersionDraft] = useState("");
   const [versionAnchor, setVersionAnchor] = useState<{ top: number; bottom: number; left: number } | null>(null);
@@ -45,15 +45,6 @@ export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
     setVersionOpen(false);
     setConfirmOpen(false);
   }, [milestoneId]);
-
-  // Judul autogrow tanpa batas — yang scroll .composer-scroll, bukan textarea.
-  useLayoutEffect(() => {
-    const ta = titleRef.current;
-    if (ta) {
-      ta.style.height = "auto";
-      ta.style.height = `${ta.scrollHeight}px`;
-    }
-  });
 
   useEffect(() => {
     if (!versionOpen) return;
@@ -249,19 +240,15 @@ export function MilestoneModal({ milestoneId, onClose }: MilestoneModalProps) {
     >
       {canEdit ? (
         <div className="editable-field editable-field-title" style={{ position: 'relative' }}>
-          <textarea
-            ref={titleRef}
-            className="composer-title"
-            rows={1}
+          <ComposerTextarea
             value={milestone.name}
+            onChange={(v) => update({ name: v })}
             autoFocus={AUTO_FOCUS_INPUT}
             maxLength={LIMITS.MILESTONE_NAME}
-            onChange={(e) => update({ name: e.target.value })}
-            aria-label={t("releases.modal.nameLabel")}
-            aria-invalid={nameEmpty}
+            ariaLabel={t("releases.modal.nameLabel")}
+            invalid={nameEmpty}
             style={{ paddingRight: 20 }}
           />
-          <PencilSimple size={12} aria-hidden="true" className="editable-pencil" />
         </div>
       ) : (
         <h3

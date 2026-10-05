@@ -162,7 +162,7 @@ describe('FocusPage analytics + kill-switch', () => {
     flagMock.mockReturnValue(true);
     renderFocus(`/project/${PROJECT_ID}/focus/${TASK_ID}`);
     const topbar = document.querySelector('.focus-topbar') as HTMLElement;
-    fireEvent.click(within(topbar).getByRole('button', { name: 'Mark done' }));
+    fireEvent.click(within(topbar).getByRole('button', { name: 'Done' }));
     expect(trackMock).toHaveBeenCalledWith('focus_mark_done', { source: 'topbar' });
     expect(mockDispatch).toHaveBeenCalledWith({
       type: 'task/update',
@@ -171,16 +171,9 @@ describe('FocusPage analytics + kill-switch', () => {
     });
   });
 
-  it('bottombar mark-done fires focus_mark_done with source bottombar', () => {
+  it('has no bottombar (wireframe 02: single Done action lives in the topbar)', () => {
     flagMock.mockReturnValue(true);
     renderFocus(`/project/${PROJECT_ID}/focus/${TASK_ID}`);
-    const bar = document.querySelector('.focus-bottombar') as HTMLElement;
-    fireEvent.click(within(bar).getByRole('button', { name: 'Mark done' }));
-    expect(trackMock).toHaveBeenCalledWith('focus_mark_done', { source: 'bottombar' });
-    expect(mockDispatch).toHaveBeenCalledWith({
-      type: 'task/update',
-      id: TASK_ID,
-      patch: { status: 'done' },
-    });
+    expect(document.querySelector('.focus-bottombar')).toBeNull();
   });
 });

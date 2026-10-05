@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "../../components/Button";
+import { Badge } from "../../components/Badge";
 import { CalendarBlank, CaretLeft, CaretRight, Plus } from "@phosphor-icons/react";
 import { useSearchParams } from "react-router";
 import { useTranslation } from "react-i18next";
@@ -241,7 +242,6 @@ export function BoardTimeline({ filteredTasks, onOpenTask, members, unreadIds, o
                     const borderStyle = isDone ? "dashed" : "solid";
                     const shadow = isDone ? "none" : "0 1px 3px rgba(0,0,0,0.08), 0 4px 12px rgba(0,0,0,0.10)";
                     const statusMeta = TASK_STATUS[task.status];
-                    const prioMeta = TASK_PRIORITY[task.priority];
                     const assignee = task.assigneeId ? (members as any)?.[task.assigneeId] : undefined;
                     const assigneeName = assignee ? (assignee.displayName || assignee.email) : undefined;
                     const showAssigneeName = geom.width >= 140;
@@ -249,7 +249,7 @@ export function BoardTimeline({ filteredTasks, onOpenTask, members, unreadIds, o
                       <button type="button" aria-label={`${task.title}, ${geom.startDate} to ${geom.endDate}, ${TASK_STATUS[task.status].label}`} draggable={canEdit} onDragStart={e=>handleBarDragStart(e,task)} onDragEnd={handleDragEnd} onClick={()=>handleBarClick(task)} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault(); handleBarClick(task);}}} title={`${task.title} · ${geom.startDate}→${geom.endDate} (${geom.spanDays}d) · ${TASK_STATUS[task.status].label}`} style={{width:"100%",height:BAR_H,borderRadius:"var(--radius-card)",border:`1px ${borderStyle} ${border}`,background:bg,boxShadow:shadow,display:"flex",flexDirection:"column",alignItems:"stretch",justifyContent:"flex-start",padding:"7px 8px 6px 8px",gap:4,cursor:canEdit?"grab":"pointer",opacity:1,overflow:"hidden",minWidth:0}}>
                       <span style={{display:"flex",alignItems:"center",gap:4,minWidth:0,flexShrink:0}}>
                         <span className="badge" style={{fontSize:12, padding:"2px 6px", lineHeight:1, background: (statusMeta as any).tone==='success' ? 'var(--status-success-dim)' : (statusMeta as any).tone==='danger' ? 'var(--status-danger-dim)' : (statusMeta as any).tone==='warn' ? 'var(--status-warn-dim)' : (statusMeta as any).tone==='info' ? 'var(--status-info-dim)' : 'var(--bg-inset)', color: (statusMeta as any).tone==='success' ? 'var(--status-success)' : (statusMeta as any).tone==='danger' ? 'var(--status-danger)' : (statusMeta as any).tone==='warn' ? 'var(--status-warn)' : (statusMeta as any).tone==='info' ? 'var(--status-info)' : 'var(--text-secondary)', borderColor:"transparent", fontWeight:600, boxShadow:"0 1px 2px rgba(0,0,0,0.12)"}}>{statusMeta.label}</span>
-                        <span className="badge" style={{fontSize:12, padding:"2px 5px", marginLeft:"auto", lineHeight:1, background: (prioMeta as any).tone==='danger' ? 'var(--status-danger-dim)' : (prioMeta as any).tone==='warn' ? 'var(--status-warn-dim)' : (prioMeta as any).tone==='info' ? 'var(--status-info-dim)' : 'var(--bg-inset)', color: (prioMeta as any).tone==='danger' ? 'var(--status-danger)' : (prioMeta as any).tone==='warn' ? 'var(--status-warn)' : (prioMeta as any).tone==='info' ? 'var(--status-info)' : 'var(--text-secondary)', borderColor:"transparent", fontWeight:600, boxShadow:"0 1px 2px rgba(0,0,0,0.12)", display:"inline-flex", alignItems:"center", gap:4}}><TaskPriorityIcon priority={task.priority} size={11} />{TASK_PRIORITY_SHORT[task.priority]}</span>
+                        <span style={{ marginLeft: 'auto' }}><Badge tone={TASK_PRIORITY[task.priority].tone}><TaskPriorityIcon priority={task.priority} size={11} />{TASK_PRIORITY_SHORT[task.priority]}</Badge></span>
                         {unreadIds?.has(task.id) && <span className="unread-pill" style={{fontSize:12, padding:"1px 4px", lineHeight:1}}>{t('board.taskCard.unread')}</span>}
                       </span>
                       <span style={{flex:"0 1 auto",minHeight:0,maxHeight:"28px",display:"-webkit-box",WebkitBoxOrient:"vertical",WebkitLineClamp:2,lineClamp:"2" as any,overflow:"hidden",overflowWrap:"break-word",wordBreak:"break-word",hyphens:"auto",lineHeight:"14px",fontSize:12,fontWeight:600,color:textColor,textAlign:"left"}}>{task.title}</span>

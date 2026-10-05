@@ -4,8 +4,8 @@ import { createPortal } from 'react-dom';
 import { CalendarBlank as CalendarIcon, Clock, DotsThree, FileText, Flag, LinkSimple, Plus, Tag, User } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { formatDate, isDecimalKey, newId, nowIso, parseLabels, sanitizeDecimalInput } from '../../lib/utils';
-import { TASK_PRIORITY, TASK_PRIORITY_ORDER, hashLabelColor } from '../../lib/labels';
-import { TaskPriorityIcon } from '../../lib/task-icons';
+import { TASK_PRIORITY, TASK_PRIORITY_ORDER, TASK_STATUS, hashLabelColor } from '../../lib/labels';
+import { TaskPriorityIcon, TaskStatusIcon } from '../../lib/task-icons';
 import { startAfterDue } from '../../lib/start-dates';
 import type { Attachment, TaskPriority, TaskStatus, TeamMember } from '../../lib/types';
 import { LabelPickerBody } from './LabelPickerBody';
@@ -14,6 +14,7 @@ import { useOptionalAuth } from '../../state/auth-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { api } from '../../lib/api';
 import { Button } from '../../components/Button';
+import { ComposerTextarea } from '../../components/ComposerTextarea';
 import { AttachmentSection } from '../../components/AttachmentSection';
 import { PlanLimitModal } from '../../components/PlanLimitModal';
 import { InlineError } from '../../components/InlineError';
@@ -53,7 +54,6 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
   const [assignee, setAssignee] = useState<string | null>(null);
   const [blockedBy, setBlockedBy] = useState<string[]>([]);
   const [members, setMembers] = useState<TeamMember[]>([]);
-  const titleRef = useRef<HTMLTextAreaElement | null>(null);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const barRef = useRef<HTMLDivElement | null>(null);
   const [popup, setPopup] = useState<{ key: PropKey; anchor: { top: number; bottom: number; left: number } } | null>(null);
@@ -92,15 +92,6 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
       setMembers([]);
     }
   }, [open, teamId]);
-
-  // Judul autogrow tanpa batas — yang scroll .composer-scroll, bukan textarea.
-  useLayoutEffect(() => {
-    const ta = titleRef.current;
-    if (ta) {
-      ta.style.height = 'auto';
-      ta.style.height = `${ta.scrollHeight}px`;
-    }
-  });
 
   useEffect(() => {
     if (!popup) return;
@@ -368,7 +359,7 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
         label=""
         ariaLabel={t('board.taskModal.blockedByLabel', { defaultValue: 'Blocked by' })}
         value={null}
-        options={(state?.tasks ?? []).filter((ot) => !blockedBy.includes(ot.id) && !ot.parentTaskId).map((ot) => ({ value: ot.id, label: `${ot.title} · ${ot.status}` }))}
+        options={(state?.tasks ?? []).filter((ot) => !blockedBy.includes(ot.id) && !ot.parentTaskId).map((ot) => ({ value: ot.id, label: `${ot.title} · ${TASK_STATUS[ot.status].label}`, icon: <TaskStatusIcon status={ot.status} size={13} /> }))}
         onChange={(v) => { if (v) setBlockedBy((prev) => [...new Set([...prev, v])]); }}
         triggerEmptyLabel={t('board.taskModal.blockedByLabel', { defaultValue: 'Blocked by' })}
       />
@@ -412,16 +403,13 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
             barRef.current?.classList.toggle('is-stuck', (e.target as HTMLDivElement).scrollTop > 4);
           }}
         >
-          <textarea
-            ref={titleRef}
-            className="composer-title"
-            rows={1}
+          <ComposerTextarea
             required
             placeholder={t('board.newTaskModal.titlePlaceholder')}
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={setTitle}
             maxLength={LIMITS.TASK_TITLE}
-            aria-label={t('board.newTaskModal.titleLabel')}
+            ariaLabel={t('board.newTaskModal.titleLabel')}
           />
           <MarkdownField
             label={t('board.newTaskModal.descriptionLabel')}

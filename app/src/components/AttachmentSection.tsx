@@ -411,7 +411,8 @@ export function AttachmentSection({
               <Tooltip title={previewLabel}>
               <button
                 type="button"
-                className="btn btn-ghost btn-sm btn-icon"
+                className="mini-del"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
                 onClick={openPreview}
                 aria-label={previewLabel}
               >
@@ -424,7 +425,8 @@ export function AttachmentSection({
               <span style={{ display: 'inline-flex' }}>
               <button
                 type="button"
-                className="btn btn-ghost btn-sm btn-icon"
+                className="mini-del"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, opacity: downloadingId === att.id ? 0.5 : undefined }}
                 onClick={() => void handleDownload(att)}
                 disabled={downloadingId === att.id}
                 aria-label={downloadLabel}
@@ -438,7 +440,8 @@ export function AttachmentSection({
               <Tooltip title={removeLabel}>
               <button
                 type="button"
-                className="btn btn-danger btn-sm btn-icon"
+                className="mini-del"
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--status-danger)', padding: '6px', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}
                 onClick={() => setDeleteTarget(att)}
                 aria-label={removeLabel}
               >

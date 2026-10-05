@@ -8,6 +8,7 @@ import { usePresenceStatus } from "../../hooks/usePresenceStatus";
 import { formatDate, newId, nowIso } from "../../lib/utils";
 import type { MilestoneStatus } from "../../lib/types";
 import { Button } from "../../components/Button";
+import { ComposerTextarea } from "../../components/ComposerTextarea";
 import { DatePicker } from "../../components/DatePicker";
 import { Modal } from "../../components/Modal";
 import { ModalFooter } from "../../components/ModalFooter";
@@ -36,7 +37,6 @@ export function NewMilestoneModal({ onClose }: NewMilestoneModalProps) {
   const [datesOpen, setDatesOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const datePillRef = useRef<HTMLButtonElement>(null);
-  const titleRef = useRef<HTMLTextAreaElement>(null);
   const [versionOpen, setVersionOpen] = useState(false);
   const [versionDraft, setVersionDraft] = useState("");
   const [versionAnchor, setVersionAnchor] = useState<{ top: number; bottom: number; left: number } | null>(null);
@@ -56,15 +56,6 @@ export function NewMilestoneModal({ onClose }: NewMilestoneModalProps) {
   const versionPillRef = useRef<HTMLButtonElement>(null);
   const versionPopRef = useRef<HTMLDivElement | null>(null);
   const versionCancelRef = useRef(false);
-
-  // Judul autogrow tanpa batas — yang scroll .composer-scroll, bukan textarea.
-  useLayoutEffect(() => {
-    const ta = titleRef.current;
-    if (ta) {
-      ta.style.height = "auto";
-      ta.style.height = `${ta.scrollHeight}px`;
-    }
-  });
 
   useEffect(() => {
     if (!versionOpen) return;
@@ -194,17 +185,14 @@ export function NewMilestoneModal({ onClose }: NewMilestoneModalProps) {
     >
       <form id="new-milestone-form" className="composer-form" onSubmit={submit} noValidate>
         <div className="composer-scroll">
-          <textarea
-            ref={titleRef}
-            className="composer-title"
-            rows={1}
+          <ComposerTextarea
             required
             autoFocus={AUTO_FOCUS_INPUT}
             placeholder={t("releases.newModal.namePlaceholder")}
             value={name}
-            onChange={(e) => setName(e.target.value)}
+            onChange={setName}
             maxLength={LIMITS.MILESTONE_NAME}
-            aria-label={t("releases.newModal.nameLabel")}
+            ariaLabel={t("releases.newModal.nameLabel")}
           />
           <MarkdownField
             label={t("releases.newModal.changelogLabel")}

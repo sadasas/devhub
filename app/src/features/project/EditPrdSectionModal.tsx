@@ -113,7 +113,6 @@ export function EditPrdSectionModal({ open, section, onClose, project }: EditPrd
             maxLength={SECTION_MAX}
             variant="bare"
             startEditing
-            hideHead
           />
         </div>
         {saveError && <InlineError>{saveError}</InlineError>}

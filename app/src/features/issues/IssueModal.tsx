@@ -1,5 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Clock, Bug, FileText, CheckCircle, Warning, Circle, LinkSimple, PencilSimple } from '@phosphor-icons/react';
+import { useEffect, useState } from 'react';
+import { Clock, Bug, FileText, CheckCircle, Warning, Circle, LinkSimple } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { ISSUE_SEVERITY, ISSUE_STATUS } from '../../lib/labels';
 import { IssueStatusIcon, TaskSeverityIcon } from '../../lib/task-icons';
@@ -9,6 +9,7 @@ import type { UpdatePatch } from '../../state/project-context';
 import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { ActivityList } from '../../components/ActivityList';
+import { ComposerTextarea } from '../../components/ComposerTextarea';
 import { AttachmentSection } from '../../components/AttachmentSection';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { PlanLimitModal } from '../../components/PlanLimitModal';
@@ -43,7 +44,6 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
   const [storageLimitOpen, setStorageLimitOpen] = useState(false);
   const [fullscreenField, setFullscreenField] = useState<FullscreenField>(null);
   const { t } = useTranslation(['tracker', 'project']);
-  const titleRef = useRef<HTMLTextAreaElement | null>(null);
 
   useEffect(() => {
     setHotProp(null);
@@ -51,15 +51,6 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
     setStorageLimitOpen(false);
     setFullscreenField(null);
   }, [issueId]);
-
-  // Judul autogrow tanpa batas — yang scroll .composer-scroll, bukan textarea.
-  useLayoutEffect(() => {
-    const ta = titleRef.current;
-    if (ta) {
-      ta.style.height = 'auto';
-      ta.style.height = `${ta.scrollHeight}px`;
-    }
-  });
 
   const issue = issueId ? state?.issues.find((i) => i.id === issueId) : undefined;
   usePresenceStatus(t('issues.modal.presenceEditing'), issue != null);
@@ -356,20 +347,16 @@ export function IssueModal({ issueId, onClose }: IssueModalProps) {
     >
       {canEdit ? (
         <div className="editable-field editable-field-title" style={{ position: 'relative' }}>
-          <textarea
-            ref={titleRef}
-            className="composer-title"
-            rows={1}
+          <ComposerTextarea
             value={issue.title}
+            onChange={(v) => update({ title: v })}
             autoFocus={AUTO_FOCUS_INPUT}
             maxLength={LIMITS.ISSUE_TITLE}
-            onChange={(e) => update({ title: e.target.value })}
-            aria-label={t('issues.modal.titleLabel')}
-            aria-invalid={titleEmpty}
+            ariaLabel={t('issues.modal.titleLabel')}
+            invalid={titleEmpty}
             placeholder={t('issues.newModal.titlePlaceholder')}
             style={{ paddingRight: 20 }}
           />
-          <PencilSimple size={12} aria-hidden="true" className="editable-pencil" />
         </div>
       ) : (
         <h3 className="detail-title">

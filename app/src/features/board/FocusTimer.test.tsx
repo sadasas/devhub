@@ -75,12 +75,11 @@ describe('FocusTimer', () => {
     expect(sheet()).toBeNull();
   });
 
-  it('clicking the number opens the sheet, × closes it', () => {
+  it('sheet header has no close button', () => {
     renderTimer();
     openSheet();
-    expect(screen.getByRole('button', { name: 'Close' })).toBeTruthy();
-    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
-    expect(sheet()).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Close' })).toBeNull();
+    expect(sheet()).toBeTruthy();
   });
 
   it('number toggles the sheet closed on second click', () => {

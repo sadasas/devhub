@@ -2,9 +2,10 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "../../components/Badge";
 import { Button } from "../../components/Button";
+import { TaskStatusBadge } from "../../components/TaskStatusBadge";
 import { StatusBanner } from "../../components/StatusBanner";
 import { ConfirmDeleteDialog } from "../../components/ConfirmDeleteDialog";
-import { MILESTONE_STATUS, TASK_PRIORITY, TASK_STATUS } from "../../lib/labels";
+import { MILESTONE_STATUS, TASK_PRIORITY } from "../../lib/labels";
 import { TaskPriorityIcon } from "../../lib/task-icons";
 import type { Decision, Milestone, SchemaVersion, Task, Issue, TestCase } from "../../lib/types";
 import { formatDate, formatRelative, shortId } from "../../lib/utils";
@@ -61,7 +62,7 @@ function DagCard({ task, state, blockedBy, external, onOpen }: { task: Task; sta
               />
             </span>
           )}
-          <Badge tone={TASK_STATUS[task.status].tone} dot>{TASK_STATUS[task.status].label}</Badge>
+          <TaskStatusBadge status={task.status} />
         </div>
         {(blockedBy.length > 0 || (external && external.length > 0)) && (
           <div className="dag-card-blocked">

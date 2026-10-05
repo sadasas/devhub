@@ -15,6 +15,9 @@
 
 html {
   color-scheme: var(--color-scheme, dark);
+  /* Cadangkan gutter scrollbar permanen: toggle collapse tak lagi
+     menggeser halaman horizontal saat scrollbar muncul/hilang. */
+  scrollbar-gutter: stable;
 }
 
 html[data-theme='light'] {
@@ -1817,12 +1820,16 @@ a:hover {
     display: contents;
   }
 
-  /* Urutan mobile: judul (-2), created (-1), properti (2 via aside), sisanya (3).
+  /* Urutan mobile: crumb parent + judul (-2), created (-1), properti
+     (2 via aside), sisanya (3). Crumb harus ikut -2 agar tetap di atas
+     judul, bukan tenggelam ke bawah deskripsi.
      Judul edit dibungkus .editable-field-title agar order tetap kena
      (order hanya berlaku untuk grid-item = direct child). textarea
      mentah ikut dicakup agar markup lama/tanpa wrapper tetap benar. */
   .detail-grid .editable-field-title,
   .detail-grid textarea.composer-title,
+  .detail-grid .focus-detail-head,
+  .detail-grid .focus-detail-crumb,
   .detail-grid h3.detail-title {
     order: -2;
   }
@@ -1831,7 +1838,7 @@ a:hover {
     order: -1;
   }
 
-  .detail-grid > .detail-main > *:not(textarea.composer-title):not(h3.detail-title):not(.detail-created):not(.editable-field-title):not(.focus-badges) {
+  .detail-grid > .detail-main > *:not(textarea.composer-title):not(h3.detail-title):not(.detail-created):not(.editable-field-title):not(.focus-detail-head):not(.focus-detail-crumb):not(.focus-badges) {
     order: 3;
   }
 
@@ -1957,6 +1964,9 @@ a:hover {
 .md-bare .md-preview-click {
   cursor: pointer;
   border-radius: 6px;
+  border-top: 1px solid transparent;
+  border-bottom: 1px solid transparent;
+  min-height: 48px;
 }
 .md-bare .md-preview-click:focus-visible {
   outline: 2px solid var(--status-info);
@@ -2143,6 +2153,8 @@ button.prop {
   width: 100%;
   max-width: 100%;
   border: 0;
+  border-top: 1px solid transparent;
+  border-bottom: 1px solid transparent;
   outline: 0;
   resize: none;
   background: transparent;
@@ -2160,12 +2172,26 @@ button.prop {
   color: var(--text-muted);
 }
 
-/* Composer borderless fields: hairline focus cue (kompromi visual, bukan halo). */
+/* Composer borderless fields: cue fokus HANYA garis atas-bawah
+   (keputusan owner — pengecualian §9 tercatat di design-tokens.md;
+   kiri-kanan kosong, bukan halo, bukan kotak). Border transparan di
+   base mencegah lompatan layout 2px saat fokus. */
+.composer-title {
+  border-top: 1px solid transparent;
+  border-bottom: 1px solid transparent;
+}
 .composer-title:focus-visible,
-.textarea-bare:focus-visible {
-  outline: 1px solid var(--border-strong);
-  outline-offset: 2px;
+.textarea-bare:focus-visible,
+.composer-hint:hover > textarea,
+.composer-hint:focus-within > textarea,
+.md-bare:hover > textarea.textarea-bare,
+.md-bare:focus-within > textarea.textarea-bare,
+.md-bare:hover > .md-preview-click,
+.md-bare:focus-within > .md-preview-click {
+  outline: none;
   box-shadow: none;
+  border-top-color: var(--border-strong);
+  border-bottom-color: var(--border-strong);
 }
 
 .md-hint {
@@ -2212,6 +2238,12 @@ button.prop {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
+}
+/* Pencil hint di kepala markdown kotak: in-flow (bukan absolute),
+   selalu terlihat seperti md-bare-head. */
+.md-head-pencil {
+  color: var(--text-muted);
+  flex-shrink: 0;
 }
 
 .md-foot {
@@ -3604,14 +3636,19 @@ html[data-theme='light'] .splash-bg {
 .focus-topbar ~ .detail-grid {
   grid-template-columns: minmax(0, 720px);
   justify-content: center;
+  height: auto;
+}
+.focus-topbar ~ .detail-grid > .detail-main {
+  overflow-y: visible;
 }
 .focus-topbar ~ .detail-grid > .detail-side {
   display: none;
 }
 /* Judul 28px tebal + baris Created disembunyikan (tak ada di wireframe). */
+/* 28px = batas atas font-display fluid (§2): clamp agar reflow 200%/360px. */
 .focus-topbar ~ .detail-grid .composer-title,
 .focus-topbar ~ .detail-grid .detail-title {
-  font-size: 28px;
+  font-size: clamp(22px, 6vw, 28px);
   font-weight: 700;
 }
 .focus-topbar ~ .detail-grid .detail-created {
@@ -3660,6 +3697,261 @@ html[data-theme='light'] .splash-bg {
 .focus-combined .focus-radio-toggle {
   width: 32px !important;
   height: 32px !important;
+}
+/* Focus detail satu kolom (wireframe 02): meta → deskripsi → subtask →
+   checklist → toggle → Status/Prioritas. Hanya var token, spacing tangga,
+   radius var, border 1px hairline. */
+.focus-detail {
+  gap: 12px;
+}
+.focus-detail-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.focus-detail-dates {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+/* Samakan teks chip dengan tetangga meta (11px); global .task-due
+   sengaja tanpa font-size agar konteks lain tak berubah. */
+.focus-detail-meta .task-due {
+  font-size: 11px;
+}
+.focus-detail-desc {
+  min-width: 0;
+}
+/* Kepala detail (judul + meta + deskripsi): ritme rapat 8px. */
+.focus-detail-head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+/* Deskripsi Focus: tanpa judul "Description", pencil hint tetap. */
+.focus-detail-desc .md-bare-head .md-inline-icon {
+  display: none;
+}
+.focus-detail-subhead {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+.focus-detail-div {
+  height: 1px;
+  background: var(--border-hairline);
+}
+.focus-detail-props {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+/* Pembungkus toggle + isi properti: ritme 8px ala subtask. */
+.focus-detail-propswrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.focus-detail-prop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.focus-detail-propname {
+  width: 110px;
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.focus-detail-propval {
+  flex: 1;
+  min-width: 0;
+}
+/* Properti Focus 10 baris: label+ikon kiri (110px), value hug-content kanan.
+   Tanpa divider antar baris (keputusan owner) — ritme dari gap 8px.
+   Beda dari .detail-side .prop yang menumpuk value 100% ke baris bawah. */
+.focus-detail-props .prop {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+  border: 0;
+  background: none;
+  padding: 3px 0;
+  border-radius: var(--radius-input);
+  min-height: 34px;
+  white-space: normal;
+}
+.focus-detail-props .prop:hover {
+  background: var(--bg-inset);
+}
+.focus-detail-props .prop-label {
+  flex: 0 0 110px;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-top: 6px;
+}
+.focus-detail-props .prop-label-btn {
+  background: none;
+  border: none;
+  padding: 6px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  font-family: inherit;
+  line-height: inherit;
+  color: var(--text-muted);
+  cursor: pointer;
+  text-align: left;
+}
+.focus-detail-props .prop-label-text {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* Pensil edit nempel di sebelah kanan value (top-aligned), reveal saat hover. */
+.focus-detail-props .prop-pencil {
+  flex-shrink: 0;
+  align-self: flex-start;
+  display: inline-flex;
+  padding-top: 2px;
+  color: var(--text-muted);
+  opacity: 0;
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+.focus-detail-props .prop:hover .prop-pencil,
+.focus-detail-props .prop:focus-within .prop-pencil {
+  opacity: 1;
+}
+@media (hover: none) {
+  .focus-detail-props .prop-pencil {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .focus-detail-props .prop-pencil {
+    transition: none;
+  }
+}
+/* Value hug-content: badge/pill mengikuti isi, bukan selebar baris. */
+.focus-detail-props .prop > .prop-view,
+.focus-detail-props .prop > .prop-view-text,
+.focus-detail-props .prop > .prop-view-empty,
+.focus-detail-props .prop > span:not(.prop-label) {
+  flex: 0 1 auto;
+  align-self: flex-start;
+  min-width: 0;
+  max-width: 100%;
+  margin-top: 2px;
+}
+/* Kontrol edit (dropdown terbuka) boleh melebar agar opsi terbaca. */
+.focus-detail-props .prop[data-hot] > .ss-wrap,
+.focus-detail-props .prop .ss-wrap {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+/* Trigger hug-content: caret nempel di kanan badge, bukan ujung baris.
+   (Trigger adalah flex-item kolom .ss-wrap yang default stretch.)
+   Panel dropdown tak terpengaruh (floor 240px di SearchableSelect). */
+.focus-detail-props .prop[data-hot] .ss-trigger {
+  align-self: flex-start;
+}
+/* Blocked-by chips membungkus ke baris bawah (pola TaskDetail). */
+.focus-detail-props [data-blocked-row] > div:last-child {
+  flex: 1 1 100%;
+  order: 2;
+}
+/* Ritme internal seksi wireframe (subtask + checklist): header→garis→konten
+   rapat 8px tangga space-*. Jarak antar-seksi tetap 20px dari gap .detail-main. */
+.focus-detail-check {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+/* Breadcrumb subtask (wireframe 07): HANYA tombol parent yang berupa card;
+   badge status + judul saat ini di luar card. */
+.focus-detail-crumb {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+.btn.focus-detail-parentbtn {
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-pill);
+  background: var(--bg-base);
+  padding: 2px 12px 2px 8px;
+  min-width: 0;
+}
+span.focus-detail-parentbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-pill);
+  background: var(--bg-base);
+  padding: 2px 12px 2px 8px;
+  min-width: 0;
+}
+/* Pill hijau "Subtask dari X" + tombol lepas + kotak info anak.
+   Pill hug-content (flex 0 1): tidak melar selebar baris; teks panjang
+   tetap ellipsis via inner span. margin-left auto: pill + tombol lepas
+   menempel di kanan baris Subtasks. */
+.focus-detail-parentpill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  border-radius: var(--radius-pill);
+  background: var(--status-success-dim);
+  color: var(--status-success);
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 0;
+  max-width: 100%;
+  flex: 0 1 auto;
+  margin-left: auto;
+}
+/* Teks pill satu baris terpotong … (ellipsis tak jalan di flex container,
+   maka truncation milik inner span ini). */
+.focus-detail-parentpill-text {
+  min-width: 0;
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.focus-detail-detach {
+  color: var(--text-muted);
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.btn.focus-detail-parentbtn > span {
+  min-width: 0;
+}
+.focus-detail-parentbtn .badge {
+  flex-shrink: 0;
+}
+.focus-detail-childinfo {
+  background: var(--bg-inset);
+  border: 1px solid var(--border-hairline);
+  border-radius: var(--radius-input);
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+  min-width: 0;
 }
 /* Tombol Selesai halaman focus = hijau desain baru (bukan teal primer). */
 .btn.focus-topbar-done {
@@ -23437,6 +23729,15 @@ html[data-theme='light'] .kanban-swipe-tab.is-active {
 }
 
 /* Title & Description pencil hover-reveal (konsisten dengan prop-edit). */
+.composer-hint {
+  position: relative;
+  display: block;
+  min-width: 0;
+}
+/* Ruang untuk pencil agar tak tertimbun teks (otomatis semua pemakai). */
+.composer-hint > textarea {
+  padding-right: 20px;
+}
 .editable-pencil {
   position: absolute;
   top: 8px;
@@ -23447,7 +23748,11 @@ html[data-theme='light'] .kanban-swipe-tab.is-active {
   pointer-events: none;
 }
 .editable-field:hover .editable-pencil,
-.editable-field:focus-within .editable-pencil {
+.editable-field:focus-within .editable-pencil,
+.composer-hint:hover .editable-pencil,
+.composer-hint:focus-within .editable-pencil,
+.md-bare:hover .editable-pencil,
+.md-bare:focus-within .editable-pencil {
   opacity: 1;
 }
 @media (hover: none) {
@@ -23622,4 +23927,70 @@ html[data-theme='light'] .kanban-swipe-tab.is-active {
      (judul -2, created -1 tetap di atas). Kualifikasi div untuk
      margin spesifisitas ekstra. */
   .page .detail-grid > .detail-main > div.focus-badges { order: 0; }
+
+  /* HP: pill timer+radio tidak kepotong — sisi kiri selebar tombol back,
+     sisi kanan kosong (done disembunyikan), tengah ambil sisa ruang.
+     !important karena grid + max-width di-inline di TSX. */
+  .page .focus-topbar {
+    grid-template-columns: auto minmax(0, 1fr) auto !important;
+  }
+  .page .focus-combined {
+    max-width: 100%;
+    overflow: hidden;
+  }
+  .page .focus-combined .focus-pill-half {
+    min-width: 0;
+    overflow: hidden;
+  }
+  .page .focus-combined .focus-radio-display {
+    min-width: 0;
+    max-width: 110px !important;
+  }
+
+  /* HP: pill boleh ramping — timpa min-width 44px + padding touch khusus
+     di dalam pill (biaya salah-tap rendah: hanya buka popup).
+     Tanpa ini dua toggle 44px + padding display 16px = pill ~360px. */
+  .page .focus-combined .btn-sm {
+    min-width: 0;
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+  .page .focus-combined .focus-timer-toggle,
+  .page .focus-combined .focus-radio-toggle {
+    width: 28px !important;
+    height: 28px !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    padding: 0 !important;
+  }
+}
+
+/* HP kecil (≤400px): judul lagu makin pendek agar pill tetap muat. */
+@media (max-width: 400px) {
+  .page .focus-combined .focus-radio-display {
+    max-width: 64px !important;
+  }
+}
+
+/* Bar Done full-width HP: fixed bawah, pengganti tombol Done topbar yang
+   disembunyikan di ≤640px. Desktop: display none. Padding bawah grid
+   agar konten terakhir tidak tertutup bar. */
+.focus-done-bar {
+  display: none;
+}
+@media (max-width: 640px) {
+  .page .focus-topbar ~ .detail-grid {
+    padding-bottom: 84px;
+  }
+  .page .focus-done-bar {
+    display: block;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+    background: color-mix(in srgb, var(--bg-base) 88%, transparent);
+    border-top: 1px solid var(--border-hairline);
+    z-index: 20;
+  }
 }

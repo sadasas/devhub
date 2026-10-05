@@ -157,6 +157,7 @@ export function MarkdownField({
           >
             <ArrowsOutSimple size={14} aria-hidden="true" />
           </button>
+          <PencilSimple size={12} aria-hidden="true" className="md-head-pencil" />
         </div>
         <textarea
           id={id}

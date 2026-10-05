@@ -1,14 +1,15 @@
 import { Bug, Clock, FileText, LinkSimple } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { DetailShell } from '../../components/DetailShell';
+import { Badge } from '../../components/Badge';
 import { DetailEmpty } from '../../components/DetailList';
 import { PropRow } from '../../components/PropRow';
+import { TaskStatusBadge } from '../../components/TaskStatusBadge';
 import { MarkdownBlocks } from '../../lib/markdown';
 import {
   ISSUE_SEVERITY,
   ISSUE_STATUS,
   TASK_PRIORITY,
-  TASK_STATUS,
   findLabelDef,
   labelChipStyleFor,
 } from '../../lib/labels';
@@ -63,9 +64,7 @@ export function PublicTaskDetailModal({ task, state, onClose, onOpenTask }: Publ
             setHot={noopHot}
             canEdit={false}
             view={(
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 6, background: task.status === 'done' ? 'var(--status-success-dim)' : task.status === 'review' ? 'var(--status-warn-dim)' : task.status === 'inProgress' ? 'var(--status-info-dim)' : 'var(--bg-inset)', fontSize: 12 }}>
-                {TASK_STATUS[task.status].label}
-              </span>
+              <TaskStatusBadge status={task.status} />
             )}
             control={<span />}
           />
@@ -76,10 +75,10 @@ export function PublicTaskDetailModal({ task, state, onClose, onOpenTask }: Publ
             setHot={noopHot}
             canEdit={false}
             view={(
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 6, background: task.priority === 'urgent' ? 'var(--status-danger-dim)' : task.priority === 'high' ? 'var(--status-warn-dim)' : task.priority === 'medium' ? 'var(--status-info-dim)' : 'var(--bg-inset)', fontSize: 12, color: task.priority === 'urgent' ? 'var(--status-danger)' : task.priority === 'high' ? 'var(--status-warn)' : task.priority === 'medium' ? 'var(--status-info)' : 'var(--text-secondary)' }}>
-                <TaskPriorityIcon priority={task.priority} size={12} />
+              <Badge tone={TASK_PRIORITY[task.priority].tone}>
+                <TaskPriorityIcon priority={task.priority} size={11} />
                 {TASK_PRIORITY[task.priority].label}
-              </span>
+              </Badge>
             )}
             control={<span />}
           />

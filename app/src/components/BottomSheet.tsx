@@ -33,6 +33,8 @@ interface BottomSheetProps {
   withHandle?: boolean;
   withOverlay?: boolean;
   hideHeader?: boolean;
+  /** Sembunyikan tombol X header (tetap bisa tutup via backdrop/Escape). */
+  hideClose?: boolean;
 }
 
 export function BottomSheet({
@@ -44,6 +46,7 @@ export function BottomSheet({
   withHandle = true,
   withOverlay = true,
   hideHeader = false,
+  hideClose = false,
 }: BottomSheetProps) {
   const titleId = useId();
   const { t } = useTranslation();
@@ -84,14 +87,16 @@ export function BottomSheet({
           <h2 id={titleId} className="sheet-title">
             {title}
           </h2>
-          <button
-            type="button"
-            className="btn btn-ghost btn-sm btn-icon"
-            onClick={onClose}
-            aria-label={t("action.close")}
-          >
-            <X size={14} weight="bold" aria-hidden="true" />
-          </button>
+          {!hideClose && (
+            <button
+              type="button"
+              className="btn btn-ghost btn-sm btn-icon"
+              onClick={onClose}
+              aria-label={t("action.close")}
+            >
+              <X size={14} weight="bold" aria-hidden="true" />
+            </button>
+          )}
         </header>
       )}
       <div className="sheet-body">{children}</div>

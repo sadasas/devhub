@@ -33,6 +33,14 @@ interface TimerSheetBodyProps {
 
 const SESSION_PRESETS_MIN = [15, 25, 50, 90];
 
+/**
+ * Jangkar popup = panel pill gabungan (.focus-combined), bukan tombol
+ * pemicu masing-masing — popup timer & radio selalu di tengah bawah panel.
+ * Fallback ke tombol sendiri bila di luar pill (mis. render terisolasi di test).
+ */
+const anchorToCombined = (el: HTMLElement | null): HTMLElement | null =>
+  (el?.closest?.('.focus-combined') as HTMLElement | null) ?? el;
+
 function TimerSheetBody({
   display,
   almostDone,
@@ -349,8 +357,9 @@ export function FocusTimer() {
   const almostDone = mode === 'down' && !finished && displaySecs >= 1 && displaySecs <= 10;
   const display = formatFocusTimer(displaySecs);
   const timerLabel = t('board.focus.timerLabel') as string;
-  // Viewport-clamped popover (PresenceChip pattern) — never cut off at edges.
-  const panelPos = useViewportPanel(displayButtonRef, 300);
+  // Popup di tengah bawah PANEL gabungan (.focus-combined), bukan di bawah
+  // tombol angka timer — timer di kiri pill, radio di kanan, satu jangkar.
+  const panelPos = useViewportPanel(displayButtonRef, 300, anchorToCombined);
 
   const toggle = () => {
     if (finished) return;
@@ -490,7 +499,7 @@ export function FocusTimer() {
         </Tooltip>
       </div>
       {coarse ? (
-        <BottomSheet open={sheetOpen} title={timerLabel} onClose={() => setSheetOpen(false)}>
+        <BottomSheet open={sheetOpen} title={timerLabel} onClose={() => setSheetOpen(false)} hideClose>
           <TimerSheetBody
             display={display}
             almostDone={almostDone}

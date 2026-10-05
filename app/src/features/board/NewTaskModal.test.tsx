@@ -304,7 +304,7 @@ describe('NewTaskModal blocked-by picker', () => {
 
   it('keeps the popup open on option pointerdown and adds the blocker on click', () => {
     openBlockedBy();
-    const option = screen.getByRole('option', { name: 'Alpha · todo' });
+    const option = screen.getByRole('option', { name: 'Alpha · Todo' });
     // pointerdown dulu (simulasi mouse): popup tidak boleh unmount sebelum click.
     fireEvent.pointerDown(option);
     expect(screen.getByRole('dialog', { name: 'Blocked by' })).toBeTruthy();
@@ -316,7 +316,7 @@ describe('NewTaskModal blocked-by picker', () => {
 
   it('submits the chosen blockers with task/add', () => {
     openBlockedBy();
-    const option = screen.getByRole('option', { name: 'Beta · todo' });
+    const option = screen.getByRole('option', { name: 'Beta · Todo' });
     fireEvent.pointerDown(option);
     fireEvent.click(option);
     fireEvent.change(screen.getByLabelText(/Name/), { target: { value: 'Needs beta' } });

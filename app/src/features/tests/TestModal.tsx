@@ -1,5 +1,5 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { FileText, ListChecks, Clock, CheckCircle, Circle, Bug, PencilSimple } from '@phosphor-icons/react';
+import { useEffect, useState } from 'react';
+import { FileText, ListChecks, Clock, CheckCircle, Circle, Bug } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import { formatDate, formatRelative } from '../../lib/utils';
 import type { TestCase, TestCaseStatus } from '../../lib/types';
@@ -7,6 +7,7 @@ import type { UpdatePatch } from '../../state/project-context';
 import { useProject } from '../../state/project-context';
 import { usePresenceStatus } from '../../hooks/usePresenceStatus';
 import { ActivityList } from '../../components/ActivityList';
+import { ComposerTextarea } from '../../components/ComposerTextarea';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { PropRow } from '../../components/PropRow';
 import { InlineError } from '../../components/InlineError';
@@ -32,22 +33,12 @@ export function TestModal({ testId, onClose }: TestModalProps) {
   const { state, dispatch, canEdit, projectId, saving, lastSavedAt } = useProject();
   const [hotProp, setHotProp] = useState<string | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const titleRef = useRef<HTMLTextAreaElement | null>(null);
   const { t } = useTranslation(['tracker', 'project']);
 
   useEffect(() => {
     setHotProp(null);
     setConfirmOpen(false);
   }, [testId]);
-
-  // Judul autogrow tanpa batas — yang scroll .composer-scroll, bukan textarea.
-  useLayoutEffect(() => {
-    const ta = titleRef.current;
-    if (ta) {
-      ta.style.height = 'auto';
-      ta.style.height = `${ta.scrollHeight}px`;
-    }
-  });
 
   const test = testId ? state?.testCases.find((x) => x.id === testId) : undefined;
   usePresenceStatus(t('tests.modal.presenceEditing'), test != null);
@@ -151,20 +142,16 @@ export function TestModal({ testId, onClose }: TestModalProps) {
     >
       {canEdit ? (
         <div className="editable-field editable-field-title" style={{ position: 'relative' }}>
-          <textarea
-            ref={titleRef}
-            className="composer-title"
-            rows={1}
+          <ComposerTextarea
             value={test.name}
+            onChange={(v) => update({ name: v })}
             autoFocus={AUTO_FOCUS_INPUT}
             maxLength={LIMITS.TESTCASE_NAME}
-            onChange={(e) => update({ name: e.target.value })}
-            aria-label={t('tests.modal.nameLabel')}
-            aria-invalid={nameEmpty}
+            ariaLabel={t('tests.modal.nameLabel')}
+            invalid={nameEmpty}
             placeholder={t('tests.newModal.namePlaceholder')}
             style={{ paddingRight: 20 }}
           />
-          <PencilSimple size={12} aria-hidden="true" className="editable-pencil" />
         </div>
       ) : (
         <h3 className="detail-title">

@@ -36,6 +36,14 @@ interface SearchableSelectProps {
   /** Buka dropdown langsung saat mount (dipakai klik-to-edit TaskModal). */
   defaultOpen?: boolean;
   /**
+   * Elemen jangkar popup — menggantikan trigger internal untuk hitung
+   * posisi (dipakai bersama hideTrigger: popup menempel ke tombol
+   * eksternal, mis. "Make subtask of…" di FocusTaskDetail).
+   */
+  anchorEl?: HTMLElement | null;
+  /** Sembunyikan trigger internal (kontrol dibuka dari luar). */
+  hideTrigger?: boolean;
+  /**
    * Dipanggil tiap panel buka/tutup (termasuk tutup via luar/Escape/Tab).
    * Dipakai baris properti (PropRow) agar batal = kembali read mode,
    * menutup celah panel hilang tapi hot tertinggal.
@@ -47,6 +55,12 @@ interface SearchableSelectProps {
    * navigasi keyboard tetap jalan.
    */
   searchable?: boolean;
+  /**
+   * Konten trigger kustom (mis. badge pill) sebagai ganti teks label —
+   * desain idle (pill) dipertahankan saat baris masuk mode edit.
+   * Caret tetap di-render sebagai penanda mode edit.
+   */
+  triggerContent?: ReactNode;
 }
 
 export function SearchableSelect({
@@ -63,8 +77,11 @@ export function SearchableSelect({
   disabled = false,
   onChange,
   defaultOpen = false,
+  anchorEl,
+  hideTrigger = false,
   searchable = true,
   onOpenChange,
+  triggerContent,
 }: SearchableSelectProps) {
   const [open, setOpen] = useState(defaultOpen);
   const [query, setQuery] = useState('');
@@ -140,11 +157,12 @@ export function SearchableSelect({
     if (!open) {
       setPos(null);
       return;
-    }
-    const compute = () => {
-      const trigger = containerRef.current?.querySelector('.ss-trigger') as HTMLElement | null;
-      if (!trigger) return;
-      const rect = trigger.getBoundingClientRect();
+    }    const compute = () => {
+      const anchor =
+        anchorEl ??
+        (containerRef.current?.querySelector('.ss-trigger') as HTMLElement | null);
+      const rect = anchor?.getBoundingClientRect();
+      if (!rect || (rect.width === 0 && rect.height === 0)) return;
       const vw = window.innerWidth;
       const vh = window.innerHeight;
       const width = Math.min(Math.max(rect.width, 240), Math.max(vw - 16, 0));
@@ -163,7 +181,7 @@ export function SearchableSelect({
       window.removeEventListener('scroll', onScroll, true);
       window.removeEventListener('resize', onResize);
     };
-  }, [open]);
+  }, [open, anchorEl]);
 
   const display = selected?.label ?? triggerEmptyLabel ?? (allowEmpty ? resolvedEmptyLabel : resolvedPlaceholder);
 
@@ -182,6 +200,7 @@ export function SearchableSelect({
           {label}
         </label>
       )}
+      {!hideTrigger && (
       <button
         ref={triggerRef}
         id={id}
@@ -196,10 +215,11 @@ export function SearchableSelect({
         onClick={() => setOpen((o) => !o)}
       >
         <span className={!selected && !allowEmpty ? 'ss-trigger-text ss-trigger-placeholder' : 'ss-trigger-text'}>
-          {display}
+          {triggerContent ?? display}
         </span>
         <CaretDown size={12} className="ss-trigger-icon" aria-hidden="true" />
       </button>
+      )}
       {open &&
         createPortal(
           <div
