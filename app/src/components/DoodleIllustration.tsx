@@ -27,6 +27,9 @@ export type DoodleVariant =
   | 'clock'
   | 'box'
   | 'memory'
+  | 'pending'
+  | 'paid'
+  | 'cancelled'
   | 'tour-team'
   | 'tour-project'
   | 'tour-plan'
@@ -539,6 +542,82 @@ export function DoodleIllustration({ variant, tone = 'neutral', size = 160, styl
             {/* sparkles */}
             <path d="M38 62 h8 M42 58 v8" stroke={INK} strokeWidth="1.6" opacity="0.4" strokeLinecap="round" />
             <path d="M116 52 h7 M119.5 48.5 v7" stroke={INK} strokeWidth="1.6" opacity="0.4" strokeLinecap="round" />
+          </g>
+        )}
+
+        {variant === 'pending' && (
+          <g style={{ transform: 'rotate(2deg)', transformOrigin: '80px 80px' }}>
+            {/* hourglass — wobbly frame */}
+            <path
+              d="M60 48 Q60 44 64 44 L96 44 Q100 44 100 48 L100 58 Q100 70 88 78 Q100 86 100 98 L100 106 Q100 110 96 110 L64 110 Q60 110 60 106 L60 98 Q60 86 72 78 Q60 70 60 58 Z"
+              fill={PAPER}
+              stroke={INK}
+              strokeWidth="2"
+              strokeLinejoin="round"
+            />
+            {/* top sand */}
+            <path d="M68 52 L92 52 L80 68 Z" fill="var(--status-warn)" opacity="0.85" />
+            {/* falling grains */}
+            <circle cx="80" cy="78" r="1.8" fill="var(--status-warn)" />
+            <circle cx="80" cy="86" r="1.8" fill="var(--status-warn)" />
+            {/* bottom mound */}
+            <path d="M68 102 Q80 90 92 102 Z" fill="var(--status-warn)" opacity="0.85" />
+            {/* sparkles */}
+            <path d="M40 62 h8 M44 58 v8" stroke={INK} strokeWidth="1.6" opacity="0.4" strokeLinecap="round" />
+            <path d="M112 92 h7 M115.5 88.5 v7" stroke="var(--status-warn)" strokeWidth="1.6" strokeLinecap="round" />
+          </g>
+        )}
+
+        {variant === 'paid' && (
+          <g style={{ transform: 'rotate(-3deg)', transformOrigin: '80px 90px' }}>
+            {/* receipt slip with zigzag bottom */}
+            <path
+              d="M48 46 Q48 42 52 42 L96 42 Q100 42 100 46 L100 116 L94 110 L88 116 L82 110 L76 116 L70 110 L64 116 L58 110 L52 116 L48 112 Z"
+              fill={PAPER}
+              stroke={INK}
+              strokeWidth="2"
+              strokeLinejoin="round"
+            />
+            {/* item lines + total rule */}
+            <path d="M56 60 H92 M56 70 H84 M56 80 H88" stroke={INK} strokeWidth="1.6" opacity="0.3" strokeLinecap="round" />
+            <path d="M56 92 H92" stroke={INK} strokeWidth="1.6" opacity="0.5" />
+            {/* stamp badge */}
+            <circle cx="106" cy="58" r="15" fill="var(--accent)" stroke={INK} strokeWidth="1.8" />
+            <path d="M99 58 L104 63 L114 51" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            {/* coin */}
+            <circle cx="104" cy="108" r="11" fill="var(--card-cream-soft)" stroke={INK} strokeWidth="1.8" />
+            <circle cx="104" cy="108" r="5.5" fill="none" stroke={INK} strokeWidth="1.4" opacity="0.55" />
+            {/* sparkle */}
+            <path d="M34 84 h8 M38 80 v8" stroke={INK} strokeWidth="1.6" opacity="0.4" strokeLinecap="round" />
+          </g>
+        )}
+
+        {variant === 'cancelled' && (
+          <g style={{ transform: 'rotate(3deg)', transformOrigin: '80px 85px' }}>
+            {/* top half — torn bottom edge */}
+            <path
+              d="M52 42 Q52 38 56 38 L104 38 Q108 38 108 42 L108 74 L102 68 L96 74 L90 68 L84 74 L78 68 L72 74 L66 68 L60 74 L54 68 Z"
+              fill={PAPER}
+              stroke={INK}
+              strokeWidth="2"
+              strokeLinejoin="round"
+            />
+            {/* item lines top */}
+            <path d="M60 52 H100 M60 60 H92" stroke={INK} strokeWidth="1.5" opacity="0.3" strokeLinecap="round" />
+            {/* bottom half — slipped down, torn top edge */}
+            <path
+              d="M58 94 L64 88 L70 94 L76 88 L82 94 L88 88 L94 94 L100 88 L106 94 L110 90 L110 118 Q110 122 106 122 L62 122 Q58 122 58 118 Z"
+              fill={PAPER}
+              stroke={INK}
+              strokeWidth="2"
+              strokeLinejoin="round"
+            />
+            {/* X across the tear */}
+            <path d="M68 78 L96 106 M96 78 L68 106" stroke="var(--status-danger)" strokeWidth="3" strokeLinecap="round" />
+            {/* paper scrap */}
+            <path d="M118 104 L130 100 L124 112 Z" fill={PAPER} stroke={INK} strokeWidth="1.5" strokeLinejoin="round" />
+            {/* sparkle */}
+            <path d="M36 88 h8 M40 84 v8" stroke={INK} strokeWidth="1.6" opacity="0.4" strokeLinecap="round" />
           </g>
         )}
 

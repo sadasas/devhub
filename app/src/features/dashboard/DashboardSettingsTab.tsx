@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowSquareOut, Check, ClockCounterClockwise, Copy, GearSix, PencilSimple, SignOut, Tag, Trash } from '@phosphor-icons/react';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
+import { formatBytes } from '../../lib/format';
 import type { BillingStatus, Team } from '../../lib/types';
 import { useTeams } from '../../state/teams-context';
 import { useAuth } from '../../state/auth-context';
@@ -135,6 +136,13 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
   const plan = billing?.team.plan ?? team.plan;
   const planName = billing?.team.planPackageName ?? team.planPackageName;
   const expires = billing?.team.planExpiresAt ?? null;
+  /* Opsi L: pembayaran pending terbaru tampil di section plan. */
+  const pendingPayment =
+    billing && !billingError
+      ? [...billing.payments]
+          .filter((p) => p.status === 'pending')
+          .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null
+      : null;
   const expiryMeta = billingLoading
     ? null
     : plan === 'pro'
@@ -352,6 +360,26 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
             {t('dashboard.team.settingsPlanManage')}
           </LinkButton>
         </div>
+        {pendingPayment ? (
+          <div className="dashboard__settings-pending" role="status">
+            <div className="dashboard__settings-pending-row">
+              <span className="dashboard__settings-plan-name">{pendingPayment.packageName}</span>
+              <Badge tone="warn" dot>{t('teams.billing.pendingBadge')}</Badge>
+              <span className="dashboard__settings-plan-meta">
+                {t('teams.billing.pendingMeta', { date: new Date(pendingPayment.createdAt).toLocaleDateString() })}
+              </span>
+            </div>
+            <div className="dashboard__settings-pending-actions">
+              <LinkButton
+                to={`/billing/${team.id}?orderId=${pendingPayment.orderId}`}
+                variant="ghost"
+                leftIcon={<ArrowSquareOut size={14} weight="bold" aria-hidden="true" />}
+              >
+                {t('teams.billing.viewDetail')}
+              </LinkButton>
+            </div>
+          </div>
+        ) : null}
       </Section>
       )}
 
@@ -380,7 +408,7 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
                 ))}
               </div>
               <div className="dashboard__settings-meters">
-                {[0, 1].map((i) => (
+                {[0, 1, 2].map((i) => (
                   <div key={i} className="settings-skeleton-meter">
                     <Skeleton className="settings-skeleton-meter-name" />
                     <Skeleton className="settings-skeleton-meter-bar" />
@@ -408,8 +436,10 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
                 <span className="dashboard__settings-stat-label">{t('teams.billing.projects')}</span>
               </div>
               <div className="dashboard__settings-stat" role="listitem">
-                <span className="dashboard__settings-stat-value">{planName}</span>
-                <span className="dashboard__settings-stat-label">{t('teams.billing.currentPlan')}</span>
+                <span className="dashboard__settings-stat-value tabular">
+                  {formatBytes(billing.usage.storage.usedBytes)} / {billing.usage.storage.limitBytes == null ? '∞' : formatBytes(billing.usage.storage.limitBytes)}
+                </span>
+                <span className="dashboard__settings-stat-label">{t('teams.billing.storage')}</span>
               </div>
             </div>
             <div className="dashboard__settings-meters">
@@ -422,6 +452,12 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
                 label={t('teams.billing.projects')}
                 used={billing.usage.projects.used}
                 limit={billing.usage.projects.limit}
+              />
+              <UsageMeter
+                label={t('teams.billing.storage')}
+                used={billing.usage.storage.usedBytes}
+                limit={billing.usage.storage.limitBytes}
+                format={formatBytes}
               />
             </div>
             <div className="dashboard__settings-usage-links">

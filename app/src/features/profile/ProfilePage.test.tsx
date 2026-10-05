@@ -51,6 +51,9 @@ const user: User = {
 
 // Nilai sengaja menghindari 1/2/3 agar tidak bentrok dengan statistik teams/projects/keys
 const statsMock = {
+  semester: '2026-H2',
+  from: '2026-07-01',
+  to: '2026-10-05',
   totalContributions: 44,
   taskCompletions: 7,
   issuesResolved: 8,
@@ -106,7 +109,7 @@ describe('ProfilePage', () => {
   it('shows GitHub-style activity stats: contributions, tasks completed and streaks', async () => {
     renderPage();
 
-    expect(await screen.findByText(/contributions in the last year/i)).not.toBeNull();
+    expect(await screen.findByText(/contributions ·/i)).not.toBeNull();
     expect(screen.getByText('44')).not.toBeNull();
     expect(screen.getByText('Tasks completed')).not.toBeNull();
     expect(screen.getByText('Issues resolved')).not.toBeNull();
@@ -123,7 +126,7 @@ describe('ProfilePage', () => {
 
     expect(await screen.findByText('Tasks completed')).not.toBeNull();
     expect(screen.getAllByText('—').length).toBeGreaterThan(1);
-    expect(screen.queryByText(/contributions in the last year/i)).toBeNull();
+    expect(screen.queryByText(/contributions ·/i)).toBeNull();
   });
 
   it('opens the edit modal from the empty bio affordance', () => {

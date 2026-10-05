@@ -11,6 +11,7 @@ import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { DataErrorState } from '../../components/DataErrorState';
 import { DoodleIllustration } from '../../components/DoodleIllustration';
 import { Skeleton } from '../../components/Skeleton';
+import { StatusBanner } from '../../components/StatusBanner';
 import { formatDateAdmin } from '../../lib/format';
 import { BillingLedger } from './BillingLedger';
 
@@ -32,6 +33,8 @@ export function PaymentHistoryPage() {
   const [loadErrorRaw, setLoadErrorRaw] = useState<unknown>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busyOrderId, setBusyOrderId] = useState<string | null>(null);
+  const [resumeBusyId, setResumeBusyId] = useState<string | null>(null);
+  const [resumeError, setResumeError] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [statusMsg, setStatusMsg] = useState('');
   const latestRequest = useRef(0);
@@ -80,6 +83,26 @@ export function PaymentHistoryPage() {
 
   const busyConfirm = confirmId != null && busyOrderId === confirmId;
 
+  async function onResume(orderId: string) {
+    setResumeError(null);
+    setResumeBusyId(orderId);
+    try {
+      const res = await api.resumePayment(orderId);
+      window.location.assign(res.url);
+    } catch (err) {
+      setResumeError(getErrorMessage(err, t('billing.errors.resume')));
+    } finally {
+      setResumeBusyId(null);
+    }
+  }
+
+  /* Opsi E: pembayaran pending terbaru diangkat jadi hero; sisanya jadi riwayat. */
+  const heroPending =
+    payments
+      ?.filter((p) => p.status === 'pending')
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null;
+  const heroBusy = heroPending != null && busyOrderId === heroPending.orderId;
+
   return (
     <div className="page billing-page">
       {/* Flat content card wraps page content; dialog stays a sibling portal target. */}
@@ -106,6 +129,91 @@ export function PaymentHistoryPage() {
 
       {error ? (
         <DataErrorState error={loadErrorRaw ?? error} onRetry={() => void load()} retryLabel={t('common:action.retry')} />
+      ) : null}
+
+      {heroPending && !error ? (
+        <section
+          className="billing-hero"
+          aria-label={t('billing.rowLabel', {
+            teamName: heroPending.teamName,
+            packageName: heroPending.packageName,
+            status: t('billing.status.pending'),
+            date: formatDateAdmin(heroPending.createdAt, locale),
+          })}
+        >
+          <p className="billing-hero-eyebrow">
+            {t('billing.heroEyebrow', { id: heroPending.orderId.slice(0, 8) })}
+          </p>
+          <div className="billing-hero-main">
+            <BillingLedger.Amount
+              amount={heroPending.amount}
+              locale={locale}
+              className="billing-hero-amount"
+            />
+            <Badge tone="warn" dot>
+              {t('billing.status.pending')}
+            </Badge>
+          </div>
+          <p className="billing-hero-name">
+            {heroPending.teamName} · {heroPending.packageName}
+            {heroPending.durationDays != null
+              ? ` · ${t('billing.days', { count: heroPending.durationDays })}`
+              : ''}
+          </p>
+          <p className="billing-hero-sub">
+            {t('billing.heroCreated', { date: formatDateAdmin(heroPending.createdAt, locale) })}
+          </p>
+          <div className="billing-hero-actions">
+            <Button
+              size="sm"
+              variant="primary"
+              disabled={resumeBusyId !== null || heroBusy}
+              loading={resumeBusyId === heroPending.orderId}
+              leftIcon={<ArrowSquareOut size={14} weight="bold" aria-hidden="true" />}
+              aria-label={t('billing.resumeAria', {
+                packageName: heroPending.packageName,
+                orderId: heroPending.orderId.slice(0, 8),
+              })}
+              onClick={() => void onResume(heroPending.orderId)}
+            >
+              {t('billing.resume')}
+            </Button>
+            <Button
+              size="sm"
+              variant="danger"
+              disabled={resumeBusyId !== null || heroBusy}
+              leftIcon={<Trash size={14} aria-hidden="true" />}
+              aria-label={t('billing.cancelAria', {
+                packageName: heroPending.packageName,
+                orderId: heroPending.orderId.slice(0, 8),
+              })}
+              onClick={() => setConfirmId(heroPending.orderId)}
+            >
+              {t('billing.cancelPayment')}
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={resumeBusyId !== null || heroBusy}
+              leftIcon={<ArrowSquareOut size={14} weight="bold" aria-hidden="true" />}
+              aria-label={t('billing.detailAria', {
+                packageName: heroPending.packageName,
+                orderId: heroPending.orderId.slice(0, 8),
+              })}
+              onClick={() => navigate(`/billing/${heroPending.teamId}?orderId=${heroPending.orderId}`)}
+            >
+              {t('billing.detail')}
+            </Button>
+          </div>
+        </section>
+      ) : null}
+
+      {resumeError && !error ? (
+        <StatusBanner
+          tone="danger"
+          message={resumeError}
+          onDismiss={() => setResumeError(null)}
+        />
       ) : null}
 
       {payments === null && !error ? (
@@ -141,7 +249,11 @@ export function PaymentHistoryPage() {
           </div>
         </BillingLedger>
       ) : payments ? (
-        <BillingLedger>
+        <>
+          {heroPending ? (
+            <h2 className="billing-history-eyebrow">{t('billing.historyLabel')}</h2>
+          ) : null}
+          <BillingLedger>
           <ul role="list" className="billing-list">
             {payments.map((p) => {
               const badge = STATUS_BADGE_KEYS[p.status] ?? {
@@ -156,6 +268,7 @@ export function PaymentHistoryPage() {
                 <BillingLedger.Row
                   key={p.orderId}
                   tabIndex={-1}
+                  className={p.status === 'cancelled' ? 'billing-row--muted' : ''}
                   ref={(el) => {
                     if (el) rowRefs.current.set(p.orderId, el);
                     else rowRefs.current.delete(p.orderId);
@@ -219,6 +332,7 @@ export function PaymentHistoryPage() {
             })}
           </ul>
         </BillingLedger>
+        </>
       ) : null}
 
           </div>

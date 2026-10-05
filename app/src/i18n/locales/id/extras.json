@@ -699,6 +699,10 @@
     "detailAria": "Lihat detail pembayaran {{packageName}} order {{orderId}}",
     "rowLabel": "{{teamName}} {{packageName}} {{status}} {{date}}",
     "resume": "Lanjutkan pembayaran",
+    "resumeAria": "Lanjutkan pembayaran {{packageName}} order {{orderId}}",
+    "heroEyebrow": "Menunggu pembayaran · #{{id}}",
+    "heroCreated": "Dibuat {{date}}",
+    "historyLabel": "Riwayat",
     "cancelPayment": "Batalkan",
     "errors": {
       "load": "Gagal memuat riwayat pembayaran.",

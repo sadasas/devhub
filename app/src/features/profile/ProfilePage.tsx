@@ -417,7 +417,7 @@ export function ProfilePage() {
                   </div>
                 </div>
                 {isGoogleLinked ? (
-                  <Button variant="ghost" size="sm" leftIcon={<LinkBreak size={14} aria-hidden="true" />} onClick={() => { setUnlinkError(null); setUnlinkTarget('google'); }}>
+                  <Button variant="danger" size="sm" leftIcon={<LinkBreak size={14} aria-hidden="true" />} onClick={() => { setUnlinkError(null); setUnlinkTarget('google'); }}>
                     {t('profile.security.unlink', { defaultValue: 'Unlink' })}
                   </Button>
                 ) : (
@@ -442,7 +442,7 @@ export function ProfilePage() {
                   </div>
                 </div>
                 {isGithubLinked ? (
-                  <Button variant="ghost" size="sm" leftIcon={<LinkBreak size={14} aria-hidden="true" />} onClick={() => { setUnlinkError(null); setUnlinkTarget('github'); }}>
+                  <Button variant="danger" size="sm" leftIcon={<LinkBreak size={14} aria-hidden="true" />} onClick={() => { setUnlinkError(null); setUnlinkTarget('github'); }}>
                     {t('profile.security.unlink', { defaultValue: 'Unlink' })}
                   </Button>
                 ) : (
@@ -477,7 +477,7 @@ export function ProfilePage() {
               <SettingsRowGroup>
                 <div className="settings-row">
                   <dt>{t('profile.account.email')}</dt>
-                  <dd style={{ display: 'inline-flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  <dd className="settings-row-value">
                     <span>{user.email}</span>
                     {(() => {
                       const isVerified = user.emailVerified ?? (user.providers?.length ?? 0) > 0;
@@ -491,9 +491,6 @@ export function ProfilePage() {
                     })()}
                   </dd>
                 </div>
-                <p className="field-helper field-helper--row">
-                  {t('profile.account.emailHelper', { defaultValue: 'Email for login & team invites.' })}
-                </p>
               </SettingsRowGroup>
               <SettingsRowGroup>
                 <div className="settings-row">
@@ -529,11 +526,6 @@ export function ProfilePage() {
                     )}
                   </dd>
                 </div>
-                <p className="field-helper field-helper--row">
-                  {t('profile.account.idHelper', {
-                    defaultValue: 'Used when contacting support. Copy copies the full ID.',
-                  })}
-                </p>
               </SettingsRowGroup>
             </dl>
           </div>

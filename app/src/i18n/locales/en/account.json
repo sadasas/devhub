@@ -387,7 +387,6 @@
       "accountId": "Account ID",
       "detailTitle": "Account details",
       "detailHelper": "Email & ID for login, invites, and support.",
-      "emailHelper": "Email for login & team invites.",
       "verified": "Verified",
       "unverified": "Unverified",
       "copyId": "Copy ID",
@@ -395,7 +394,6 @@
       "copied": "Copied",
       "viewFull": "Show full",
       "hideFull": "Hide",
-      "idHelper": "Used when contacting support. Copy copies the full ID.",
       "preferencesTitle": "Preferences",
       "preferencesHelper": "Light/Dark — System follows your OS.",
       "languageTitle": "Language",
@@ -453,9 +451,14 @@
       "wed": "Wed",
       "fri": "Fri"
     },
+    "semester": {
+      "label": "Semester",
+      "h1": "H1",
+      "h2": "H2"
+    },
     "activity": {
       "sectionAria": "GitHub-style activity stats",
-      "totalSuffix": "contributions in the last year",
+      "scopeNote": "Cards below are last-twelve-month figures.",
       "unavailable": "Contributions unavailable",
       "tasksCompleted": "Tasks completed",
       "issuesResolved": "Issues resolved",
@@ -465,7 +468,8 @@
       "streakSuffix": "d"
     },
     "heat": {
-      "gridAria": "Contribution activity in the last year",
+      "gridAria": "Daily contribution activity",
+      "semesterTotal": "contributions · {{semester}} {{year}}",
       "contributions_one": "{{count}} contribution",
       "contributions_other": "{{count}} contributions",
       "cellAria": "{{contributions}} on {{date}}",
