@@ -22,7 +22,7 @@ DevHub is a hosted SaaS technical-memory workspace: tasks, issues, schema + ERD,
 - **Whiteboard** — unified brainstorming + flowcharting canvas with live entity ref cards, templates, export PNG/SVG/PDF.
 - **Calendar & dates** — start dates, due dates, and completion tracking with board views and a month grid.
 - **Billing (Pakasir)** — flexible packages, manual renewals that stack, 7-day read-only grace. See [Billing](/billing/).
-- **MCP for agents** — OAuth 2.1 PKCE, ~20 tools, activity-logged mutations. See [MCP](/mcp/).
+- **MCP for agents** — OAuth 2.1 PKCE, 25 tools, activity-logged mutations. See [MCP](/mcp/).
 
 ## In progress
 

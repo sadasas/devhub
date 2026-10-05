@@ -966,7 +966,7 @@
         "title": "Restart / Reload per agent"
       },
       "verify": {
-        "opencodeCheck": "opencode: run opencode mcp list -> devhub connected and 21 tools.",
+        "opencodeCheck": "opencode: run opencode mcp list -> devhub connected and 25 tools.",
         "claudeCheck": "Claude Code: claude mcp list -> devhub: connected.",
         "cursorCheck": "Cursor: Settings -> Tools & MCP -> devhub green (max 40 tools).",
         "windsurfCheck": "Windsurf: Settings -> MCP Servers -> devhub green (auto-reload).",
@@ -975,7 +975,7 @@
         "checklistTitle": "Verify per agent",
         "curlLabel": "Verify via curl",
         "curlDesc": "Direct streamable HTTP check (no client reload).",
-        "toolsHint": "21 tools will be listed on success.",
+        "toolsHint": "25 tools will be listed on success.",
         "chipsLabel": "Available tools"
       },
       "agentsync": {

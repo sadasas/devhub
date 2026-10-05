@@ -22,7 +22,7 @@ DevHub adalah workspace memori teknis SaaS: task, issue, skema + ERD, ADR, dokum
 - **Whiteboard** — kanvas brainstorming + flowchart terpadu dengan kartu ref entity live, template, ekspor PNG/SVG/PDF.
 - **Calendar & dates** — tanggal mulai, tenggat, dan pelacakan penyelesaian dengan view board dan grid bulanan.
 - **Billing (Pakasir)** — paket fleksibel, perpanjangan manual yang menumpuk, tenggang read-only 7 hari. Lihat [Billing](/id/billing/).
-- **MCP untuk agen** — OAuth 2.1 PKCE, ~20 tools, mutasi tercatat di activity log. Lihat [MCP](/id/mcp/).
+- **MCP untuk agen** — OAuth 2.1 PKCE, 25 tools, mutasi tercatat di activity log. Lihat [MCP](/id/mcp/).
 
 ## Sedang berjalan
 
