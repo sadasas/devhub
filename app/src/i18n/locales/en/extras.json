@@ -698,6 +698,10 @@
     "detailAria": "View payment detail {{packageName}} order {{orderId}}",
     "rowLabel": "{{teamName}} {{packageName}} {{status}} {{date}}",
     "resume": "Resume payment",
+    "resumeAria": "Resume payment {{packageName}} order {{orderId}}",
+    "heroEyebrow": "Pending payment · #{{id}}",
+    "heroCreated": "Created {{date}}",
+    "historyLabel": "History",
     "cancelPayment": "Cancel",
     "errors": {
       "load": "Failed to load payment history.",

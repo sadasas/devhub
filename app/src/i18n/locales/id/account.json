@@ -387,7 +387,6 @@
       "accountId": "ID Akun",
       "detailTitle": "Detail akun",
       "detailHelper": "Email & ID untuk login, invite, dan hubungi support.",
-      "emailHelper": "Email untuk login & invite tim.",
       "verified": "Terverifikasi",
       "unverified": "Belum verifikasi",
       "copyId": "Salin ID",
@@ -395,7 +394,6 @@
       "copied": "Tersalin",
       "viewFull": "Lihat lengkap",
       "hideFull": "Sembunyikan",
-      "idHelper": "Dipakai saat hubungi support. Salin menyalin full ID.",
       "preferencesTitle": "Preferensi",
       "preferencesHelper": "Terang/Gelap — System ikut OS Anda.",
       "languageTitle": "Bahasa",
@@ -453,9 +451,14 @@
       "wed": "Rab",
       "fri": "Jum"
     },
+    "semester": {
+      "label": "Semester",
+      "h1": "Semester I",
+      "h2": "Semester II"
+    },
     "activity": {
       "sectionAria": "Statistik aktivitas gaya GitHub",
-      "totalSuffix": "kontribusi dalam satu tahun terakhir",
+      "scopeNote": "Kartu di bawah ini angka satu tahun terakhir.",
       "unavailable": "Kontribusi tidak tersedia",
       "tasksCompleted": "Task selesai",
       "issuesResolved": "Issue teratasi",
@@ -465,7 +468,8 @@
       "streakSuffix": "h"
     },
     "heat": {
-      "gridAria": "Aktivitas kontribusi dalam satu tahun terakhir",
+      "gridAria": "Aktivitas kontribusi per hari",
+      "semesterTotal": "kontribusi · {{semester}} {{year}}",
       "contributions_one": "{{count}} kontribusi",
       "contributions_other": "{{count}} kontribusi",
       "cellAria": "{{contributions}} pada {{date}}",

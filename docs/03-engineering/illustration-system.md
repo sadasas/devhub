@@ -77,7 +77,7 @@ dikecualikan sebagai karya brand. **Jangan tambah hex di file lain.**
 
 | Prefix | Arti | Daftar |
 |---|---|---|
-| Tanpa prefix = **state** | Kondisi sistem/data | `empty`, `offline`, `not-found`, `locked`, `broken`, `success`, `receipt`, `calendar`, `bug`, `checklist`, `layers`, `scales`, `flag`, `nodes`, `layout`, `idcard`, `envelope`, `bubble`, `key`, `chart`, `canvas`, `camera`, `table`, `clock`, `box`, `memory` |
+| Tanpa prefix = **state** | Kondisi sistem/data | `empty`, `offline`, `not-found`, `locked`, `broken`, `success`, `receipt`, `calendar`, `bug`, `checklist`, `layers`, `scales`, `flag`, `nodes`, `layout`, `idcard`, `envelope`, `bubble`, `key`, `chart`, `canvas`, `camera`, `table`, `clock`, `box`, `memory`, `pending`, `paid`, `cancelled` |
 | `tour-` = **topik** | Langkah onboarding | `tour-welcome`, `tour-team`, `tour-project`, `tour-plan`, `tour-issues`, `tour-tests`, `tour-build`, `tour-schema`, `tour-decide`, `tour-releases`, `tour-api`, `tour-collab`, `tour-overview` |
 
 ### 4a. Kapan pakai varian state
@@ -91,6 +91,7 @@ dikecualikan sebagai karya brand. **Jangan tambah hex di file lain.**
 | `forbidden` (401/403), `business` (PLAN_LIMIT), no-access | `locked` + `soft-cream` | `DataErrorState` / settings-no-access |
 | Momen selebrasi nyata | `success` | Hanya bila ada layar perayaan (saat ini: finish tour) |
 | Area uang kosong (billing) | `receipt` + `soft-cream` | `PaymentHistoryPage` |
+| Hero status detail pembayaran (pending/lunas/batal) | `pending`/`paid`/`cancelled` + `soft-cream`/`soft-mint`/`soft-cream`, size 64 | `BillingRedirectPage` (jam pasir, struk+stempel, struk sobek — keputusan owner 2026-10-05) |
 | Area tanggal kosong (kalender/timeline) | `calendar` + `neutral` | `DueCalendar`, `BoardTimeline` |
 | Issues / tests / stack / decisions kosong | `bug` / `checklist` / `layers` / `scales` + `neutral` | `IssuesPage`, `TestsPage`, `StackPage`, `DecisionsPage` |
 | Releases / API / templates kosong | `flag` / `nodes` / `layout` + `neutral` | `ReleasesListView`, `ReleasesFlowView`, `ApiPage` ×2, `ApiDocsView`, `TemplatesPage` |

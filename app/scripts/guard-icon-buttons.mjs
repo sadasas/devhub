@@ -44,6 +44,11 @@ export const ALLOWLIST = [
   { file: 'src/components/IntegrationAnnounceSheet.tsx', label: 'announce.integrations.close' },
   // Present-exit ERD: Tooltip menelan Esc pertama (konflik tiered-Esc, terbukti test) — title= native dipertahankan.
   { file: 'src/features/schema/ERDCanvasMode.tsx', label: 'schema.canvas.exitPresent' },
+  // Tombol Back kartu billing (CardBack, panah-kembali icon-only): tanpa
+  // Tooltip visual (keputusan owner 2026-10-05: self-evident) — aria-label
+  // wajib tetap. Satu-satunya btn-icon di file ini, jadi label 'btn-icon'
+  // aman (tidak menaungi situs lain).
+  { file: 'src/features/teams/BillingRedirectPage.tsx', label: 'btn-icon' },
 ];
 
 const TOOLTIP_OPEN_RE = /<Tooltip(?=[\s>])/g;

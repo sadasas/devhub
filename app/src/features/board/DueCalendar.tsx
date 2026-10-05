@@ -267,6 +267,14 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
   const [anchor, setAnchor] = useState(todayIso());
   const [monthPickerOpen, setMonthPickerOpen] = useState(false);
   const monthLabelRef = useRef<HTMLButtonElement>(null);
+  // Mobile: panel daftar task tanggal terpilih di bawah grid.
+  const miniListRef = useRef<HTMLElement>(null);
+  const scrollMiniIntoView = useCallback(() => {
+    requestAnimationFrame(() => {
+      const reduced = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false;
+      miniListRef.current?.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'nearest' });
+    });
+  }, []);
   const [weekMode, setWeekMode] = useState(false);
 
   const [focused, setFocused] = useState<string | null>(null);
@@ -659,6 +667,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
     const handleMiniSelect = (): void => {
       setFocused(date);
       setMobileSelected(date);
+      scrollMiniIntoView();
     };
     return (
       <div
@@ -990,6 +999,7 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
 
         {isMobileCal && (
           <section
+            ref={miniListRef}
             className="due-cal-mini-list"
             aria-label={`${formatDayAriaLabel(mobileSelectedDate)} — ${t('board.cal.daySummary', { count: mobileSelectedTasks.length })}`}
           >

@@ -9,7 +9,7 @@ import { ApiError } from '../../../shared/errors.js';
 import { clearSessionCookie, setSessionCookie } from '../../../shared/cookie.js';
 import { withTransaction, parseOrThrow } from '../../../shared/db.js';
 import { enqueueMail } from '../../mail/outbox.js';
-import { computeUserStats } from '../application/user-stats.js';
+import { computeUserStats, currentSemesterRef, parseSemesterParam } from '../application/user-stats.js';
 
 const registerSchema = z.object({
   email: z.string().trim().toLowerCase().email('Invalid email').max(254),
@@ -378,7 +378,9 @@ authRouter.get('/me', requireAuth, async (req, res) => {
 
 authRouter.get('/me/stats', requireAuth, async (req, res) => {
   const userId = getUserId(req);
-  res.json(await computeUserStats(userId));
+  const raw = req.query.semester;
+  const ref = raw === undefined ? currentSemesterRef() : parseSemesterParam(raw);
+  res.json(await computeUserStats(userId, ref));
 });
 
 authRouter.patch('/profile', requireAuth, async (req, res) => {

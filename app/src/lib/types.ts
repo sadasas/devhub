@@ -871,6 +871,9 @@ export interface ActivityDay {
 }
 
 export interface UserStats {
+  semester: string;
+  from: string;
+  to: string;
   totalContributions: number;
   taskCompletions: number;
   issuesResolved: number;

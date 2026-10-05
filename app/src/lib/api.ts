@@ -265,7 +265,8 @@ export const api = {
       method: 'PATCH',
       body: JSON.stringify(patch),
     }),
-  meStats: () => request<UserStats>('/auth/me/stats'),
+  meStats: (semester: string) =>
+    request<UserStats>(`/auth/me/stats?semester=${encodeURIComponent(semester)}`),
 
   listProjects: async () => {
     const res = await request<{ projects: Project[] }>('/projects');
