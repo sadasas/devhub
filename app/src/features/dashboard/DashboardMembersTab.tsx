@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { EnvelopeSimple, MagnifyingGlass, Trash, UsersThree, X } from '@phosphor-icons/react';
+import { EnvelopeSimple, MagnifyingGlass, Trash, UsersThree } from '@phosphor-icons/react';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
 import { TEAM_ROLE } from '../../lib/labels';
-import { FE_LIMITS } from '../../lib/limits';
 import type { Team, TeamInvitation, TeamMember, TeamRole } from '../../lib/types';
 import { useTeams } from '../../state/teams-context';
 import { Avatar } from '../../components/Avatar';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
+import { SearchField } from '../../components/SearchField';
 import { EmptyState } from '../../components/EmptyState';
 import { Skeleton } from '../../components/Skeleton';
 import { DataErrorState } from '../../components/DataErrorState';
@@ -193,31 +193,17 @@ export function DashboardMembersTab({ team }: DashboardMembersTabProps) {
 
       {/* Local search — rendered only past the threshold, never in the URL. */}
       {showSearch && members !== null && !loadError && (
-        <div className="dashboard__members-search" role="search" aria-label={t('dashboard.team.membersSearchAria')}>
-          <MagnifyingGlass size={14} aria-hidden="true" className="dashboard__members-search-icon" />
-          <input
-            type="search"
-            name="member-q"
-            autoComplete="off"
-            spellCheck={false}
-            className="dashboard__members-search-input"
-            placeholder={t('dashboard.team.membersSearchPlaceholder')}
-            aria-label={t('dashboard.team.membersSearchAria')}
-            value={query}
-            maxLength={FE_LIMITS.SEARCH}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-          {query && (
-            <button
-              type="button"
-              className="dashboard__members-search-clear"
-              aria-label={t('dashboard.team.membersSearchClear')}
-              onClick={() => setQuery('')}
-            >
-              <X size={12} weight="bold" aria-hidden="true" />
-            </button>
-          )}
-        </div>
+        <SearchField
+          value={query}
+          onChange={setQuery}
+          placeholder={t('dashboard.team.membersSearchPlaceholder')}
+          ariaLabel={t('dashboard.team.membersSearchAria')}
+          clearLabel={t('dashboard.team.membersSearchClear')}
+          size="md"
+          name="member-q"
+          autoComplete="off"
+          spellCheck={false}
+        />
       )}
 
       {loadError ? (

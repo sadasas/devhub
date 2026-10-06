@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { ALLOWLIST, buttonTags, findViolations, inRanges, tooltipRanges } from './guard-icon-buttons.mjs';
+import {
+  ALLOWLIST,
+  ICON_ONLY_CLASSES,
+  buttonTags,
+  findViolations,
+  inRanges,
+  tooltipRanges,
+} from './guard-icon-buttons.mjs';
 
 function sources(files) {
   return files.map(([file, src]) => ({ file, src }));
@@ -77,5 +84,41 @@ describe('guard-icon-buttons', () => {
     const src = '<TooltipCard title="x" /><Tooltip title="y"><button className="btn-icon" /></Tooltip>';
     expect(tooltipRanges(src)).toHaveLength(1);
     expect(inRanges(tooltipRanges(src), src.indexOf('<button'))).toBe(true);
+  });
+
+  it('mencakup kelas icon-only ERD (2026-10-06)', () => {
+    expect(ICON_ONLY_CLASSES).toContain('btn-icon');
+    for (const c of ['erd-panel-icon-btn', 'erd-panel-x', 'erd-panel-chip-x', 'erd-sheet-handle']) {
+      expect(ICON_ONLY_CLASSES).toContain(c);
+    }
+    // Kelas ber-teks visible SENGAJA dikecualikan (Tooltip redundan).
+    for (const c of ['erd-rail-btn', 'erd-panel-col-toggle', 'erd-panel-tables-item']) {
+      expect(ICON_ONLY_CLASSES).not.toContain(c);
+    }
+  });
+
+  it('menandai tombol erd-panel-icon-btn tanpa Tooltip', () => {
+    const v = findViolations(
+      sources([
+        [
+          'src/features/schema/ERDCanvasPanel.tsx',
+          '<Button variant="ghost" size="sm" className="erd-panel-icon-btn" aria-label="Copy" title="Copy"><X /></Button>',
+        ],
+      ]),
+    );
+    expect(v).toHaveLength(1);
+    expect(v[0].hasTitle).toBe(true);
+  });
+
+  it('meloloskan tombol erd-panel-icon-btn di dalam <Tooltip>', () => {
+    const v = findViolations(
+      sources([
+        [
+          'src/features/schema/ERDCanvasPanel.tsx',
+          '<Tooltip content="Copy" side="right"><Button className="erd-panel-icon-btn" aria-label="Copy"><X /></Button></Tooltip>',
+        ],
+      ]),
+    );
+    expect(v).toEqual([]);
   });
 });

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { FileCode, FloppyDisk, LinkSimple, Selection, Table, X } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
+import { Tooltip } from '../../components/Tooltip';
 
 export type ErdRailTab = 'tables' | 'relations' | 'versions' | 'dbml' | 'areas';
 
@@ -204,13 +205,13 @@ export function ERDCanvasMode({
         {/* Handle hanya di-render saat expanded (ekspansi lewat tap tab) —
             sekaligus membuat peek ramping tanpa mengandalkan CSS. */}
         {sheetExpanded && (
+        <Tooltip content={t('schema.canvas.sheetCollapse')} side="bottom">
         <button
           type="button"
           className="erd-sheet-handle"
           aria-expanded={sheetExpanded}
           aria-controls="erd-sheet-panel"
           aria-label={t('schema.canvas.sheetCollapse')}
-          title={t('schema.canvas.sheetCollapse')}
           onClick={() => {
             // Handle hanya ada saat expanded (ekspansi lewat tap tab);
             // fokus kembali ke tab aktif agar keyboard tidak kehilangan arah.
@@ -220,6 +221,7 @@ export function ERDCanvasMode({
         >
           <span className="erd-sheet-grip" aria-hidden="true" />
         </button>
+        </Tooltip>
         )}
         <nav
           className="erd-rail"
@@ -244,7 +246,6 @@ export function ERDCanvasMode({
                 aria-controls={`erd-panel-tabpanel-${item.id}`}
                 tabIndex={isActive ? 0 : -1}
                 className={`erd-rail-btn${isActive ? ' erd-rail-btn-active' : ''}`}
-                title={item.label}
                 aria-label={item.label}
                 onClick={() => handleRailTabClick(item.id)}
               >

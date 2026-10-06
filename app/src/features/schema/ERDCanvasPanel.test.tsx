@@ -427,3 +427,20 @@ describe('Ronde 5 ITEM 2+3: auto-buka + tab Relations', () => {
     });
   });
 });
+
+describe('Tooltip ERD (2026-10-06): tanpa title= native pada tombol', () => {
+  beforeEach(() => {
+    mockLive();
+  });
+
+  it('dialog kanvas: nol button[title] — tooltip via <Tooltip>, bukan chrome browser', () => {
+    renderCanvas();
+    const dialog = canvasDialog();
+    const offenders = [...dialog.querySelectorAll('button[title]')]
+      // Tombol tutup kanvas dikecualikan (ALLOWLIST guard-icon-buttons:
+      // tutup/dismiss cukup aria-label — Tooltip menelan Esc pertama).
+      .filter((b) => !(b.className as string).includes('erd-canvas-mode-close'))
+      .map((b) => `${b.getAttribute('aria-label') ?? '?'} :: ${b.className} :: ${b.getAttribute('title')}`);
+    expect(offenders).toEqual([]);
+  });
+});

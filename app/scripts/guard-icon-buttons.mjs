@@ -51,6 +51,22 @@ export const ALLOWLIST = [
   { file: 'src/features/teams/BillingRedirectPage.tsx', label: 'btn-icon' },
 ];
 
+// Kelas tombol icon-only yang dipindai (2026-10-06: + kelas ERD —
+// tombol zoom/panel/rail/sheet memakai class kustom, bukan btn-icon,
+// sehingga lolos radar sebelum migrasi Tooltip ERD).
+// CATATAN: hanya kelas yang SELALU icon-only. `.erd-rail-btn` (ikon + teks
+// visible) dan `.erd-panel-col-toggle`/`.erd-panel-tables-item` (berisi teks)
+// SENGAJA dikecualikan — Tooltip di sana redundan/menumpuk.
+// Keterbatasan: tombol tanpa class literal (klaster zoom `.erd-zoom`,
+// `<Button variant secondary>` polos) tetap tak terdeteksi statis.
+export const ICON_ONLY_CLASSES = [
+  'btn-icon',
+  'erd-panel-icon-btn',
+  'erd-panel-x',
+  'erd-panel-chip-x',
+  'erd-sheet-handle',
+];
+
 const TOOLTIP_OPEN_RE = /<Tooltip(?=[\s>])/g;
 const TOOLTIP_CLOSE_RE = /<\/Tooltip\s*>/g;
 // 2026-10-04: pindai JUGA komponen <Button> (kapital) — 25 situs btn-icon
@@ -157,7 +173,7 @@ export function findViolations(tsxSources) {
     const ranges = tooltipRanges(s.src);
     for (const b of buttonTags(s.src)) {
       const tag = b.tag;
-      if (tag.indexOf('btn-icon') === -1) continue;
+      if (!ICON_ONLY_CLASSES.some((c) => tag.indexOf(c) !== -1)) continue;
       // §9 pengetatan 2026-09-29: title= telanjang TANPA Tooltip = TEMUAN.
       // Hanya rentang <Tooltip> seimbang atau ALLOWLIST yang meloloskan.
       if (inRanges(ranges, b.index)) continue;
@@ -199,7 +215,7 @@ function main() {
     for (const v of violations.slice(0, 30)) {
       const kind = v.hasTitle ? 'bare title= tanpa <Tooltip>' : 'tanpa <Tooltip>';
       console.error(
-        `[guard:buttons]   - ${v.file}:${v.line} — btn-icon ${kind} — ` +
+        `[guard:buttons]   - ${v.file}:${v.line} — icon-only ${kind} — ` +
         'bungkus <Tooltip title={sama-dengan-aria-label}> atau daftarkan di ALLOWLIST (tutup/dismiss saja)',
       );
     }

@@ -12,14 +12,12 @@ import { writeLastActiveTeamId } from '../layout/WorkspaceSwitcher';
 import {
   Archive,
   EnvelopeSimple,
-  MagnifyingGlass,
-  X,
 } from '@phosphor-icons/react';
 import { Button } from '../../components/Button';
+import { SearchField } from '../../components/SearchField';
 import { Badge } from '../../components/Badge';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { TEAM_ROLE } from '../../lib/labels';
-import { FE_LIMITS } from '../../lib/limits';
 import { Tooltip } from '../../components/Tooltip';
 import { EmptyState } from '../../components/EmptyState';
 import { DoodleIllustration } from '../../components/DoodleIllustration';
@@ -95,35 +93,23 @@ function DashboardCommandBar({
   const { t } = useTranslation('account');
   return (
     <div className="welcome-command-bar" role="search" aria-label={t('dashboard.welcome.search.filterAria')}>
-      <div className="welcome-search">
-        <MagnifyingGlass size={14} aria-hidden="true" className="welcome-search-icon" />
-        <input
-          type="search"
-          name="q"
-          autoComplete="off"
-          spellCheck={false}
-          className="welcome-search-input"
-          placeholder={t('dashboard.welcome.search.placeholder')}
-          aria-label={t('dashboard.welcome.search.aria')}
-          value={query}
-          maxLength={FE_LIMITS.SEARCH}
-          onChange={(e) => onQuery(e.target.value)}
-        />
-        {query && (
-          <button
-            type="button"
-            className="welcome-search-clear"
-            aria-label={t('dashboard.welcome.search.clearAria')}
-            onClick={() => onQuery('')}
-          >
-            <X size={12} weight="bold" aria-hidden="true" />
-          </button>
+      <SearchField
+        value={query}
+        onChange={onQuery}
+        placeholder={t('dashboard.welcome.search.placeholder')}
+        ariaLabel={t('dashboard.welcome.search.aria')}
+        clearLabel={t('dashboard.welcome.search.clearAria')}
+        size="lg"
+        name="q"
+        autoComplete="off"
+        spellCheck={false}
+        hint={(
+          <span className="welcome-search-hint" aria-hidden="true">
+            <kbd className="welcome-kbd" translate="no">⌘</kbd>
+            <kbd className="welcome-kbd" translate="no">K</kbd>
+          </span>
         )}
-        <span className="welcome-search-hint" aria-hidden="true">
-          <kbd className="welcome-kbd" translate="no">⌘</kbd>
-          <kbd className="welcome-kbd" translate="no">K</kbd>
-        </span>
-      </div>
+      />
       <div className="welcome-command-actions">
         <div className="welcome-command-label">
           <span className="welcome-command-label-text" id="dashboard-sort-label">{t('dashboard.welcome.search.sortLabel')}</span>

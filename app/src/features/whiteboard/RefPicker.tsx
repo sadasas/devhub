@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FE_LIMITS } from '../../lib/limits';
 import type { State, WhiteboardRefEntity } from '../../lib/types';
+import { SearchField } from '../../components/SearchField';
 import {
   DECISION_STATUS,
   ISSUE_SEVERITY,
@@ -254,22 +254,20 @@ export function RefPicker({ open, state, onPick, onClose, onCreateNew, onBrowse 
           </button>
         ))}
       </div>
-      <label className="wb-refsearch">
-        <input
-          ref={inputRef}
-          className="input"
-          placeholder={t('whiteboard.refPicker.searchPlaceholder')}
-          aria-label={t('whiteboard.refPicker.searchAria')}
-          autoFocus={AUTO_FOCUS_INPUT}
-          value={query}
-          maxLength={FE_LIMITS.SEARCH}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setActive(0);
-          }}
-          onKeyDown={handleKeyDown}
-        />
-      </label>
+      <SearchField
+        value={query}
+        onChange={(v) => {
+          setQuery(v);
+          setActive(0);
+        }}
+        placeholder={t('whiteboard.refPicker.searchPlaceholder')}
+        ariaLabel={t('whiteboard.refPicker.searchAria')}
+        clearLabel={t('whiteboard.refPicker.clearSearch')}
+        size="sm"
+        inputRef={inputRef}
+        autoFocus={AUTO_FOCUS_INPUT}
+        onKeyDown={handleKeyDown}
+      />
       {recentItems.length > 0 && query.trim() === '' && (
         <div className="wb-refrecent">
           <div className="wb-refrecent-head">

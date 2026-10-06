@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Plugs, Plus, UploadSimple, X } from '@phosphor-icons/react';
+import { Plugs, Plus, UploadSimple } from '@phosphor-icons/react';
 import { useTranslation } from 'react-i18next';
 import type { ApiCollection, ApiEndpoint, Milestone } from '../../lib/types';
 import { formatDate, matchesApiEndpoint } from '../../lib/utils';
-import { FE_LIMITS } from '../../lib/limits';
 import { Button } from '../../components/Button';
+import { SearchField } from '../../components/SearchField';
 import { EmptyState } from '../../components/EmptyState';
 import { DoodleIllustration } from '../../components/DoodleIllustration';
 import { DocsToc, DocsTocMobile, type DocsTocItem } from '../docs/DocsToc';
@@ -166,27 +166,14 @@ export function ApiDocsView({
       <div className="docs-main">
         <DocsTocMobile items={tocItems} />
         <div className="api-docs-search">
-          <div className="api-search-wrap api-docs-search-wrap">
-            <input
-              className="api-sidebar-search"
-              type="search"
-              placeholder={t('api.sidebar.searchPlaceholder')}
-              value={search}
-              maxLength={FE_LIMITS.SEARCH}
-              onChange={(e) => setSearch(e.target.value)}
-              aria-label={t('api.sidebar.searchAria')}
-            />
-            {search && (
-              <button
-                type="button"
-                className="api-search-clear"
-                aria-label={t('api.sidebar.clearSearch')}
-                onClick={() => setSearch('')}
-              >
-                <X size={12} weight="bold" aria-hidden="true" />
-              </button>
-            )}
-          </div>
+          <SearchField
+            value={search}
+            onChange={setSearch}
+            placeholder={t('api.sidebar.searchPlaceholder')}
+            ariaLabel={t('api.sidebar.searchAria')}
+            clearLabel={t('api.sidebar.clearSearch')}
+            size="sm"
+          />
           {query && (
             <p className="api-search-count" role="status">
               {t('api.sidebar.results', { count: shownCount })}

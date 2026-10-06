@@ -286,6 +286,7 @@
       "settingsNavBack": "Back to app",
       "settingsNavSearchPlaceholder": "Search settings…",
       "settingsNavSearchAria": "Search settings",
+      "settingsNavSearchClear": "Clear search",
       "settingsNavNoResults": "No matching settings",
       "settingsNavMatches": "Matches:",
       "settingsNavPlanBilling": "Plan & billing",

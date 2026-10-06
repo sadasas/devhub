@@ -113,7 +113,6 @@ export function SchemaIssuesStrip({
             disabled={!canLocate}
             onClick={() => onLocate(issue.tableId)}
             aria-label={t('schema.issues.locateAria', { label })}
-            title={t('schema.issues.locateAria', { label })}
           >
             {t('schema.issues.locate')}
           </Button>
@@ -123,7 +122,6 @@ export function SchemaIssuesStrip({
               size="sm"
               onClick={() => onOpenTable(issue.tableId)}
               aria-label={t('schema.issues.openTableAria', { label })}
-              title={t('schema.issues.openTableAria', { label })}
             >
               {t('schema.issues.openTable')}
             </Button>

@@ -11,7 +11,7 @@ import { dropTargetGroup, resolveGroupBox, resizeBox } from './erd-groups';
 import type { ErdGroupBox, GroupCorner } from './erd-groups';
 import { Button } from '../../components/Button';
 import { DoodleIllustration } from '../../components/DoodleIllustration';
-import { TooltipCard } from '../../components/Tooltip';
+import { Tooltip, TooltipCard } from '../../components/Tooltip';
 
 const TABLE_W = 208;
 const HEADER_H = 30;
@@ -2042,33 +2042,36 @@ export function ERD({
       )}
       {!presenting && (
       <div className="erd-zoom">
+        <Tooltip content={t('schema.erd.zoomIn')} side="left">
         <Button
           variant="secondary"
           size="sm"
           aria-label={t('schema.erd.zoomIn')}
-          title={t('schema.erd.zoomIn')}
           onClick={() => zoomAt(1.2)}
         >
           <MagnifyingGlassPlus size={13} aria-hidden="true" />
         </Button>
+        </Tooltip>
+        <Tooltip content={t('schema.erd.zoomOut')} side="left">
         <Button
           variant="secondary"
           size="sm"
           aria-label={t('schema.erd.zoomOut')}
-          title={t('schema.erd.zoomOut')}
           onClick={() => zoomAt(1 / 1.2)}
         >
           <MagnifyingGlassMinus size={13} aria-hidden="true" />
         </Button>
+        </Tooltip>
+        <Tooltip content={t('schema.erd.resetView')} side="left">
         <Button
           variant="secondary"
           size="sm"
           aria-label={t('schema.erd.resetView')}
-          title={t('schema.erd.resetView')}
           onClick={() => setView({ x: 16, y: 16, s: 1 })}
         >
           <CornersOut size={13} aria-hidden="true" />
         </Button>
+        </Tooltip>
       </div>
       )}
     </div>

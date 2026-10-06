@@ -31,6 +31,7 @@ import type { ApiCollection, ApiEndpoint, ApiMethod, ApiParam, State } from '../
 import { useProject } from '../../state/project-context';
 import { BottomSheet } from '../../components/BottomSheet';
 import { Button } from '../../components/Button';
+import { SearchField } from '../../components/SearchField';
 import { Tooltip } from '../../components/Tooltip';
 import { ActivityList } from '../../components/ActivityList';
 import { EmptyState } from '../../components/EmptyState';
@@ -816,27 +817,14 @@ export function ApiPage({ projectName, projectDescription, unreadIds }: ApiPageP
               </button>
             </div>
           )}
-          <div className="api-search-wrap">
-            <input
-              className="api-sidebar-search"
-              type="search"
-              placeholder={t('api.sidebar.searchPlaceholder')}
-              value={search}
-              maxLength={FE_LIMITS.SEARCH}
-              onChange={(e) => setSearch(e.target.value)}
-              aria-label={t('api.sidebar.searchAria')}
-            />
-            {search && (
-              <button
-                type="button"
-                className="api-search-clear"
-                aria-label={t('api.sidebar.clearSearch')}
-                onClick={() => setSearch('')}
-              >
-                <X size={12} weight="bold" aria-hidden="true" />
-              </button>
-            )}
-          </div>
+          <SearchField
+            value={search}
+            onChange={setSearch}
+            placeholder={t('api.sidebar.searchPlaceholder')}
+            ariaLabel={t('api.sidebar.searchAria')}
+            clearLabel={t('api.sidebar.clearSearch')}
+            size="sm"
+          />
           {query && (
             <p className="api-search-count" role="status">
               {t('api.sidebar.results', { count: matchCount })}

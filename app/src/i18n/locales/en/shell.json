@@ -69,6 +69,7 @@
     "open": "Open command palette",
     "searchPlaceholder": "Type a command or search tasks, issues, decisions…",
     "searchCommands": "Search commands",
+    "clearSearch": "Clear search",
     "commandsList": "Commands",
     "groupNavigate": "Navigate",
     "groupCreate": "Create",

@@ -8,6 +8,7 @@ import { FE_LIMITS } from '../../lib/limits';
 import { canAutoincrement, isPlainIndex, isUniqueIndex, togglePlainIndex, toggleUnique } from './column-helpers';
 import { Badge } from '../../components/Badge';
 import { Button } from '../../components/Button';
+import { Tooltip } from '../../components/Tooltip';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
 import { ColumnTypeCombobox } from './ColumnTypeCombobox';
@@ -353,6 +354,7 @@ export function ERDCanvasPanel({
               {t('schema.panel.columnsLabel')} <span className="erd-panel-count">· {tbl.columns.length}</span>
             </h3>
             {canEdit && (
+              <Tooltip content={t('schema.panel.addColumn')} side="right">
               <Button
                 variant="ghost"
                 size="sm"
@@ -360,10 +362,10 @@ export function ERDCanvasPanel({
                 leftIcon={<Plus size={14} aria-hidden="true" />}
                 onClick={addColumn}
                 aria-label={t('schema.panel.addColumn')}
-                title={t('schema.panel.addColumn')}
               >
                 <span className="sr-only">{t('schema.panel.addColumn')}</span>
               </Button>
+              </Tooltip>
             )}
           </div>
           {tbl.columns.length === 0 ? (
@@ -397,15 +399,16 @@ export function ERDCanvasPanel({
                         {unique && <Badge>U</Badge>}
                       </button>
                       {canEdit && (
+                        <Tooltip content={t('schema.panel.deleteColumnAria', { name: colDisplay })} side="right">
                         <button
                           type="button"
                           className="erd-panel-x"
                           aria-label={t('schema.panel.deleteColumnAria', { name: colDisplay })}
-                          title={t('schema.panel.deleteColumnAria', { name: colDisplay })}
                           onClick={() => removeColumn(col.id)}
                         >
                           <Trash size={13} aria-hidden="true" />
                         </button>
+                        </Tooltip>
                       )}
                     </div>
                     {expanded && (
@@ -557,6 +560,7 @@ export function ERDCanvasPanel({
 
         <div className="erd-panel-actions">
           {onOpenTable && (
+            <Tooltip content={t('schema.panel.openFullEditor')} side="right">
             <Button
               variant="secondary"
               size="sm"
@@ -564,12 +568,13 @@ export function ERDCanvasPanel({
               leftIcon={<ArrowsOutSimple size={14} aria-hidden="true" />}
               onClick={() => onOpenTable(tbl.id)}
               aria-label={t('schema.panel.openFullEditor')}
-              title={t('schema.panel.openFullEditor')}
             >
               <span className="sr-only">{t('schema.panel.openFullEditor')}</span>
             </Button>
+            </Tooltip>
           )}
           {canEdit && (
+            <Tooltip content={t('schema.panel.deleteTable')} side="right">
             <Button
               variant="danger"
               size="sm"
@@ -577,10 +582,10 @@ export function ERDCanvasPanel({
               leftIcon={<Trash size={14} aria-hidden="true" />}
               onClick={() => setConfirmDeleteTableId(tbl.id)}
               aria-label={t('schema.panel.deleteTable')}
-              title={t('schema.panel.deleteTable')}
             >
               <span className="sr-only">{t('schema.panel.deleteTable')}</span>
             </Button>
+            </Tooltip>
           )}
         </div>
 
@@ -655,6 +660,7 @@ export function ERDCanvasPanel({
       </div>
       {!readOnly && (
         <div className="erd-panel-actions">
+          <Tooltip content={t('schema.panel.deleteRelation')} side="right">
           <Button
             variant="danger"
             size="sm"
@@ -662,10 +668,10 @@ export function ERDCanvasPanel({
             leftIcon={<Trash size={14} aria-hidden="true" />}
             onClick={() => onDeleteRelation(rel)}
             aria-label={t('schema.panel.deleteRelation')}
-            title={t('schema.panel.deleteRelation')}
           >
             <span className="sr-only">{t('schema.panel.deleteRelation')}</span>
           </Button>
+          </Tooltip>
         </div>
       )}
     </>
@@ -725,15 +731,16 @@ export function ERDCanvasPanel({
                       <li key={tbl.id} className="erd-panel-index font-mono" title={tbl.name}>
                         <span className="erd-panel-index-text">{label}</span>
                         {canEditAreas && (
+                          <Tooltip content={t('schema.areas.removeMember', { name: label })} side="right">
                           <button
                             type="button"
                             className="erd-panel-chip-x"
                             aria-label={t('schema.areas.removeMember', { name: label })}
-                            title={t('schema.areas.removeMember', { name: label })}
                             onClick={() => toggleGroupMember(g, tbl.id)}
                           >
-                            <span aria-hidden="true">×</span>
+                            <span aria-hidden="true">x</span>
                           </button>
+                          </Tooltip>
                         )}
                       </li>
                     );
@@ -764,6 +771,7 @@ export function ERDCanvasPanel({
       </div>
       {canEditAreas && (
         <div className="erd-panel-actions">
+          <Tooltip content={t('schema.areas.delete')} side="right">
           <Button
             variant="danger"
             size="sm"
@@ -774,10 +782,10 @@ export function ERDCanvasPanel({
               if (expandedGroupId === g.id) setExpandedGroupId(null);
             }}
             aria-label={t('schema.areas.delete')}
-            title={t('schema.areas.delete')}
           >
             <span className="sr-only">{t('schema.areas.delete')}</span>
           </Button>
+          </Tooltip>
         </div>
       )}
     </>
@@ -791,6 +799,7 @@ export function ERDCanvasPanel({
         </h3>
         {!readOnly && onAddArea && (
           <span className="erd-panel-actions" style={{ marginTop: 0, paddingTop: 0 }}>
+            <Tooltip content={t('schema.areas.new')} side="right">
             <Button
               variant="ghost"
               size="sm"
@@ -798,10 +807,10 @@ export function ERDCanvasPanel({
               leftIcon={<Plus size={14} aria-hidden="true" />}
               onClick={onAddArea}
               aria-label={t('schema.areas.new')}
-              title={t('schema.areas.new')}
             >
               <span className="sr-only">{t('schema.areas.new')}</span>
             </Button>
+            </Tooltip>
           </span>
         )}
       </div>
@@ -870,6 +879,7 @@ export function ERDCanvasPanel({
             </h3>
             {!readOnly && onAddTable && (
               <span className="erd-panel-actions" style={{ marginTop: 0, paddingTop: 0 }}>
+                <Tooltip content={t('schema.page.newTable')} side="right">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -877,10 +887,10 @@ export function ERDCanvasPanel({
                   leftIcon={<Plus size={14} aria-hidden="true" />}
                   onClick={onAddTable}
                   aria-label={t('schema.page.newTable')}
-                  title={t('schema.page.newTable')}
                 >
                   <span className="sr-only">{t('schema.page.newTable')}</span>
                 </Button>
+                </Tooltip>
               </span>
             )}
           </div>
@@ -949,6 +959,7 @@ export function ERDCanvasPanel({
             </h3>
             {!readOnly && onAddRelation && (
               <span className="erd-panel-actions" style={{ marginTop: 0, paddingTop: 0 }}>
+                <Tooltip content={t('schema.page.newRelation')} side="right">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -956,10 +967,10 @@ export function ERDCanvasPanel({
                   leftIcon={<Plus size={14} aria-hidden="true" />}
                   onClick={onAddRelation}
                   aria-label={t('schema.page.newRelation')}
-                  title={t('schema.page.newRelation')}
                 >
                   <span className="sr-only">{t('schema.page.newRelation')}</span>
                 </Button>
+                </Tooltip>
               </span>
             )}
           </div>
@@ -1048,6 +1059,7 @@ export function ERDCanvasPanel({
             </h3>
             <span className="erd-panel-actions" style={{ marginTop: 0, paddingTop: 0 }}>
               {versionsWithSnap.length >= 2 && onDiffVersions && (
+                <Tooltip content={t('schema.diffVersions')} side="right">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -1055,12 +1067,13 @@ export function ERDCanvasPanel({
                   leftIcon={<GitDiff size={14} aria-hidden="true" />}
                   onClick={onDiffVersions}
                   aria-label={t('schema.diffVersions')}
-                  title={t('schema.diffVersions')}
                 >
                   <span className="sr-only">{t('schema.diffVersions')}</span>
                 </Button>
+                </Tooltip>
               )}
               {canEditVersions && onSaveVersion && (
+                <Tooltip content={t('schema.saveVersion')} side="right">
                 <Button
                   variant="ghost"
                   size="sm"
@@ -1068,10 +1081,10 @@ export function ERDCanvasPanel({
                   leftIcon={<FloppyDisk size={14} aria-hidden="true" />}
                   onClick={onSaveVersion}
                   aria-label={t('schema.saveVersion')}
-                  title={t('schema.saveVersion')}
                 >
                   <span className="sr-only">{t('schema.saveVersion')}</span>
                 </Button>
+                </Tooltip>
               )}
             </span>
           </div>
@@ -1109,7 +1122,7 @@ export function ERDCanvasPanel({
                 .map((v) => {
                   const isActive = v.id === selectedVersionId;
                   const hasSnap = !!v.snapshot;
-                  return (
+                  const rowButton = (
                     <button
                       key={v.id}
                       type="button"
@@ -1118,11 +1131,10 @@ export function ERDCanvasPanel({
                       aria-pressed={isActive}
                       aria-current={isActive ? ('true' as const) : undefined}
                       aria-label={t('schema.viewRow.aria', { version: v.version })}
-                      title={hasSnap ? t('schema.viewRow.aria', { version: v.version }) : t('schema.viewRow.noSnapshotTooltip')}
                     >
                       <Badge tone="accent">{v.version}</Badge>
                       {unreadVersionIds?.has(v.id) && (
-                        <span className="unread-pill" role="status" aria-label={t('schema.unread')} title={t('schema.unread')}>
+                        <span className="unread-pill" role="status" aria-label={t('schema.unread')}>
                           {t('schema.unread')}
                         </span>
                       )}
@@ -1139,6 +1151,13 @@ export function ERDCanvasPanel({
                         </span>
                       )}
                     </button>
+                  );
+                  // Baris tanpa snapshot: ikon warn saja tak menjelaskan —
+                  // Tooltip gantikan title= native (info, bukan duplikat nama).
+                  return hasSnap ? rowButton : (
+                    <Tooltip content={t('schema.viewRow.noSnapshotTooltip')} side="right">
+                      {rowButton}
+                    </Tooltip>
                   );
                 })}
             </div>
@@ -1189,28 +1208,30 @@ export function ERDCanvasPanel({
           <div className="erd-panel-row">
             <h3 className="erd-panel-subtitle">{t('schema.dbml.title')}</h3>
             <span className="erd-panel-actions" style={{ marginTop: 0, paddingTop: 0 }}>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="erd-panel-icon-btn"
-                leftIcon={<Copy size={14} aria-hidden="true" />}
-                onClick={handleCopyDbml}
-                aria-label={t('schema.dbml.copy')}
-                title={t('schema.dbml.copy')}
-              >
-                <span className="sr-only">{t('schema.dbml.copy')}</span>
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="erd-panel-icon-btn"
-                leftIcon={<DownloadSimple size={14} aria-hidden="true" />}
-                onClick={handleDownloadDbml}
-                aria-label={t('schema.dbml.download')}
-                title={t('schema.dbml.download')}
-              >
-                <span className="sr-only">{t('schema.dbml.download')}</span>
-              </Button>
+              <Tooltip content={t('schema.dbml.copy')} side="right">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="erd-panel-icon-btn"
+                  leftIcon={<Copy size={14} aria-hidden="true" />}
+                  onClick={handleCopyDbml}
+                  aria-label={t('schema.dbml.copy')}
+                >
+                  <span className="sr-only">{t('schema.dbml.copy')}</span>
+                </Button>
+              </Tooltip>
+              <Tooltip content={t('schema.dbml.download')} side="right">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="erd-panel-icon-btn"
+                  leftIcon={<DownloadSimple size={14} aria-hidden="true" />}
+                  onClick={handleDownloadDbml}
+                  aria-label={t('schema.dbml.download')}
+                >
+                  <span className="sr-only">{t('schema.dbml.download')}</span>
+                </Button>
+              </Tooltip>
             </span>
           </div>
           <div role="status" aria-live="polite" className="sr-only">

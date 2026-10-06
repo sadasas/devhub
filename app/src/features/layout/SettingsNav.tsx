@@ -1,15 +1,14 @@
 import { useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
-import { FE_LIMITS } from '../../lib/limits';
 import {
   CaretLeft,
   ChartBar,
   CurrencyCircleDollar,
   GearSix,
-  MagnifyingGlass,
   Trash,
 } from '@phosphor-icons/react';
+import { SearchField } from '../../components/SearchField';
 import { SETTINGS_SUB_KEYS, normalizeSettingsSection, type SettingsSection } from '../dashboard/settingsSections';
 import { DoodleIllustration } from '../../components/DoodleIllustration';
 
@@ -60,18 +59,14 @@ export function SettingsNav({ teamSlug, dashboardTo, onSelect }: SettingsNavProp
         <CaretLeft size={15} weight="duotone" aria-hidden="true" />
         <span className="sidebar-item-label">{t('dashboard.team.settingsNavBack')}</span>
       </Link>
-      <div className="settings-nav-search" role="search">
-        <MagnifyingGlass size={14} aria-hidden="true" className="settings-nav-search-icon" />
-        <input
-          type="text"
-          className="settings-nav-search-input"
-          placeholder={t('dashboard.team.settingsNavSearchPlaceholder') as string}
-          aria-label={t('dashboard.team.settingsNavSearchAria') as string}
-          value={query}
-          maxLength={FE_LIMITS.SEARCH}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-      </div>
+      <SearchField
+        value={query}
+        onChange={setQuery}
+        placeholder={t('dashboard.team.settingsNavSearchPlaceholder') as string}
+        ariaLabel={t('dashboard.team.settingsNavSearchAria') as string}
+        clearLabel={t('dashboard.team.settingsNavSearchClear') as string}
+        size="sm"
+      />
       {visible.map(({ item, subs }) => {
         const isActive = item.key === active;
         return (

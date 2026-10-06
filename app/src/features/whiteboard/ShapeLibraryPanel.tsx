@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { useTranslation } from 'react-i18next';
-import { FE_LIMITS } from '../../lib/limits';
 import type { WhiteboardShape } from '../../lib/types';
+import { SearchField } from '../../components/SearchField';
 import { Tooltip } from '../../components/Tooltip';
 import { ShapeThumb } from './ShapeThumb';
 import {
@@ -108,17 +108,15 @@ export function ShapeLibraryPanel({ onPick, onClose }: ShapeLibraryPanelProps) {
           </button>
         ))}
       </div>
-      <label className="wb-moresearch">
-        <input
-          ref={inputRef}
-          className="input"
-          placeholder={t('whiteboard.shapeLib.search')}
-          aria-label={t('whiteboard.shapeLib.searchAria')}
-          value={query}
-          maxLength={FE_LIMITS.SEARCH}
-          onChange={(e) => setQuery(e.target.value)}
-        />
-      </label>
+      <SearchField
+        value={query}
+        onChange={setQuery}
+        placeholder={t('whiteboard.shapeLib.search')}
+        ariaLabel={t('whiteboard.shapeLib.searchAria')}
+        clearLabel={t('whiteboard.shapeLib.clearSearch')}
+        size="sm"
+        inputRef={inputRef}
+      />
       {recentItems.length > 0 && query.trim() === '' && (
         <div className="wb-morerecent">
           <span className="wb-morerecent-head">{t('whiteboard.shapeLib.recent')}</span>

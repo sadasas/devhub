@@ -6,7 +6,6 @@ import {
   FolderSimple,
   GearSix,
   House,
-  MagnifyingGlass,
   Notebook,
   Plugs,
   PushPin,
@@ -23,6 +22,7 @@ import { useProjects } from '../../state/projects-context';
 import { useTeams } from '../../state/teams-context';
 import { useAuth } from '../../state/auth-context';
 import { Button } from '../../components/Button';
+import { SearchField } from '../../components/SearchField';
 import { DoodleIllustration } from '../../components/DoodleIllustration';
 import { FE_LIMITS } from '../../lib/limits';
 import { Skeleton } from '../../components/Skeleton';
@@ -556,16 +556,15 @@ export function Sidebar({ activeTeamId, onCreateTeam, onNavigate }: SidebarProps
             </button>
 
             {showProjects && showFilter && (
-              <div className="sidebar-filter" role="search">
-                <MagnifyingGlass size={14} aria-hidden="true" className="sidebar-filter-icon" />
-                <input
-                  type="text"
-                  className="sidebar-filter-input"
-                  placeholder={t('sidebar.filterPlaceholder') as string}
-                  aria-label={t('sidebar.filterPlaceholder') as string}
+              <div className="sidebar-filter">
+                <SearchField
                   value={filterQuery}
+                  onChange={setFilterQuery}
+                  placeholder={t('sidebar.filterPlaceholder') as string}
+                  ariaLabel={t('sidebar.filterPlaceholder') as string}
+                  clearLabel={t('sidebar.clearFilter') as string}
+                  size="sm"
                   maxLength={FE_LIMITS.FILTER}
-                  onChange={(e) => setFilterQuery(e.target.value)}
                 />
               </div>
             )}

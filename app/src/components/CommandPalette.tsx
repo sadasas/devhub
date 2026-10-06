@@ -13,8 +13,8 @@ import { toggleChat } from '../lib/chat-events';
 import { isTourActive } from '../features/onboarding/tour-events';
 import { LANGUAGES, useAppLocale } from '../i18n/useAppLocale';
 import { useTheme } from '../state/theme-context';
-import { FE_LIMITS } from '../lib/limits';
 import { DoodleIllustration } from './DoodleIllustration';
+import { SearchField } from './SearchField';
 
 interface PaletteCommand {
   id: string;
@@ -432,14 +432,15 @@ export function CommandPalette() {
     <div className="palette" role="dialog" aria-modal="true" aria-label={t('palette.dialog')}>
       <div className="palette-backdrop" onMouseDown={() => setOpen(false)} />
       <div className="palette-panel" ref={panelRef}>
-        <input
-          ref={inputRef}
-          className="palette-input"
+        <SearchField
           value={query}
-          maxLength={FE_LIMITS.SEARCH}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={setQuery}
           placeholder={t('palette.searchPlaceholder')}
-          aria-label={t('palette.searchCommands')}
+          ariaLabel={t('palette.searchCommands')}
+          clearLabel={t('palette.clearSearch')}
+          size="lg"
+          variant="underline"
+          inputRef={inputRef}
           role="combobox"
           aria-expanded="true"
           aria-controls="palette-list"
