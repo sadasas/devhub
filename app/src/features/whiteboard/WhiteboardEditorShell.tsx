@@ -11,8 +11,9 @@ import { WhiteboardLayers } from './WhiteboardLayers';
 import { ShapeLibraryPanel } from './ShapeLibraryPanel';
 import { ShapeThumb } from './ShapeThumb';
 import { BASIC_SWATCHES, FillModeSegmented } from './WhiteboardColorPanel';
+import { CustomColorButton } from './CustomColorPicker';
 import { WhiteboardShortcutsDialog } from './WhiteboardShortcutsDialog';
-import { AlignDropdown, ColorDropdown, DropdownShell, DropCaret, FontDropdown, SizeDropdown, TextStyleToggles, WidthSlider } from './WhiteboardTextControls';
+import { AlignDropdown, ColorDropdown, DropdownShell, DropCaret, ERASER_WIDTH_PRESETS, FontDropdown, SizeDropdown, TextStyleToggles, WIDTH_PRESETS, WidthGlyph, WidthPresets } from './WhiteboardTextControls';
 import { pushShapeRecent, type LibraryItem } from './libraries';
 import { SHORTCUTS } from './shortcuts';
 import { isModalOrPaletteOpen, isTypingTarget } from '../../lib/keys';
@@ -314,7 +315,7 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
   useEffect(() => { try { localStorage.setItem('wb:textStrike', textStrike ? '1' : '0'); } catch {} }, [textStrike]);
   useEffect(() => { try { localStorage.setItem('wb:textBullet', textBullet ? '1' : '0'); } catch {} }, [textBullet]);
   // Open strip popup (size/width/font/align/color only one at a time).
-  type StripPop = null | 'penWidth' | 'eraserWidth' | 'stickySize' | 'stickyAlign' | 'textFont' | 'textSize' | 'textAlign' | 'textColor' | 'shapeSize' | 'shapeAlign' | 'edgeSize' | 'boundarySize';
+  type StripPop = null | 'penWidth' | 'eraserWidth' | 'stickySize' | 'stickyAlign' | 'textFont' | 'textSize' | 'textAlign' | 'textColor' | 'shapeSize' | 'shapeAlign' | 'shapeFill' | 'edgeSize' | 'boundarySize';
   const [stripPop, setStripPop] = useState<StripPop>(null);
   useEffect(() => { setStripPop(null); }, [tool]);
   useEffect(() => { try { localStorage.setItem('wb:shapeColor', shapeColor); } catch {} }, [shapeColor]);
@@ -676,6 +677,11 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
     </div>
   ) : null;
 
+  /** Vertical FigJam-style divider between defaults-strip groups (sama dengan floating bar). */
+  const stripSep = (key: string) => (
+    <div key={key} className="wb-bar-sep" role="separator" aria-hidden="true" />
+  );
+
   // FigJam defaults strip (Image 4): tool defaults live above the pill, icon-only.
   const stripDots = (
     value: string | null | undefined,
@@ -696,44 +702,40 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
           />
         </Tooltip>
       ))}
-      <Tooltip content={t('whiteboard.colorPanel.custom')} side="top">
-        <label className="wb-rainbow">
-          <span aria-hidden="true" className="wb-rainbow-ui" />
-          <span className="sr-only">{t('whiteboard.colorPanel.custom')}</span>
-          <input
-            type="color"
-            className="wb-rainbow-input"
-            value={/^#[0-9a-f]{6}$/i.test(value ?? '') ? (value as string) : '#2563eb'}
-            onChange={(e) => onPick(e.target.value)}
-            aria-label={t('whiteboard.colorPanel.custom')}
-          />
-        </label>
-      </Tooltip>
+      <CustomColorButton value={value} onPick={onPick} />
     </span>
   );
   const toggleStrip = (key: Exclude<StripPop, null>) => setStripPop(stripPop === key ? null : key);
+  /** Strip width pen/eraser: tombol glyph garis live (Opsi A), presisi di tooltip/aria. */
   const stripWidth = (
     key: 'penWidth' | 'eraserWidth',
     value: number,
     onPick: (v: number) => void,
-    min: number,
-    max: number,
+    options: ReadonlyArray<number>,
     label: string,
   ) => (
     <DropdownShell
       open={stripPop === key}
       onToggle={() => toggleStrip(key)}
       onClose={() => setStripPop(null)}
-      label={label}
+      label={`${label} ${Math.round(value)}`}
       popLabel={label}
       button={
         <>
-          <span className="wb-stripnum tabular" aria-hidden="true">{value}</span>
+          <WidthGlyph value={value} />
           <DropCaret />
         </>
       }
     >
-      <WidthSlider value={value} min={min} max={max} label={label} onChange={onPick} />
+      <WidthPresets
+        value={value}
+        options={options}
+        label={label}
+        onPick={(v) => {
+          onPick(v);
+          setStripPop(null);
+        }}
+      />
     </DropdownShell>
   );
   const stripSize = (
@@ -754,16 +756,19 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
       {tool === 'pen' && (
         <>
           {stripDots(penColor, setPenColor, t('whiteboard.textbar.fill'))}
-          {stripWidth('penWidth', penWidth, (v) => setPenWidth(Math.max(1, Math.min(20, v))), 1, 20, t('whiteboard.popover.lineWidth'))}
+          {stripSep('wb-sep-strip-pen')}
+          {stripWidth('penWidth', penWidth, (v) => setPenWidth(Math.max(1, Math.min(20, v))), WIDTH_PRESETS, t('whiteboard.popover.lineWidth'))}
         </>
       )}
       {tool === 'eraser' && (
-        <>{stripWidth('eraserWidth', eraserWidth, (v) => setEraserWidth(Math.max(4, Math.min(20, v))), 4, 20, t('whiteboard.popover.lineWidth'))}</>
+        <>{stripWidth('eraserWidth', eraserWidth, (v) => setEraserWidth(Math.max(4, Math.min(20, v))), ERASER_WIDTH_PRESETS, t('whiteboard.popover.lineWidth'))}</>
       )}
       {tool === 'sticky' && (
         <>
           {stripDots(stickyColor, setStickyColor, t('whiteboard.textbar.fill'))}
+          {stripSep('wb-sep-strip-sticky-size')}
           {stripSize('stickySize', stickyFontSize, (v) => setStickyFontSize(clampFont(v, 12)))}
+          {stripSep('wb-sep-strip-sticky-align')}
           <AlignDropdown
             value={stickyAlign}
             open={stripPop === 'stickyAlign'}
@@ -776,6 +781,7 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
       {tool === 'text' && (
         <>
           {stripDots(textColor, setTextColor, t('whiteboard.textbar.textColor'))}
+          {stripSep('wb-sep-strip-text-font')}
           <FontDropdown
             value={textFontFamily}
             open={stripPop === 'textFont'}
@@ -784,6 +790,7 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
             onPick={setTextFontFamily}
           />
           {stripSize('textSize', textFontSize, (v) => setTextFontSize(clampFont(v, 16)))}
+          {stripSep('wb-sep-strip-text-style')}
           <TextStyleToggles
             bold={textBold}
             strikethrough={textStrike}
@@ -792,6 +799,7 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
             onStrikethrough={() => setTextStrike((v) => !v)}
             onBullet={() => setTextBullet((v) => !v)}
           />
+          {stripSep('wb-sep-strip-text-align')}
           <AlignDropdown
             value={textAlign}
             open={stripPop === 'textAlign'}
@@ -799,6 +807,7 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
             onClose={() => setStripPop(null)}
             onChange={setTextAlign}
           />
+          {stripSep('wb-sep-strip-text-color')}
           <ColorDropdown
             value={textColor}
             title={t('whiteboard.textbar.textColor')}
@@ -814,8 +823,19 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
       {tool === 'shape' && (
         <>
           {stripDots(shapeColor, setShapeColor, t('whiteboard.popover.shapeColor'))}
-          {stripDots(shapeFillColor, (c) => setShapeFillColor(c), t('whiteboard.textbar.fill'))}
+          {stripSep('wb-sep-strip-shape-fill')}
+          <ColorDropdown
+            value={shapeFillColor}
+            title={t('whiteboard.textbar.fill')}
+            open={stripPop === 'shapeFill'}
+            onToggle={() => toggleStrip('shapeFill')}
+            onClose={() => setStripPop(null)}
+            onPick={(c) => setShapeFillColor(c)}
+            label={t('whiteboard.textbar.fill')}
+          />
+          {stripSep('wb-sep-strip-shape-size')}
           {stripSize('shapeSize', shapeFontSize, (v) => setShapeFontSize(clampFont(v, 12)))}
+          {stripSep('wb-sep-strip-shape-align')}
           <AlignDropdown
             value={shapeAlign}
             open={stripPop === 'shapeAlign'}
@@ -823,12 +843,14 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
             onClose={() => setStripPop(null)}
             onChange={setShapeAlign}
           />
+          {stripSep('wb-sep-strip-shape-mode')}
           <FillModeSegmented value={shapeFill} onChange={setShapeFill} />
         </>
       )}
       {tool === 'edge' && (
         <>
           {stripDots(edgeColor, setEdgeColor, t('whiteboard.textbar.fill'))}
+          {stripSep('wb-sep-strip-edge')}
           {stripSize('edgeSize', edgeFontSize, (v) => setEdgeFontSize(clampFont(v, 11)))}
         </>
       )}

@@ -251,14 +251,16 @@ export function boundaryLabelDY(fontSize: number): number {
 
 /**
  * Lebar chip label boundary mengikuti teks: ukur asli via canvas 2D bila
- * tersedia, estimator bila tidak (jsdom/export). Padding 12px, dibatasi
- * lebar boundary agar tak meluber keluar garis.
+ * tersedia, estimator bila tidak (jsdom/export). Padding simetris 8px
+ * kiri + 8px kanan (toleransi estimator ikut di dalamnya), dibatasi
+ * lebar boundary agar tak meluber keluar garis. Render menaruh rect
+ * 8px di kiri teks agar padding kiri-kanan seimbang.
  */
 export function boundaryChipWidth(label: string, fontSize: number, maxW: number, bold = false): number {
   const textW = approxTextWidth(label, fontSize, bold ? 600 : 400);
-  // +12 padding, +8 tolerance: browser glyphs may measure wider than the
+  // +16 symmetric padding: browser glyphs may measure wider than the
   // estimator, and a hug-tight chip would truncate its own label.
-  return Math.min(textW + 20, Math.max(28, maxW));
+  return Math.min(textW + 16, Math.max(28, maxW));
 }
 
 const MEASURE_STACK =

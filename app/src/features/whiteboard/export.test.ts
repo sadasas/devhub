@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { WhiteboardElement } from '../../lib/types';
 import { serializeWhiteboard } from './export';
+import { boundaryChipWidth } from './geometry';
+import { SHAPE_PAD, STICKY_PAD } from './tools';
 
 function sticky(x: number, y: number, id = 's1'): WhiteboardElement {
   return { id, kind: 'sticky', x, y, w: 100, h: 60, color: '#e8b955', text: 'hi' };
@@ -54,6 +56,19 @@ describe('serializeWhiteboard', () => {
     expect(stickyIdx).toBeGreaterThan(boundaryIdx);
     // Chip label di dalam border pojok kiri, tajam — sinkron dengan canvas.
     expect(svg).toContain('translate(-14, 4)');
+  });
+
+  it('fits the boundary chip to its label with symmetric padding and centered text', () => {
+    const svg = serializeWhiteboard([
+      { id: 'bd', kind: 'boundary', x: 0, y: 0, w: 300, h: 200, color: '#6ea8fe', label: 'Hi' },
+    ]);
+    // symmetric 8px padding: rect starts 8px left of the text, width = text + 16
+    const chipW = Math.round(boundaryChipWidth('Hi', 16, 300 - 12) * 10) / 10;
+    expect(svg).toContain(`<rect x="-8"`);
+    expect(svg).toContain(`width="${chipW}"`);
+    // vertically centered via central baseline (16px → mid y = 2 - 24/2 = -10)
+    expect(svg).toContain('dominant-baseline="central"');
+    expect(svg).toContain('y="-10"');
   });
 
   it('recomputes the attached end of a half-attached edge from live node bounds', () => {
@@ -190,7 +205,7 @@ describe('serializeWhiteboard', () => {
     });
     const topY = (svg: string) => Number(svg.match(/<text x="[^"]+" y="([\d.]+)" font-size="12" fill="rgba\(6,5,4,0\.85\)"/)?.[1]);
     const legacy = topY(serializeWhiteboard([stickyOf()]));
-    expect(legacy).toBe(16); // el.y + pad + 8
+    expect(legacy).toBe(STICKY_PAD + 8); // el.y + pad + 8
     const centered = topY(serializeWhiteboard([stickyOf('center')]));
     expect(centered).toBeGreaterThan(legacy);
     const bottom = topY(serializeWhiteboard([stickyOf('bottom')]));
@@ -202,5 +217,18 @@ describe('serializeWhiteboard', () => {
     expect(shapeY(serializeWhiteboard([shapeOf()]))).toBe(30); // legacy first-line middle
     expect(shapeY(serializeWhiteboard([shapeOf('top')]))).toBeLessThan(30);
     expect(shapeY(serializeWhiteboard([shapeOf('bottom')]))).toBeGreaterThan(30);
+  });
+
+  it('insets boxed text by the shared pad constants (FigJam breathing room)', () => {
+    // Sticky left-aligned: first-line x = el.x + STICKY_PAD.
+    const stickySvg = serializeWhiteboard([
+      { id: 's1', kind: 'sticky', x: 10, y: 0, w: 200, h: 120, color: '#e8b955', text: 'hi' },
+    ]);
+    expect(stickySvg).toContain(`<text x="${10 + STICKY_PAD}" y="${STICKY_PAD + 8}"`);
+    // Shape left-aligned label: x = el.x + SHAPE_PAD.
+    const shapeSvg = serializeWhiteboard([
+      { id: 'sh', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 200, h: 120, color: '#6ea8fe', fill: 'none', strokeWidth: 2, label: 'Hi', align: 'left' },
+    ]);
+    expect(shapeSvg).toContain(`<text x="${SHAPE_PAD}"`);
   });
 });

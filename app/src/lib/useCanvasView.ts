@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
-import { zoomAtPoint, type ViewState } from '../features/whiteboard/geometry';
+import { panBy, zoomAtPoint, type ViewState } from '../features/whiteboard/geometry';
 
 export interface CanvasViewOptions {
   minZoom?: number;
@@ -16,6 +16,9 @@ export interface CanvasViewOptions {
 
 /**
  * WB-12: shared canvas view — the single spec for pan/zoom across canvases.
+ * FigJam parity: plain wheel pans the canvas on both axes (deltaX/deltaY),
+ * Ctrl/Cmd+wheel zooms at the cursor (trackpad pinch arrives as Ctrl+wheel),
+ * two-finger touch pinch zooms, buttons/keyboard zoom via zoomAt().
  * View math (zoom-at-cursor, centroid pinch) is identical to the schema ERD
  * canvas; ERD keeps its own wiring (separate wheel/pinch targets + drag refs)
  * until its suite is migrated, so this hook is currently adopted by Whiteboard.
@@ -45,8 +48,26 @@ export function useCanvasView(panEnabled: boolean, opts: CanvasViewOptions = {})
       e.preventDefault();
       optsRef.current.onWheel?.();
       const rect = el.getBoundingClientRect();
-      const factor = e.deltaY < 0 ? zoomInFactor : zoomOutFactor;
-      setView((v) => zoomAtPoint(v, e.clientX - rect.left, e.clientY - rect.top, factor, minZoom, maxZoom));
+      // Ctrl/Cmd+wheel (incl. trackpad pinch) zooms at the cursor — kept by design.
+      if (e.ctrlKey || e.metaKey) {
+        const factor = e.deltaY < 0 ? zoomInFactor : zoomOutFactor;
+        setView((v) => zoomAtPoint(v, e.clientX - rect.left, e.clientY - rect.top, factor, minZoom, maxZoom));
+        return;
+      }
+      // FigJam-style: plain wheel pans on both axes in every tool.
+      // Shift+wheel needs no special case — browsers already deliver it as deltaX.
+      let dx = e.deltaX;
+      let dy = e.deltaY;
+      if (e.deltaMode === 1) {
+        dx *= 16;
+        dy *= 16;
+      } else if (e.deltaMode === 2) {
+        const page = rect.height > 0 ? rect.height : 600;
+        dx *= page;
+        dy *= page;
+      }
+      if (dx === 0 && dy === 0) return;
+      setView((v) => panBy(v, -dx, -dy));
     };
     el.addEventListener('wheel', onWheelNative, { passive: false });
     return () => el.removeEventListener('wheel', onWheelNative);

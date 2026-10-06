@@ -44,25 +44,50 @@ describe('WB-12 useCanvasView', () => {
     expect(viewOf()).toEqual([16, 16, 1]);
   });
 
-  it('zooms in at the cursor on wheel up', () => {
+  it('pans vertically on plain wheel (FigJam) without zooming', () => {
     render(<Probe />);
-    fireEvent.wheel(screen.getByTestId('cv'), { deltaY: -100, clientX: 116, clientY: 116 });
+    fireEvent.wheel(screen.getByTestId('cv'), { deltaX: 0, deltaY: 100, clientX: 116, clientY: 116 });
+    expect(viewOf()).toEqual([16, -84, 1]);
+  });
+
+  it('pans on both axes on plain wheel (trackpad 2-finger)', () => {
+    render(<Probe />);
+    fireEvent.wheel(screen.getByTestId('cv'), { deltaX: 60, deltaY: 20, clientX: 100, clientY: 100 });
+    expect(viewOf()).toEqual([-44, -4, 1]);
+  });
+
+  it('pans horizontally when the browser delivers Shift+wheel as deltaX', () => {
+    render(<Probe />);
+    fireEvent.wheel(screen.getByTestId('cv'), { deltaX: 100, deltaY: 0, shiftKey: true, clientX: 100, clientY: 100 });
+    expect(viewOf()).toEqual([-84, 16, 1]);
+  });
+
+  it('zooms in at the cursor on Ctrl+wheel up', () => {
+    render(<Probe />);
+    fireEvent.wheel(screen.getByTestId('cv'), { deltaY: -100, ctrlKey: true, clientX: 116, clientY: 116 });
     const [x, y, s] = viewOf();
     expect(s).toBeCloseTo(1.12, 10);
     expect(x).toBeCloseTo(4, 8);
     expect(y).toBeCloseTo(4, 8);
   });
 
-  it('zooms out with the default factor', () => {
+  it('zooms in at the cursor on Meta+wheel up', () => {
     render(<Probe />);
-    fireEvent.wheel(screen.getByTestId('cv'), { deltaY: 100, clientX: 16, clientY: 16 });
+    fireEvent.wheel(screen.getByTestId('cv'), { deltaY: -100, metaKey: true, clientX: 116, clientY: 116 });
+    const [, , s] = viewOf();
+    expect(s).toBeCloseTo(1.12, 10);
+  });
+
+  it('zooms out with the default factor on Ctrl+wheel', () => {
+    render(<Probe />);
+    fireEvent.wheel(screen.getByTestId('cv'), { deltaY: 100, ctrlKey: true, clientX: 16, clientY: 16 });
     const [, , s] = viewOf();
     expect(s).toBeCloseTo(1 / 1.12, 10);
   });
 
-  it('honors a custom zoom-out factor (schema ERD uses 0.89)', () => {
+  it('honors a custom zoom-out factor on Ctrl+wheel (schema ERD uses 0.89)', () => {
     render(<Probe opts={{ zoomOutFactor: 0.89 }} />);
-    fireEvent.wheel(screen.getByTestId('cv'), { deltaY: 100, clientX: 16, clientY: 16 });
+    fireEvent.wheel(screen.getByTestId('cv'), { deltaY: 100, ctrlKey: true, clientX: 16, clientY: 16 });
     expect(viewOf()[2]).toBeCloseTo(0.89, 10);
   });
 
