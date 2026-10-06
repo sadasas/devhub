@@ -3,6 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { Tooltip } from '../../components/Tooltip';
 import type { WhiteboardShapeFill } from '../../lib/types';
 import { shapeFillMode } from './canvas-palette';
+import { normalizeHexColor } from './color';
+import { CustomColorButton } from './CustomColorPicker';
+
+export { normalizeHexColor };
 
 const FILL_MODES: ReadonlyArray<WhiteboardShapeFill> = ['solid', 'transparent', 'none'];
 
@@ -97,15 +101,6 @@ export const SWATCHES: ReadonlyArray<string> = [
   '#ffffff',
 ];
 
-/** Accepts `#rrggbb`, `rrggbb` or `#rgb`; returns normalized lowercase `#rrggbb`. */
-export function normalizeHexColor(raw: string): string | null {
-  const m = /^#?([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(raw.trim());
-  if (!m) return null;
-  const digits = m[1];
-  if (!digits) return null;
-  const hex = digits.length === 3 ? digits.split('').map((c) => c + c).join('') : digits;
-  return `#${hex.toLowerCase()}`;
-}
 
 export type LineStyleOption = 'solid' | 'dashed' | 'dotted' | 'none';
 
@@ -135,9 +130,12 @@ function LineGlyph({ option }: { option: LineStyleOption }) {
   );
 }
 
+/** Kunci i18n label gaya garis (ganti kapitalisasi Inggris mentah). */
+const LINE_KEY = { solid: 'lineSolid', dashed: 'lineDashed', dotted: 'lineDotted', none: 'lineNone' } as const;
+
 /**
- * Segmented gaya garis ala Figma (ikon, bukan teks) — dipakai popup
- * border shape dan line edge. Accessible name = nilai mentah.
+ * Segmented gaya garis ala Figma (ikon + teks lokal) — dipakai popup
+ * border shape dan line edge. Tanpa title= telanjang (tooltip ganda).
  */
 export function LineStyleSegmented({
   value,
@@ -150,23 +148,23 @@ export function LineStyleSegmented({
   onChange: (style: LineStyleOption) => void;
   label: string;
 }) {
+  const { t } = useTranslation('extras');
   return (
     <span className="fp-segmented fp-segmented-bar" role="radiogroup" aria-label={label}>
       {options.map((o) => {
-        const name = o.charAt(0).toUpperCase() + o.slice(1);
+        const name = t(`whiteboard.popover.${LINE_KEY[o]}`);
         return (
           <Tooltip key={o} content={name} side="top">
             <button
               type="button"
               role="radio"
               aria-checked={value === o}
-              aria-label={o}
-              title={o}
+              aria-label={name}
               className={`fp-seg${value === o ? ' fp-seg-active' : ''}`}
               onClick={() => onChange(o)}
             >
               <LineGlyph option={o} />
-              <span className="wb-lineopt-name">{name}</span>
+              <span className="wb-lineopt-name" aria-hidden="true">{name}</span>
             </button>
           </Tooltip>
         );
@@ -219,19 +217,7 @@ export function ColorSwatchGrid({
             />
           </Tooltip>
         ))}
-        <Tooltip content={t('whiteboard.colorPanel.custom')} side="top">
-          <label className="wb-rainbow">
-            <span aria-hidden="true" className="wb-rainbow-ui" />
-            <span className="sr-only">{t('whiteboard.colorPanel.custom')}</span>
-            <input
-              type="color"
-              className="wb-rainbow-input"
-              value={/^#[0-9a-f]{6}$/i.test(value ?? '') ? (value as string) : '#2563eb'}
-              onChange={(e) => onPick(e.target.value)}
-              aria-label={t('whiteboard.colorPanel.custom')}
-            />
-          </label>
-        </Tooltip>
+        <CustomColorButton value={value} onPick={onPick} />
       </div>
       <input
         type="text"
@@ -283,7 +269,12 @@ export function WhiteboardColorPanel({
 
   useEffect(() => {
     const onPointerDown = (e: PointerEvent) => {
-      if (!rootRef.current?.contains(e.target as Node)) onClose();
+      if (rootRef.current?.contains(e.target as Node)) return;
+      // Popup bersarang (portal floating-ui, mis. custom picker) hidup di luar
+      // subtree dialog — klik di dalamnya bukan klik-di-luar, jangan tutup.
+      const target = e.target as HTMLElement | null;
+      if (target && typeof target.closest === 'function' && target.closest('[data-wb-popup]')) return;
+      onClose();
     };
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();

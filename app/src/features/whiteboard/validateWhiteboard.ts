@@ -1,4 +1,5 @@
 import type { WhiteboardElement } from "../../lib/types";
+import { STICKY_PAD } from "./tools";
 
 export interface WhiteboardDiagnostic {
   code: string;
@@ -306,7 +307,7 @@ export function validateWhiteboardShowcase(elements: WhiteboardElement[]): White
       // @ts-ignore
       const w = (el as any).w, h = (el as any).h;
       const fontSize = (el as any).fontSize ?? 16;
-      const maxLines = Math.max(1, Math.floor((h - 16) / (fontSize*1.35)));
+      const maxLines = Math.max(1, Math.floor((h - STICKY_PAD * 2) / (fontSize*1.35)));
       const lines = text.split("\n").length; // approx
       if (lines > maxLines || text.length > 500) {
         diagnostics.push(diag("whiteboard/text-overflow", `Sticky ${el.id} text may truncate`, { elementId: el.id }, { maxLines }, ["increase h or shorten text"]));

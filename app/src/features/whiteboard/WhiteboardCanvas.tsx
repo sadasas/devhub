@@ -115,9 +115,11 @@ import {
   BOUNDARY_COLOR,
   SHAPE_COLOR,
   SHAPE_H,
+  SHAPE_PAD,
   SHAPE_W,
   STICKY_COLOR,
   STICKY_H,
+  STICKY_PAD,
   STICKY_W,
   TEXT_COLOR,
   buildBoundary,
@@ -134,7 +136,7 @@ import {
 } from './tools';
 import { isModalOrPaletteOpen, isTypingTarget } from '../../lib/keys';
 import { listedLines, svgTextStyle } from './fonts';
-import { AlignDropdown, ColorDropdown, DropCaret, DropdownShell, FontDropdown, SizeDropdown, TextStyleToggles, ValignDropdown, WidthPresets, WidthSlider } from './WhiteboardTextControls';
+import { AlignDropdown, ColorDropdown, DropCaret, DropdownShell, FontDropdown, SizeDropdown, TextStyleToggles, ValignDropdown, WidthGlyph, WidthPresets } from './WhiteboardTextControls';
 import { SHAPE_LIBRARY_TABS } from './libraries';
 import { ShapeThumb } from './ShapeThumb';
 import { RefPicker } from './RefPicker';
@@ -395,7 +397,7 @@ const ElementView = memo(function ElementView({
         const fontSize = el.fontSize ?? 16;
         const align = el.align ?? 'left';
         const lineHeight = textLineHeight(fontSize);
-        const pad = 8;
+        const pad = STICKY_PAD;
         const maxLines = Math.max(1, Math.floor((el.h - pad * 2) / lineHeight));
         const innerW = Math.max(24, el.w - pad * 2);
         const style = svgTextStyle(el);
@@ -518,7 +520,7 @@ const ElementView = memo(function ElementView({
         );
       }
       case 'shape': {
-        const pad = 8;
+        const pad = SHAPE_PAD;
         const fontSize = el.fontSize ?? 16;
         const align = el.align ?? 'center';
         const innerW = Math.max(24, el.w - pad * 2);
@@ -715,13 +717,14 @@ const ElementView = memo(function ElementView({
               const labelColor = (el as { labelColor?: string | null }).labelColor ?? '#0f172a';
               const bold = !!(el as { bold?: boolean | null }).bold;
               const chipW = boundaryChipWidth(listedLines(el.label, el).join(' '), fontSize, el.w - 12, bold);
-              // Tinggi + baseline mengikuti font (12px → persis 18/-16 seperti
-              // semula): gap atas selalu = gap kiri (2px), sudut tajam.
+              // Chip fit-konten: padding simetris 8px (rect 8px di kiri teks),
+              // teks vertikal tengah via central-baseline (seperti label shape).
               const chipH = fontSize * 1.5;
+              const chipMidY = 2 - chipH / 2;
               return (
                 <g transform={`translate(${el.x + 6}, ${el.y + boundaryLabelDY(fontSize)})`}>
                   <rect
-                    x={-4}
+                    x={-8}
                     y={-(chipH - 2)}
                     width={chipW}
                     height={chipH}
@@ -729,8 +732,8 @@ const ElementView = memo(function ElementView({
                     fill={el.color}
                     fillOpacity={0.25}
                   />
-                  <text x={0} y={0} fontSize={fontSize} fill={labelColor} {...svgTextStyle(el)}>
-                    {truncateToWidth(listedLines(el.label, el).join(' '), fontSize, chipW - 12, bold ? 600 : 400)}
+                  <text x={0} y={chipMidY} dominantBaseline="central" fontSize={fontSize} fill={labelColor} {...svgTextStyle(el)}>
+                    {truncateToWidth(listedLines(el.label, el).join(' '), fontSize, chipW - 16, bold ? 600 : 400)}
                   </text>
                 </g>
               );
@@ -1445,6 +1448,11 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     </Tooltip>
   );
 
+  /** Vertical FigJam-style divider between floating-bar property clusters. */
+  const barSep = (key: string) => (
+    <div key={key} className="wb-bar-sep" role="separator" aria-hidden="true" />
+  );
+
   /**
    * Mobile bottom panel: all property controls inline, wrapping to the next
    * row when they overflow (FigJam-style grid). The ⋮ actions button is
@@ -2153,8 +2161,8 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
   };
   /** FigJam split: inner text area (text bar + inline edit) vs border/body (element bar). */
   const hitTextArea = (el: WhiteboardElement, pt: Point): boolean => {
-    const pad = 8;
     if (el.kind === 'sticky') {
+      const pad = STICKY_PAD;
       return pointInRect(pt, { x: el.x + pad, y: el.y + pad, w: Math.max(1, el.w - pad * 2), h: Math.max(1, el.h - pad * 2) });
     }
     if (el.kind === 'text') {
@@ -2162,6 +2170,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
     }
     if (el.kind === 'shape') {
       if (!el.label) return false;
+      const pad = SHAPE_PAD;
       const fontSize = el.fontSize ?? 16;
       const innerW = Math.max(24, el.w - pad * 2);
       const lines = wrapToWidth(el.label, fontSize, innerW, 4);
@@ -3425,43 +3434,47 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
       </svg>
       {!hideChrome && (
       <div className="erd-zoom" role="group" aria-label={t('whiteboard.canvas.zoomGroup')}>
-        <Button
-          variant="secondary"
-          size="sm"
-          aria-label={t('whiteboard.canvas.zoomIn')}
-          title={t('whiteboard.canvas.zoomIn')}
-          onClick={() => view.zoomAt(1.2)}
-        >
-          <MagnifyingGlassPlus size={13} aria-hidden="true" />
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          aria-label={t('whiteboard.canvas.zoomOut')}
-          title={t('whiteboard.canvas.zoomOut')}
-          onClick={() => view.zoomAt(1 / 1.2)}
-        >
-          <MagnifyingGlassMinus size={13} aria-hidden="true" />
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          aria-label={t('whiteboard.shortcuts.open')}
-          title={t('whiteboard.shortcuts.open')}
-          aria-haspopup="dialog"
-          onClick={() => onOpenShortcutsProp?.()}
-        >
-          <Keyboard size={13} aria-hidden="true" />
-        </Button>
-        <Button
-          variant="secondary"
-          size="sm"
-          aria-label={t('whiteboard.canvas.resetView')}
-          title={t('whiteboard.canvas.resetView')}
-          onClick={() => view.resetView()}
-        >
-          <CornersOut size={13} aria-hidden="true" />
-        </Button>
+        <Tooltip content={t('whiteboard.canvas.zoomIn')} side="top">
+          <Button
+            variant="secondary"
+            size="sm"
+            aria-label={t('whiteboard.canvas.zoomIn')}
+            onClick={() => view.zoomAt(1.2)}
+          >
+            <MagnifyingGlassPlus size={13} aria-hidden="true" />
+          </Button>
+        </Tooltip>
+        <Tooltip content={t('whiteboard.canvas.zoomOut')} side="top">
+          <Button
+            variant="secondary"
+            size="sm"
+            aria-label={t('whiteboard.canvas.zoomOut')}
+            onClick={() => view.zoomAt(1 / 1.2)}
+          >
+            <MagnifyingGlassMinus size={13} aria-hidden="true" />
+          </Button>
+        </Tooltip>
+        <Tooltip content={t('whiteboard.shortcuts.open')} side="top">
+          <Button
+            variant="secondary"
+            size="sm"
+            aria-label={t('whiteboard.shortcuts.open')}
+            aria-haspopup="dialog"
+            onClick={() => onOpenShortcutsProp?.()}
+          >
+            <Keyboard size={13} aria-hidden="true" />
+          </Button>
+        </Tooltip>
+        <Tooltip content={t('whiteboard.canvas.resetView')} side="top">
+          <Button
+            variant="secondary"
+            size="sm"
+            aria-label={t('whiteboard.canvas.resetView')}
+            onClick={() => view.resetView()}
+          >
+            <CornersOut size={13} aria-hidden="true" />
+          </Button>
+        </Tooltip>
       </div>
       )}
       {canEdit && !hideChrome && selectedIds.length > 0 && (() => {
@@ -3501,10 +3514,12 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
               barBtn(t('whiteboard.canvas.alignTop'), onAlign('top'), <AlignTop size={15} aria-hidden="true" />),
               barBtn(t('whiteboard.canvas.alignMiddleV'), onAlign('middleY'), <AlignCenterVertical size={15} aria-hidden="true" />),
               barBtn(t('whiteboard.canvas.alignBottom'), onAlign('bottom'), <AlignBottom size={15} aria-hidden="true" />),
+              barSep('wb-sep-align-dist'),
               ...(selectedIds.length >= 3
                 ? [
                     barBtn(t('whiteboard.canvas.distributeH'), onDistribute('x'), <Columns size={15} aria-hidden="true" />),
                     barBtn(t('whiteboard.canvas.distributeV'), onDistribute('y'), <Rows size={15} aria-hidden="true" />),
+                    barSep('wb-sep-dist-match'),
                   ]
                 : []),
               ...(selectedIds.length >= 2
@@ -3650,6 +3665,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                   onClose={() => setBarPop(null)}
                   onPick={(s) => applyBulkPatch({ fontSize: s })}
                 />,
+                barSep('wb-sep-text-style'),
                 <TextStyleToggles
                   bold={!!rich.bold}
                   strikethrough={!!rich.strikethrough}
@@ -3658,6 +3674,9 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                   onStrikethrough={() => applyBulkPatch({ strikethrough: !rich.strikethrough })}
                   onBullet={() => applyBulkPatch({ list: rich.list === 'bullet' ? 'none' : 'bullet' })}
                 />,
+                // Align/valign cluster selalu ada untuk kind ber-teks
+                // (text: align; edge: valign; sticky/shape: keduanya).
+                barSep('wb-sep-text-align'),
                 ...(el.kind !== 'edge'
                   ? [
                       <AlignDropdown
@@ -3680,8 +3699,10 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                       />,
                     ]
                   : [])),
-                ...(withColor ? [colorDot(textField, t('whiteboard.textbar.textColor'))] : []),
+                ...(withColor ? [barSep('wb-sep-text-color'), colorDot(textField, t('whiteboard.textbar.textColor'))] : []),
               ];
+              /** Kunci i18n label gaya panah (teks tombol dipertahankan, bukan icon-only). */
+              const ARROW_KEY = { none: 'arrowNone', open: 'arrowOpen', solid: 'arrowSolid', diamond: 'arrowDiamond', circle: 'arrowCircle' } as const;
               const linePop = (label: string, edge: WhiteboardEdge) => (
                 <DropdownShell
                   open={barPop?.kind === 'line'}
@@ -3715,13 +3736,16 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                     label={t('whiteboard.popover.lineWidth')}
                   />
                   <div className="wb-pop-sep" role="separator" aria-hidden="true" />
-                  <div className="fp-segmented" role="group" aria-label={t('whiteboard.popover.arrowStyle')}>
-                    {(['none', 'open', 'solid', 'diamond', 'circle'] as const).map((st) => (
+                  <div className="fp-segmented-bar fp-segmented-bar-wrap" role="radiogroup" aria-label={t('whiteboard.popover.arrowStyle')}>
+                    {(['none', 'open', 'solid', 'diamond', 'circle'] as const).map((st) => {
+                      const name = t(`whiteboard.popover.${ARROW_KEY[st]}`);
+                      return (
+                      <Tooltip key={st} content={name} side="top">
                       <button
-                        key={st}
                         type="button"
                         role="radio"
                         aria-checked={effectiveArrowStyle(edge) === st}
+                        aria-label={name}
                         className={`fp-seg fp-seg-icon${effectiveArrowStyle(edge) === st ? ' fp-seg-active' : ''}`}
                         onClick={() => applyBulkPatch({ arrowStyle: st })}
                       >
@@ -3752,9 +3776,11 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                             </g>
                           )}
                         </svg>
-                        <span>{st}</span>
+                        <span aria-hidden="true">{name}</span>
                       </button>
-                    ))}
+                      </Tooltip>
+                      );
+                    })}
                   </div>
                 </DropdownShell>
               );
@@ -3763,18 +3789,23 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                   open={barPop?.kind === 'width'}
                   onToggle={() => togglePop('width')}
                   onClose={() => setBarPop(null)}
-                  label={label}
+                  label={`${label} ${Math.round(w)}`}
                   popLabel={t('whiteboard.popover.lineWidth')}
                   button={
                     <>
-                      <span className="wb-stripnum tabular" aria-hidden="true">
-                        {Math.round(w)}
-                      </span>
+                      <WidthGlyph value={w} />
                       <DropCaret />
                     </>
                   }
                 >
-                  <WidthSlider value={w} min={1} max={20} label={t('whiteboard.popover.lineWidth')} onChange={onPick} />
+                  <WidthPresets
+                    value={w}
+                    label={t('whiteboard.popover.lineWidth')}
+                    onPick={(v) => {
+                      onPick(v);
+                      setBarPop(null);
+                    }}
+                  />
                 </DropdownShell>
               );
               const typePop = (shape: WhiteboardShape) => (
@@ -3868,7 +3899,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
               // Satu bar gabungan: properti teks selalu tampil untuk kind
               // ber-teks (tanpa double-click, tanpa panel terpisah).
               if (el.kind === 'sticky') {
-                return maybeSplit(colorDot('color', t('whiteboard.textbar.fill')), ...textControls(true));
+                return maybeSplit(colorDot('color', t('whiteboard.textbar.fill')), barSep('wb-sep-sticky-text'), ...textControls(true));
               }
               if (el.kind === 'text') return maybeSplit(...textControls(true));
               if (el.kind === 'shape') {
@@ -3884,15 +3915,19 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
                       <Copy size={15} aria-hidden="true" />
                     </button>
                   </Tooltip>,
+                  barSep('wb-sep-shape-paint'),
                   colorDot('fillColor', t('whiteboard.textbar.fill'), shapeFillCtl),
                   borderPop(el),
+                  barSep('wb-sep-shape-text'),
                   ...textControls(true),
                 );
               }
               if (el.kind === 'edge') {
                 return maybeSplit(
                   colorDot('color', t('whiteboard.popover.shapeColor')),
+                  barSep('wb-sep-edge-line'),
                   linePop(t('whiteboard.popover.lineStyle'), el),
+                  barSep('wb-sep-edge-text'),
                   ...textControls(false),
                 );
               }
@@ -3904,26 +3939,30 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
               if (el.kind === 'stroke') {
                 return maybeSplit(
                   colorDot('color', t('whiteboard.popover.shapeColor')),
+                  barSep('wb-sep-stroke-width'),
                   widthPop(el.width, t('whiteboard.popover.lineWidth'), (v) => applyBulkPatch({ width: v })),
                 );
               }
               return null;
             })()}
             {selectedIds.length >= 1 && !isMobileProp && (
-              <Tooltip content={t('whiteboard.ctx.menu')} side="top" disabled={ctxMenu !== null}>
-                <button
-                  type="button"
-                  className="wb-selection-btn"
-                  aria-label={t('whiteboard.ctx.menu')}
-                  aria-haspopup="menu"
-                  onClick={(e) => {
-                    const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                    setCtxMenu({ x: r.left, y: r.bottom + 6 });
-                  }}
-                >
-                  <DotsThreeVertical size={15} aria-hidden="true" />
-                </button>
-              </Tooltip>
+              <>
+                {barSep('wb-sep-menu')}
+                <Tooltip content={t('whiteboard.ctx.menu')} side="top" disabled={ctxMenu !== null}>
+                  <button
+                    type="button"
+                    className="wb-selection-btn"
+                    aria-label={t('whiteboard.ctx.menu')}
+                    aria-haspopup="menu"
+                    onClick={(e) => {
+                      const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                      setCtxMenu({ x: r.left, y: r.bottom + 6 });
+                    }}
+                  >
+                    <DotsThreeVertical size={15} aria-hidden="true" />
+                  </button>
+                </Tooltip>
+              </>
             )}
             {moreBtn}
             {/* Width/line/type/border popups render via portal DropdownShells above. */}
@@ -4027,7 +4066,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         let lineHW = textLineHeight(textFontOf(el));
         let rowsN = Math.max(1, editingText.value.split('\n').length);
         if (el.kind === 'shape') {
-          const pad = 8;
+          const pad = SHAPE_PAD;
           const fontSize = el.fontSize ?? 16;
           const innerW = Math.max(24, el.w - pad * 2);
           const step = fontSize + 2;
@@ -4050,7 +4089,7 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
           lineHW = step;
           rowsN = n;
         } else if (el.kind === 'sticky') {
-          const pad = 8;
+          const pad = STICKY_PAD;
           const fontSize = el.fontSize ?? 16;
           const lineHeight = textLineHeight(fontSize);
           const innerW = Math.max(24, el.w - pad * 2);

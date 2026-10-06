@@ -508,7 +508,7 @@ offset 2px + halo ring 4px.
 | btn-icon | 28px (sm) / 34px (md) / 36px tanpa size; touch 44px | Ikon-only; padding 0 (jangan timpa — regresi 12px tercatat §1). Size-ladder 2026-10-03 (global.css:166-178): kotak ikon setinggi tombol teks sebelarnya — `.btn-icon` 36 lama menimpa `.btn-sm` 28 sehingga trash melayang 8px di atas Edit (bug tab API) |
 | btn-gap | 6px, radius-input, weight 500 | DNA semua tombol/link-btn |
 | tooltip-icon-btn | `<Tooltip title={sama-dengan-aria-label}>` (side top) | Tombol icon-only tanpa label teks di hover-capable WAJIB `<Tooltip>`; bare `title=` native TANPA Tooltip = temuan guard (kecuali tutup/dismiss × di ALLOWLIST — aria-label wajib, tooltip visual opsional); grandfather clause untuk title telanjang EXPIRED 2026-09-29; di sentuh/mobile tooltip tak ada sehingga ikon harus jelas dari konteks |
-| divider | 1px hairline | Pemisah baris berkelompok (settings-row-group bawah, list li+li atas). Strong HANYA zona emfasis (danger-top) |
+| divider | 1px hairline | Pemisah baris berkelompok (settings-row-group bawah, list li+li atas). Strong HANYA zona emfasis (danger-top). Varian vertikal `.wb-bar-sep` (margin 2px 0, tangga space-*) untuk klaster properti floating-bar whiteboard ala FigJam; caret dropdown 10px kontras ikon 15px |
 | gap-vs-divider | gap space-16 antar kartu/section; divider di DALAM kelompok | Kapan garis vs jarak |
 | duration-fast | 120ms ease-out | SEMUA transisi UI |
 | duration-normal | 180ms ease-out | HANYA gerak lambat bermakna (progress width, transform statements) |

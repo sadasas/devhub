@@ -7,10 +7,12 @@ import {
   PEN_WIDTH,
   SHAPE_COLOR,
   SHAPE_H,
+  SHAPE_PAD,
   SHAPE_STROKE_WIDTH,
   SHAPE_W,
   STICKY_COLOR,
   STICKY_H,
+  STICKY_PAD,
   STICKY_W,
   TEXT_COLOR,
   TEXT_FONT_SIZE,
@@ -26,6 +28,11 @@ import {
 } from './tools';
 
 describe('whiteboard tools', () => {
+  it('exposes FigJam-like inner text padding for boxed elements', () => {
+    expect(STICKY_PAD).toBe(16);
+    expect(SHAPE_PAD).toBe(16);
+  });
+
   it('builds a pen stroke with fixed styling and a generated id', () => {
     const points: Array<[number, number]> = [
       [0, 0],

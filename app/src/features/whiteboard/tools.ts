@@ -1,7 +1,7 @@
 import { newId } from '../../lib/utils';
 import type { WhiteboardBoundary, WhiteboardRef, WhiteboardRefEntity, WhiteboardShape, WhiteboardSticky, WhiteboardStroke, WhiteboardText } from '../../lib/types';
 
-/** Tools that draw on the canvas. `select` pans/zooms (and later selects); `view` pans/zooms only. */
+/** Tools that draw on the canvas. Wheel pans in every tool (FigJam); zoom via buttons/keyboard/Ctrl+wheel/pinch. Drag-pan lives on `select`/`view`/Space. */
 export type WbTool = 'view' | 'select' | 'marquee' | 'pen' | 'eraser' | 'text' | 'sticky' | 'shape' | 'edge' | 'ref' | 'boundary';
 
 export const PEN_COLOR = '#374151';
@@ -17,6 +17,9 @@ export const BOUNDARY_COLOR = '#2563eb';
 
 export const STICKY_W = 200;
 export const STICKY_H = 120;
+/** Inner text padding for boxed text elements (FigJam-like breathing room). */
+export const STICKY_PAD = 16;
+export const SHAPE_PAD = 16;
 export const TEXT_FONT_SIZE = 16;
 /** Default text size for every new text-capable element (sticky/shape/edge). */
 export const DEFAULT_FONT_SIZE = 16;

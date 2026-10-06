@@ -4,12 +4,15 @@ import {
   AlignDropdown,
   AlignSegmented,
   DropdownShell,
+  ERASER_WIDTH_PRESETS,
   FontDropdown,
   SizeDropdown,
   TextStyleToggles,
   ValignDropdown,
   ValignSegmented,
-  WidthSlider,
+  WIDTH_PRESETS,
+  WidthGlyph,
+  WidthPresets,
 } from './WhiteboardTextControls';
 
 describe('whiteboard text controls', () => {
@@ -53,6 +56,22 @@ describe('whiteboard text controls', () => {
     expect(within(dialog).getByRole('radio', { name: /Medium/ }).getAttribute('aria-checked')).toBe('true');
     const input = within(dialog).getByRole('textbox', { name: 'Custom size' });
     expect((input as HTMLInputElement).value).toBe('24');
+  });
+
+  it('shows the preset name on the button when matched, number for custom sizes', () => {
+    const noop = () => {};
+    const { unmount } = render(<SizeDropdown value={16} open={false} onToggle={noop} onClose={noop} onPick={noop} />);
+    expect(screen.getByRole('button', { name: 'Text size' }).textContent).toContain('Small');
+    unmount();
+    render(<SizeDropdown value={20} open={false} onToggle={noop} onClose={noop} onPick={noop} />);
+    expect(screen.getByRole('button', { name: 'Text size' }).textContent).toContain('20');
+  });
+
+  it('keeps the dropdown caret small against 15px property icons (FigJam contrast)', () => {
+    const noop = () => {};
+    render(<SizeDropdown value={16} open={false} onToggle={noop} onClose={noop} onPick={noop} />);
+    const caret = document.querySelector('button[aria-label="Text size"] svg.wb-caret');
+    expect(caret?.getAttribute('width')).toBe('10');
   });
 
   it('changes alignment via the dropdown popup', () => {
@@ -117,16 +136,28 @@ describe('whiteboard text controls', () => {
     expect(onBullet).toHaveBeenCalledTimes(1);
   });
 
-  it('slides the stroke width and commits a typed width', () => {
-    const onChange = vi.fn();
-    render(<WidthSlider value={2} label="Width" onChange={onChange} />);
-    const slider = screen.getByRole('slider', { name: 'Width' });
-    fireEvent.change(slider, { target: { value: '6' } });
-    expect(onChange).toHaveBeenCalledWith(6);
-    const input = screen.getByRole('textbox', { name: 'Width' });
-    fireEvent.change(input, { target: { value: '9' } });
-    fireEvent.keyDown(input, { key: 'Enter' });
-    expect(onChange).toHaveBeenCalledWith(9);
+  it('offers custom width preset options (eraser 4–20)', () => {
+    expect(WIDTH_PRESETS).toEqual([1, 2, 4, 8, 16]);
+    expect(ERASER_WIDTH_PRESETS).toEqual([4, 8, 12, 16, 20]);
+    const onPick = vi.fn();
+    render(<WidthPresets value={6} options={ERASER_WIDTH_PRESETS} label="Width" onPick={onPick} />);
+    const group = screen.getByRole('radiogroup', { name: 'Width' });
+    expect(within(group).getAllByRole('radio')).toHaveLength(5);
+    // custom value matches nothing yet; picking snaps to a preset
+    expect(within(group).queryByRole('radio', { name: '6' })).toBeNull();
+    fireEvent.click(within(group).getByRole('radio', { name: '12' }));
+    expect(onPick).toHaveBeenCalledWith(12);
+  });
+
+  it('renders a live thickness glyph for width buttons (no bare number)', () => {
+    const { unmount } = render(<WidthGlyph value={8} />);
+    const line = document.querySelector('line');
+    expect(line?.getAttribute('stroke-width')).toBe('8');
+    expect(document.body.textContent).not.toContain('8');
+    unmount();
+    // values above the glyph cap still render, capped at 10
+    render(<WidthGlyph value={20} />);
+    expect(document.querySelector('line')?.getAttribute('stroke-width')).toBe('10');
   });
 
   it('renders a generic dropdown shell with portal popup', () => {

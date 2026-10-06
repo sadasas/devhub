@@ -17,6 +17,7 @@ import {
   type Rect,
   type RefCardData,
 } from './geometry';
+import { SHAPE_PAD, STICKY_PAD } from './tools';
 import { shapeFillMode, shapeLabelFill, shapePaintColor } from './canvas-palette';
 import { effectiveArrowStyle, orthogonalPath, pathMidpoint, portPoint, portToward, type Point } from './edges';
 import { fontStackOf, listedLines, type RichTextFields } from './fonts';
@@ -132,7 +133,7 @@ function elementSvg(el: WhiteboardElement, refData: RefCardData | null, ctx: Exp
       const align = el.align ?? 'left';
       const anchor = align === 'center' ? 'middle' : align === 'right' ? 'end' : 'start';
       const lineHeight = textLineHeight(fontSize);
-      const pad = 8;
+      const pad = STICKY_PAD;
       const maxLines = Math.max(1, Math.floor((el.h - pad * 2) / lineHeight));
       const innerW = Math.max(24, el.w - pad * 2);
       const lines = wrapTextLines(listedLines(el.text, el).join('\n'), fontSize, innerW)
@@ -174,7 +175,7 @@ function elementSvg(el: WhiteboardElement, refData: RefCardData | null, ctx: Exp
       return `<g${rot}>${textNode(el.x, el.y, fontSize, el.color, listedLines(el.text, el).join('\n'), anchor, undefined, fontAttrs(el))}</g>`;
     }
     case 'shape': {
-      const pad = 8;
+      const pad = SHAPE_PAD;
       const fontSize = el.fontSize ?? 16;
       const align = el.align ?? 'center';
       const anchor = align === 'left' ? 'start' : align === 'right' ? 'end' : 'middle';
@@ -250,8 +251,9 @@ function elementSvg(el: WhiteboardElement, refData: RefCardData | null, ctx: Exp
       const bold = !!(el as { bold?: boolean | null }).bold;
       const chipW = boundaryChipWidth(listedLines(el.label, el).join(' '), fontSize, el.w - 12, bold);
       const chipH = fontSize * 1.5;
+      const chipMidY = 2 - chipH / 2;
   const chip = el.label
-        ? `<g transform="translate(${round(el.x + 6)}, ${round(el.y + boundaryLabelDY(fontSize))})"><rect x="-4" y="${round(-(chipH - 2))}" width="${round(chipW)}" height="${round(chipH)}" rx="3" fill="${esc(el.color)}" fill-opacity="0.25"/><text x="0" y="0" font-size="${fontSize}" fill="${esc(labelColor)}"${fontAttrs(el)}>${esc(truncateToWidth(listedLines(el.label, el).join(' '), fontSize, chipW - 12, bold ? 600 : 400))}</text></g>`
+        ? `<g transform="translate(${round(el.x + 6)}, ${round(el.y + boundaryLabelDY(fontSize))})"><rect x="-8" y="${round(-(chipH - 2))}" width="${round(chipW)}" height="${round(chipH)}" rx="3" fill="${esc(el.color)}" fill-opacity="0.25"/><text x="0" y="${round(chipMidY)}" dominant-baseline="central" font-size="${fontSize}" fill="${esc(labelColor)}"${fontAttrs(el)}>${esc(truncateToWidth(listedLines(el.label, el).join(' '), fontSize, chipW - 16, bold ? 600 : 400))}</text></g>`
         : '';
       return `<g><rect x="${round(el.x)}" y="${round(el.y)}" width="${round(el.w)}" height="${round(el.h)}" rx="8" fill="${esc(el.color)}" fill-opacity="0.05" stroke="${esc(el.color)}" stroke-width="1.5" stroke-dasharray="6 4"/>${chip}</g>`;
     }

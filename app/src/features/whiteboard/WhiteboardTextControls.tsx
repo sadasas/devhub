@@ -98,9 +98,10 @@ export function DropdownShell({ open, onToggle, onClose, label, button, children
   );
 }
 
-/** Trailing caret marking every popup toggle (P12). */
+/** Trailing caret marking every popup toggle (P12). Kecil ala FigJam —
+ * kontras dengan ikon properti 15px agar terbaca sebagai affordance popup. */
 export function DropCaret() {
-  return <CaretDown size={12} aria-hidden="true" className="wb-caret" />;
+  return <CaretDown size={10} aria-hidden="true" className="wb-caret" />;
 }
 
 interface ColorDropdownProps {
@@ -214,6 +215,10 @@ interface SizeDropdownProps {
 export function SizeDropdown({ value, open, onToggle, onClose, onPick }: SizeDropdownProps) {
   const { t } = useTranslation('extras');
   const cur = Math.round(value);
+  // Opsi 1 (paritas FigJam): tombol menampilkan NAMA preset bila nilai cocok,
+  // angka bila custom (fallback presisi — bukan label "Custom").
+  const presetIdx = FONT_PRESETS.findIndex((p) => p.value === cur);
+  const buttonText = presetIdx >= 0 ? t(`whiteboard.textbar.${SIZE_KEY[presetIdx]}`) : String(cur);
   const [raw, setRaw] = useState(String(cur));
   useEffect(() => {
     setRaw(String(Math.round(value)));
@@ -242,7 +247,7 @@ export function SizeDropdown({ value, open, onToggle, onClose, onPick }: SizeDro
       button={
         <>
           <span className="wb-stripnum tabular" aria-hidden="true">
-            {cur}
+            {buttonText}
           </span>
           <DropCaret />
         </>
@@ -486,6 +491,8 @@ export function TextStyleToggles({ bold, strikethrough, bullet, onBold, onStrike
 
 /** Preset ketebalan garis ala tldraw (tanpa slider/input ketik). */
 export const WIDTH_PRESETS: ReadonlyArray<number> = [1, 2, 4, 8, 16];
+/** Preset ketebalan penghapus: range 4–20 lama terjaga, langkah seragam 4. */
+export const ERASER_WIDTH_PRESETS: ReadonlyArray<number> = [4, 8, 12, 16, 20];
 
 /**
  * Deret opsi ketebalan berupa glyph garis setebal nilainya.
@@ -495,15 +502,17 @@ export function WidthPresets({
   value,
   onPick,
   label,
+  options = WIDTH_PRESETS,
 }: {
   value: number;
   onPick: (width: number) => void;
   label: string;
+  options?: ReadonlyArray<number>;
 }) {
   const cur = Math.round(value);
   return (
     <span className="fp-segmented fp-segmented-bar" role="radiogroup" aria-label={label}>
-      {WIDTH_PRESETS.map((w) => (
+      {options.map((w) => (
         <Tooltip key={w} content={String(w)} side="top">
           <button
             type="button"
@@ -524,75 +533,14 @@ export function WidthPresets({
   );
 }
 
-interface WidthSliderProps {
-  value: number;
-  min?: number;
-  max?: number;
-  label: string;
-  onChange: (width: number) => void;
-}
-
-/** Non-text size popup (P6): slider plus a boxed numeric input with steppers. */
-export function WidthSlider({ value, min = 1, max = 20, label, onChange }: WidthSliderProps) {
-  const cur = Math.round(value);
-  const [raw, setRaw] = useState(String(cur));
-  useEffect(() => {
-    setRaw(String(Math.round(value)));
-  }, [value]);
-  const commitRaw = (text: string) => {
-    const n = Number(text);
-    if (Number.isFinite(n) && text.trim() !== '') {
-      onChange(Math.max(min, Math.min(max, Math.round(n))));
-    } else {
-      setRaw(String(cur));
-    }
-  };
-  const step = (d: number) => {
-    const base = Number.isFinite(Number(raw)) && raw.trim() !== '' ? Math.round(Number(raw)) : cur;
-    const next = Math.max(min, Math.min(max, base + d));
-    setRaw(String(next));
-    onChange(next);
-  };
+/** Live thickness preview for width buttons (Opsi A): line sample as thick as the value. */
+export function WidthGlyph({ value }: { value: number }) {
+  const w = Math.min(10, Math.max(1, Math.round(value)));
   return (
-    <span className="wb-widthwrap">
-      <input
-        type="range"
-        className="wb-slider"
-        value={cur}
-        min={min}
-        max={max}
-        step={1}
-        aria-label={label}
-        onChange={(e) => {
-          setRaw(e.target.value);
-          onChange(Number(e.target.value));
-        }}
-      />
-      <span className="wb-sizebox">
-        <input
-          type="text"
-          inputMode="numeric"
-          className="wb-sizebox-input tabular"
-          value={raw}
-          aria-label={label}
-          onChange={(e) => setRaw(e.target.value)}
-          onBlur={() => commitRaw(raw)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              commitRaw(raw);
-            }
-          }}
-        />
-        <span className="wb-sizebox-steps" aria-hidden="true">
-          <button type="button" tabIndex={-1} className="wb-sizebox-step" onClick={() => step(1)}>
-            <CaretUp size={10} />
-          </button>
-          <button type="button" tabIndex={-1} className="wb-sizebox-step" onClick={() => step(-1)}>
-            <CaretDown size={10} />
-          </button>
-        </span>
-      </span>
-    </span>
+    <svg width="26" height="12" viewBox="0 0 26 12" aria-hidden="true">
+      <line x1="2" y1="6" x2="24" y2="6" stroke="currentColor" strokeWidth={w} strokeLinecap="round" />
+    </svg>
   );
 }
+
+

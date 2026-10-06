@@ -919,9 +919,18 @@ describe('whiteboard editor shell', () => {
     fireEvent.pointerUp(svg, { clientX: 116, clientY: 116 });
 
     fireEvent.click(screen.getByRole('button', { name: 'Line style' }));
-    const group = screen.getByRole('group', { name: 'Arrow style' });
+    const group = screen.getByRole('radiogroup', { name: 'Arrow style' });
     expect(group.querySelectorAll('svg')).toHaveLength(5);
-    fireEvent.click(screen.getByRole('radio', { name: 'diamond' }));
+    // wrap class (3+2) + localized labels, no raw lowercase values
+    expect(group.className).toContain('fp-segmented-bar-wrap');
+    expect(within(group).getAllByRole('radio').map((b) => b.getAttribute('aria-label'))).toEqual([
+      'None',
+      'Open',
+      'Solid',
+      'Diamond',
+      'Circle',
+    ]);
+    fireEvent.click(screen.getByRole('radio', { name: 'Diamond' }));
 
     expect(dispatch).toHaveBeenCalled();
     const action = dispatch.mock.calls[dispatch.mock.calls.length - 1]![0] as {
@@ -1289,7 +1298,7 @@ describe('whiteboard editor shell', () => {
     fireEvent.pointerDown(svg, { button: 0, clientX: 231, clientY: 76 });
     fireEvent.pointerUp(svg, { clientX: 231, clientY: 76 });
     fireEvent.click(screen.getByRole('button', { name: 'Line style' }));
-    fireEvent.click(screen.getByRole('radio', { name: 'diamond' }));
+    fireEvent.click(screen.getByRole('radio', { name: 'Diamond' }));
     rerender();
     const arrowPatch = dispatch.mock.calls.at(-1)![0] as { patch: { elements: Array<Record<string, unknown>> } };
     expect(arrowPatch.patch.elements.find((e) => e.kind === 'edge')).toMatchObject({ arrowStyle: 'diamond' });
@@ -3372,10 +3381,10 @@ it('clamps resize to the minimum size and hides the handle for non-resizeable ki
       expect(dispatch).toHaveBeenCalledTimes(1);
       let action = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
       expect(action.patch.elements[0]).toMatchObject({ id: 's1', shapeType: 'predefinedProcess' });
-      // Border dropdown: solid / dashed / none.
+      // Border dropdown: Solid / Dashed / None (localized labels).
       fireEvent.click(screen.getByRole('button', { name: 'Line style' }));
       const borderDialog = screen.getByRole('dialog', { name: 'Line style' });
-      fireEvent.click(within(borderDialog).getByRole('radio', { name: 'dashed' }));
+      fireEvent.click(within(borderDialog).getByRole('radio', { name: 'Dashed' }));
       action = dispatch.mock.calls[1]![0] as { patch: { elements: Array<Record<string, unknown>> } };
       expect(action.patch.elements[0]).toMatchObject({ id: 's1', dash: 'dashed' });
       // Pilih warna di popup border: border pindah, body dikunci (tak ikut berubah).
@@ -4288,23 +4297,61 @@ describe('whiteboard figjam interactions', () => {
     expect(action.patch.elements[0]).toMatchObject({ kind: 'stroke', color: '#f4706d' });
   });
 
-  it('Q4: sets pen width from the strip slider popup', () => {
+  it('Q4: sets pen width from the strip preset popup', () => {
     const dispatch = vi.fn();
     useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
     renderShell(BOARD);
     fireEvent.click(screen.getByRole('button', { name: 'Pen — P' }));
     const strip = document.querySelector('.board-toolbar .wb-shape-strip') as HTMLElement;
-    fireEvent.click(within(strip).getByRole('button', { name: 'Width' }));
-    // Portal popup lives on document.body, outside the strip.
+    fireEvent.click(within(strip).getByRole('button', { name: /^Width/ }));
+    // Portal popup lives on document.body, outside the strip: 5 preset pills, no slider.
     const dialog = screen.getByRole('dialog', { name: 'Width' });
-    fireEvent.change(within(dialog).getByRole('slider', { name: 'Width' }), { target: { value: '6' } });
+    expect(within(dialog).queryByRole('slider', { name: 'Width' })).toBeNull();
+    expect(within(dialog).getAllByRole('radio')).toHaveLength(5);
+    fireEvent.click(within(dialog).getByRole('radio', { name: '8' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
     fireEvent.pointerDown(svg, { button: 0, clientX: 20, clientY: 30 });
     fireEvent.pointerMove(svg, { clientX: 40, clientY: 50 });
     fireEvent.pointerMove(svg, { clientX: 60, clientY: 70 });
     fireEvent.pointerUp(svg, { clientX: 60, clientY: 70 });
     const action = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
-    expect(action.patch.elements[0]).toMatchObject({ kind: 'stroke', width: 6 });
+    expect(action.patch.elements[0]).toMatchObject({ kind: 'stroke', width: 8 });
+  });
+
+  it('sets stroke width from the floating-bar preset popup (no slider anywhere)', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+    renderShell({
+      ...BOARD,
+      elements: [{ id: 'p1', kind: 'stroke', tool: 'pen', color: '#374151', width: 2, thinning: 2, points: [[0, 0], [100, 0]] }],
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    // midpoint world (50,0) → client (66,16)
+    fireEvent.pointerDown(svg, { button: 0, clientX: 66, clientY: 16 });
+    fireEvent.pointerUp(svg, { clientX: 66, clientY: 16 });
+    fireEvent.click(screen.getByRole('button', { name: /^Width/ }));
+    const dialog = screen.getByRole('dialog', { name: 'Width' });
+    expect(within(dialog).queryByRole('slider')).toBeNull();
+    expect(within(dialog).getAllByRole('radio')).toHaveLength(5);
+    fireEvent.click(within(dialog).getByRole('radio', { name: '8' }));
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    const action = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
+    expect(action.patch.elements.find((e) => e.id === 'p1')).toMatchObject({ width: 8 });
+  });
+
+  it('sets eraser width from the strip preset popup (4–20, no custom slider)', () => {
+    localStorage.clear();
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch: vi.fn() });
+    renderShell(BOARD);
+    fireEvent.click(screen.getByRole('button', { name: 'Eraser — E' }));
+    const strip = document.querySelector('.board-toolbar .wb-shape-strip') as HTMLElement;
+    fireEvent.click(within(strip).getByRole('button', { name: /^Width/ }));
+    const dialog = screen.getByRole('dialog', { name: 'Width' });
+    expect(within(dialog).queryByRole('slider', { name: 'Width' })).toBeNull();
+    expect(within(dialog).getAllByRole('radio')).toHaveLength(5);
+    fireEvent.click(within(dialog).getByRole('radio', { name: '12' }));
+    expect(localStorage.getItem('wb:eraserWidth')).toBe('12');
   });
 
   it('Q5: text strip mirrors the bar controls and applies to placement', () => {
@@ -4325,6 +4372,82 @@ describe('whiteboard figjam interactions', () => {
     fireEvent.pointerUp(svg, { clientX: 100, clientY: 100 });
     const action = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
     expect(action.patch.elements[0]).toMatchObject({ kind: 'text', bold: true, fontFamily: 'simple' });
+  });
+
+  it('shape strip shows border dots once and fill behind a dropdown (no duplicate swatches)', () => {
+    localStorage.clear();
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+    renderShell(BOARD);
+    fireEvent.click(screen.getByRole('button', { name: 'Shape — S' }));
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'diamond' }));
+    const strip = document.querySelector('.board-toolbar .wb-shape-strip') as HTMLElement;
+    expect(strip).not.toBeNull();
+    // border quick dots: exactly the 8 basic swatches, rendered once
+    expect(within(strip).getAllByRole('button', { name: /^Border color #/ })).toHaveLength(8);
+    // a single fill control (dropdown showing the current fill), not 8 more dots
+    expect(within(strip).getAllByRole('button', { name: /^Fill color #/ })).toHaveLength(1);
+    fireEvent.click(within(strip).getByRole('button', { name: 'Fill color #374151' }));
+    const panel = screen.getByRole('dialog', { name: 'Fill color' });
+    fireEvent.click(within(panel).getByRole('button', { name: 'Fill color #f4706d' }));
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    fireEvent.pointerDown(svg, { button: 0, clientX: 100, clientY: 100 });
+    fireEvent.pointerUp(svg, { clientX: 100, clientY: 100 });
+    const action = dispatch.mock.calls[0]![0] as { patch: { elements: Array<Record<string, unknown>> } };
+    expect(action.patch.elements[0]).toMatchObject({ kind: 'shape', fillColor: '#f4706d' });
+  });
+
+  it('floating bar separates property clusters with hairline dividers (FigJam)', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch });
+    const sel = (clientX: number, clientY: number) => {
+      const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+      fireEvent.pointerDown(svg, { button: 0, clientX, clientY });
+      fireEvent.pointerUp(svg, { clientX, clientY });
+    };
+    const seps = () =>
+      document.querySelectorAll('.wb-selection-bar[aria-label="Selection actions"] .wb-bar-sep');
+    const selectAt = (clientX: number, clientY: number) => {
+      fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
+      sel(clientX, clientY);
+    };
+    // shape: paint | text clusters | menu
+    const shape = renderShell({
+      ...BOARD,
+      elements: [{ id: 's1', kind: 'shape', shapeType: 'rect', x: 0, y: 0, w: 100, h: 60, color: '#6ea8fe', fill: 'none', strokeWidth: 2, label: 'Hi' }],
+    });
+    selectAt(20, 20);
+    expect(seps()).toHaveLength(6);
+    shape.unmount();
+    // sticky: fill | text clusters | menu
+    const sticky = renderShell({
+      ...BOARD,
+      elements: [{ id: 's1', kind: 'sticky', x: 0, y: 0, w: 200, h: 120, color: '#e8b955', text: 'Hi' }],
+    });
+    selectAt(20, 20);
+    expect(seps()).toHaveLength(5);
+    sticky.unmount();
+    // boundary: single control — only the menu divider
+    const boundary = renderShell({
+      ...BOARD,
+      elements: [{ id: 'b1', kind: 'boundary', x: 0, y: 0, w: 200, h: 120, color: '#2563eb', label: 'Scope' }],
+    });
+    selectAt(150, 100);
+    expect(seps()).toHaveLength(1);
+    boundary.unmount();
+  });
+
+  it('defaults strip separates tool groups with hairline dividers (FigJam)', () => {
+    useProjectMock.mockReturnValue({ state: null, role: 'owner', canEdit: true, dispatch: vi.fn() });
+    renderShell(BOARD);
+    const stripSeps = () =>
+      document.querySelectorAll('.board-toolbar .wb-shape-strip .wb-bar-sep');
+    // text strip: dots | font size | toggles | align | color
+    fireEvent.click(screen.getByRole('button', { name: 'Text — T' }));
+    expect(stripSeps()).toHaveLength(4);
+    // boundary strip: dots only — no divider
+    fireEvent.click(screen.getByRole('button', { name: 'Boundary — B' }));
+    expect(stripSeps()).toHaveLength(0);
   });
 
   it('Q6/Q7: boundary strip is dots-only, edge strip has no arrow button', () => {

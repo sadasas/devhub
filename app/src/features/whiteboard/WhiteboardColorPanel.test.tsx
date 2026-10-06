@@ -44,6 +44,21 @@ describe('whiteboard color panel', () => {
     expect(onPick).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps the panel open while interacting with the nested custom picker', () => {
+    const onClose = vi.fn();
+    render(<WhiteboardColorPanel value="#2563eb" onPick={() => {}} onClose={onClose} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Custom color' }));
+    expect(screen.getByRole('dialog', { name: 'Custom color picker' })).not.toBeNull();
+    // Klik di dalam popup bersarang (portal) bukan klik-di-luar.
+    fireEvent.pointerDown(screen.getByRole('slider', { name: 'Saturation and brightness' }));
+    fireEvent.pointerDown(screen.getByRole('slider', { name: 'Hue' }));
+    expect(screen.getByRole('dialog', { name: 'Fill color' })).not.toBeNull();
+    expect(onClose).not.toHaveBeenCalled();
+    // Klik benar-benar di luar tetap menutup.
+    fireEvent.pointerDown(document.body);
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
   it('normalizes short hex', () => {
     expect(normalizeHexColor('#abc')).toBe('#aabbcc');
     expect(normalizeHexColor('FFF')).toBe('#ffffff');
