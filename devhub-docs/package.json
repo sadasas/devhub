@@ -9,7 +9,8 @@
   "scripts": {
     "dev": "astro dev",
     "start": "astro dev",
-    "build": "astro build",
+    "build": "node scripts/guard-mcp-urls.mjs && astro build",
+    "guard:mcp-urls": "node scripts/guard-mcp-urls.mjs",
     "preview": "astro preview",
     "astro": "astro"
   },

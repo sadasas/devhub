@@ -17311,6 +17311,60 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
   flex-wrap: wrap;
 }
 
+/* Opsi E persis wireframe: kiri teks, kanan nominal+badge. */
+.billing-hero-top {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: start;
+}
+
+.billing-hero-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.billing-hero-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  text-align: right;
+}
+
+.billing-hero-help {
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  margin: 4px 0 0;
+}
+
+.billing-note {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  margin: 12px 0 0;
+}
+
+.billing-order {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Wireframe E: judul baris "Paket — Tim · Nominal". */
+.billing-row-title {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  min-width: 0;
+}
+
+.billing-row-title .billing-amount {
+  font-weight: 700;
+}
+
 .billing-hero-amount {
   font-size: 17px;
   font-weight: 650;
@@ -17507,11 +17561,22 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
 
   .billing-actions .btn {
     width: auto;
-    min-height: 36px;
+    min-height: 44px;
   }
 
   .billing-hero {
     padding: 12px;
+  }
+
+  /* Opsi E mobile REVISI final: badge kiri, action-row rata kanan fit-content 44px. */
+  .billing-hero-top {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .billing-hero-right {
+    align-items: flex-start;
+    text-align: left;
   }
 
   .billing-hero-actions {
@@ -17522,7 +17587,7 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
 
   .billing-hero-actions .btn {
     width: auto;
-    min-height: 36px;
+    min-height: 44px;
   }
 }
 
@@ -18823,38 +18888,6 @@ details[open] > .milestone-group-summary::before {
   flex-direction: column;
 }
 
-.billing-redirect-header {
-  height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-  border-bottom: 1px solid var(--border-hairline);
-  background: var(--bg-base);
-  flex-shrink: 0;
-}
-
-.billing-redirect-logo {
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  color: var(--text-primary);
-  text-decoration: none;
-  font-family: var(--font-sans);
-}
-
-.billing-redirect-logo:hover {
-  color: var(--accent);
-}
-
-.billing-redirect-header-meta {
-  font-family: var(--font-mono);
-  font-size: 10.5px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-muted);
-}
-
 .billing-redirect-page {
   flex: 1;
   max-width: 560px;
@@ -18907,14 +18940,20 @@ details[open] > .milestone-group-summary::before {
   align-items: flex-start;
 }
 
-/* Opsi K — hero status center: ikon besar + badge + nominal + judul. */
+/* Opsi K — hero status center ikut ritme wireframe (ikon → pill → nominal →
+   judul → sub, celah 10/8/12/8, kartu fakta 16 di bawahnya). */
 .billing-redirect-status {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 8px;
-  margin: 4px 0 8px;
+  gap: 0;
+  margin: 4px 0 16px;
+}
+
+.billing-redirect-status > .billing-redirect-icon,
+.billing-redirect-status > svg {
+  margin-bottom: 10px;
 }
 
 .billing-redirect-badges {
@@ -18922,17 +18961,18 @@ details[open] > .milestone-group-summary::before {
   gap: 8px;
   justify-content: center;
   flex-wrap: wrap;
+  margin-bottom: 8px;
 }
 
 .billing-redirect-amount {
   font-family: var(--font-sans);
-  font-size: 24px;
+  font-size: 26px;
   font-weight: 700;
   letter-spacing: -0.01em;
   line-height: 1.2;
   font-variant-numeric: tabular-nums;
   color: var(--text-primary);
-  margin: 0;
+  margin: 0 0 12px;
 }
 
 .billing-redirect-amount--muted {
@@ -18979,92 +19019,65 @@ details[open] > .milestone-group-summary::before {
 }
 
 .billing-redirect-title {
-  font-size: 16px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.25;
   color: var(--text-primary);
-  margin: 0 0 4px;
+  margin: 0 0 8px;
+}
+
+/* Wireframe K Batal: judul abu (#78716c ≈ text-secondary). */
+.billing-redirect-title--muted {
+  color: var(--text-secondary);
 }
 
 .billing-redirect-subtitle {
-  font-size: 14px;
+  font-size: 11px;
   line-height: 1.6;
   color: var(--text-muted);
   margin: 0;
   max-width: 38ch;
 }
 
-/* L1a — invariant workspace eyebrow (text, Workspace · Nama) */
-.billing-context {
-  font-size: 12px;
-  font-weight: 500;
-  line-height: 1.4;
-  color: var(--text-muted);
-  display: flex;
-  gap: 6px;
-  align-items: center;
-  min-height: 18px;
-  white-space: nowrap;
-  overflow: hidden;
-  margin: 0 0 2px;
-}
-
-.billing-context-dot {
-  color: var(--border-strong);
-  flex-shrink: 0;
-}
-
-.billing-context-name {
-  color: var(--text-secondary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  max-width: 32ch;
-  font-weight: 500;
-}
-
-.billing-context--loading {
-  opacity: 0.9;
-}
-
-/* L1c — facts ledger (inset dl grid) */
+/* Wireframe K: kartu fakta putih, label 10px secondary, nilai rata kanan. */
 .billing-facts {
   display: grid;
-  grid-template-columns: 110px 1fr;
+  grid-template-columns: auto 1fr;
   gap: 0;
-  background: var(--bg-inset);
+  background: var(--bg-elevated);
   border: 1px solid var(--border-hairline);
   border-radius: var(--radius-input);
   overflow: hidden;
-  font-size: 13px;
+  font-size: 10px;
   margin-top: 2px;
 }
 
 .billing-facts dt {
   font-family: var(--font-sans);
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-muted);
-  padding: 10px 12px;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  padding: 7px 12px 7px 16px;
   border-bottom: 1px solid var(--border-hairline);
-  border-right: 1px solid var(--border-hairline);
   margin: 0;
   display: flex;
   align-items: center;
 }
 
 .billing-facts dd {
-  font-size: 12px;
-  font-weight: 500;
+  font-size: 10px;
+  font-weight: 400;
   font-variant-numeric: tabular-nums;
   color: var(--text-primary);
-  padding: 10px 12px;
+  padding: 7px 16px 7px 12px;
   border-bottom: 1px solid var(--border-hairline);
   margin: 0;
   display: flex;
-  gap: 8px;
+  gap: 6px;
   align-items: center;
+  justify-content: flex-end;
+  text-align: right;
   min-width: 0;
   overflow: hidden;
 }
@@ -19124,56 +19137,86 @@ details[open] > .milestone-group-summary::before {
   outline-offset: 2px;
 }
 
+/* Wireframe K desktop: salin ikon-saja; teks "salin" hanya mobile (≤480px). */
+@media (min-width: 481px) {
+  .billing-redirect-copy-text {
+    display: none;
+  }
+}
+
 .billing-redirect-actions {
   display: flex;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 8px;
   flex-wrap: wrap;
   align-items: center;
   margin-top: 12px;
 }
 
-.billing-redirect-link {
-  font-size: 14px;
-  font-weight: 500;
-  color: var(--accent);
-  text-decoration: none;
-  padding: 6px 4px;
-}
-
-.billing-redirect-link:hover {
-  text-decoration: underline;
-  color: var(--accent-hover);
-}
-
 .billing-redirect-help {
-  font-size: 12px;
+  font-size: 10px;
   line-height: 1.5;
   color: var(--text-muted);
   margin: 0;
   max-width: 44ch;
 }
 
+/* Opsi K persis wireframe: nav teks kiri, help center, aksi center opsional. */
+.billing-redirect-navwrap {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.billing-redirect-nav {
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 4px 2px;
+  border-radius: var(--radius-sm);
+}
+
+.billing-redirect-nav:hover {
+  color: var(--text-primary);
+  text-decoration: underline;
+}
+
+.billing-redirect-nav-short {
+  display: none;
+}
+
+.billing-redirect-help--center {
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.billing-redirect-actions--center {
+  justify-content: center;
+}
+
+.billing-facts--muted {
+  color: var(--text-muted);
+}
+
+/* Wireframe K Lunas: nilai "Lunas {tanggal}" hijau. */
+.billing-facts--paid {
+  color: var(--success-strong, #059669);
+  font-weight: 700;
+}
+
 @media (max-width: 480px) {
-  .billing-facts {
-    grid-template-columns: 1fr;
+  /* Opsi K mobile: nav pendek (‹ Kembali), bukan full. */
+  .billing-redirect-nav-full {
+    display: none;
   }
 
-  .billing-facts dt {
-    border-right: none;
-  }
-
-  .billing-context-name {
-    max-width: 18ch;
+  .billing-redirect-nav-short {
+    display: inline;
   }
 }
 
 @media (max-width: 640px) {
-  .billing-redirect-header {
-    padding: 0 16px;
-    height: 48px;
-  }
-
   .billing-redirect-page {
     padding: 32px 16px 24px;
   }
@@ -19187,25 +19230,26 @@ details[open] > .milestone-group-summary::before {
   }
 
   .billing-redirect-title {
-    font-size: 16px;
+    font-size: 14px;
   }
 
+  /* Wireframe K mobile: tombol susun full-width. */
   .billing-redirect-actions {
-    flex-direction: row;
-    align-items: center;
-    justify-content: flex-end;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
     gap: 8px;
-    width: auto;
+    width: 100%;
   }
 
   .billing-redirect-actions .btn {
-    width: auto;
-    min-height: 36px;
+    width: 100%;
+    min-height: 44px;
   }
 
   .billing-redirect-actions .btn-primary,
   .billing-redirect-actions .btn.btn-primary {
-    min-height: 40px;
+    min-height: 44px;
   }
 
   .billing-redirect-back {
@@ -20477,13 +20521,8 @@ html[data-theme='light'] .tour-overlay-dim {
 .dashboard__settings-manage {
   display: inline-flex;
   align-items: center;
-}
-
-/* Manage plan selalu di bawah konten (setelah kuota), rata kanan. */
-.dashboard__settings-plan-manage-row {
-  display: flex;
-  justify-content: flex-end;
-  margin-top: 12px;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .dashboard__settings-plan-quota-text {
@@ -20492,15 +20531,32 @@ html[data-theme='light'] .tour-overlay-dim {
   font-variant-numeric: tabular-nums;
 }
 
-/* Opsi L — baris pembayaran pending di section plan (kondisional). */
+/* Opsi L — baris pembayaran pending di section plan (kondisional):
+   teks kiri (judul + badge / sub), tombol Detail kanan. */
 .dashboard__settings-pending {
   background: var(--status-warn-soft);
   border: 1px solid var(--status-warn);
   border-radius: var(--radius-card);
   padding: 16px;
   display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Tombol Detail selalu rata kanan (desktop + mobile, bukan full-width). */
+.dashboard__settings-pending > .btn {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.dashboard__settings-pending-text {
+  display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
+  min-width: 0;
 }
 
 .dashboard__settings-pending-row {
@@ -20508,11 +20564,6 @@ html[data-theme='light'] .tour-overlay-dim {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-}
-
-.dashboard__settings-pending-actions {
-  display: flex;
-  justify-content: flex-end;
 }
 
 .dashboard__settings-stats {
@@ -20701,12 +20752,12 @@ html[data-theme='light'] .tour-overlay-dim {
     width: 100%;
   }
 
-  /* Aturan konsisten: button action di settings mobile fit-content rata
-     kanan (ujung baris, sejajar tombol Save) — bukan fullwidth. Modal
-     dikecualikan (.modal-footer tetap 50/50). */
+  /* Wireframe L-plan mobile: Kelola paket baris sendiri rata kiri.
+     Pengecualian eksplisit dari aturan aksi-kanan settings. */
   .dashboard__settings-manage {
     width: auto;
-    align-self: flex-end;
+    align-self: flex-start;
+    margin-left: 0;
   }
 
   .dashboard__settings-stats {

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { ArrowSquareOut, Trash } from '@phosphor-icons/react';
+import { ArrowSquareOut, Eye, X } from '@phosphor-icons/react';
 import { useNavigate } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../lib/api';
@@ -102,6 +102,11 @@ export function PaymentHistoryPage() {
       ?.filter((p) => p.status === 'pending')
       .sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0] ?? null;
   const heroBusy = heroPending != null && busyOrderId === heroPending.orderId;
+  /* Wireframe E: hero tidak diduplikasi di daftar riwayat. */
+  const historyPayments = heroPending
+    ? (payments ?? []).filter((p) => p.orderId !== heroPending.orderId)
+    : (payments ?? []);
+  const hasCancelled = (payments ?? []).some((p) => p.status === 'cancelled');
 
   return (
     <div className="page billing-page">
@@ -112,7 +117,6 @@ export function PaymentHistoryPage() {
       <header className="page-header billing-header">
         <div>
           <h1 className="page-title mt-8">{t('billing.title')}</h1>
-          <p className="page-subtitle">{t('billing.subtitle')}</p>
         </div>
         {payments !== null && !error && (
           <span className="page-subtitle billing-count" aria-live="polite">
@@ -141,28 +145,35 @@ export function PaymentHistoryPage() {
             date: formatDateAdmin(heroPending.createdAt, locale),
           })}
         >
-          <p className="billing-hero-eyebrow">
-            {t('billing.heroEyebrow', { id: heroPending.orderId.slice(0, 8) })}
-          </p>
-          <div className="billing-hero-main">
-            <BillingLedger.Amount
-              amount={heroPending.amount}
-              locale={locale}
-              className="billing-hero-amount"
-            />
-            <Badge tone="warn" dot>
-              {t('billing.status.pending')}
-            </Badge>
+          <div className="billing-hero-top">
+            <div className="billing-hero-left">
+              <p className="billing-hero-eyebrow">
+                {t('billing.heroEyebrow', { id: heroPending.orderId.slice(0, 8) })}
+              </p>
+              <p className="billing-hero-name">
+                {heroPending.packageName} — {heroPending.teamName}
+                {heroPending.durationDays != null
+                  ? ` · ${t('billing.days', { count: heroPending.durationDays })}`
+                  : ''}
+              </p>
+              <p className="billing-hero-sub">
+                {t('billing.heroCreatedOrder', {
+                  date: formatDateAdmin(heroPending.createdAt, locale),
+                  id: heroPending.orderId.slice(0, 8),
+                })}
+              </p>
+            </div>
+            <div className="billing-hero-right">
+              <BillingLedger.Amount
+                amount={heroPending.amount}
+                locale={locale}
+                className="billing-hero-amount"
+              />
+              <Badge tone="warn" dot>
+                {t('billing.status.pending')}
+              </Badge>
+            </div>
           </div>
-          <p className="billing-hero-name">
-            {heroPending.teamName} · {heroPending.packageName}
-            {heroPending.durationDays != null
-              ? ` · ${t('billing.days', { count: heroPending.durationDays })}`
-              : ''}
-          </p>
-          <p className="billing-hero-sub">
-            {t('billing.heroCreated', { date: formatDateAdmin(heroPending.createdAt, locale) })}
-          </p>
           <div className="billing-hero-actions">
             <Button
               size="sm"
@@ -182,7 +193,7 @@ export function PaymentHistoryPage() {
               size="sm"
               variant="danger"
               disabled={resumeBusyId !== null || heroBusy}
-              leftIcon={<Trash size={14} aria-hidden="true" />}
+              leftIcon={<X size={14} aria-hidden="true" />}
               aria-label={t('billing.cancelAria', {
                 packageName: heroPending.packageName,
                 orderId: heroPending.orderId.slice(0, 8),
@@ -193,9 +204,9 @@ export function PaymentHistoryPage() {
             </Button>
             <Button
               size="sm"
-              variant="ghost"
+              variant="secondary"
               disabled={resumeBusyId !== null || heroBusy}
-              leftIcon={<ArrowSquareOut size={14} weight="bold" aria-hidden="true" />}
+              leftIcon={<Eye size={14} aria-hidden="true" />}
               aria-label={t('billing.detailAria', {
                 packageName: heroPending.packageName,
                 orderId: heroPending.orderId.slice(0, 8),
@@ -205,6 +216,7 @@ export function PaymentHistoryPage() {
               {t('billing.detail')}
             </Button>
           </div>
+          <p className="billing-hero-help">{t('billing.heroHelp')}</p>
         </section>
       ) : null}
 
@@ -250,12 +262,12 @@ export function PaymentHistoryPage() {
         </BillingLedger>
       ) : payments ? (
         <>
-          {heroPending ? (
+          {heroPending && historyPayments.length > 0 ? (
             <h2 className="billing-history-eyebrow">{t('billing.historyLabel')}</h2>
           ) : null}
           <BillingLedger>
           <ul role="list" className="billing-list">
-            {payments.map((p) => {
+            {(heroPending ? historyPayments : payments).map((p) => {
               const badge = STATUS_BADGE_KEYS[p.status] ?? {
                 tone: 'neutral' as const,
                 key: '',
@@ -264,6 +276,7 @@ export function PaymentHistoryPage() {
               const badgeLabel = badge.key ? t(badge.key) : p.status;
               const busy = busyOrderId === p.orderId;
               const isPending = p.status === 'pending';
+              const isCancelled = p.status === 'cancelled';
               return (
                 <BillingLedger.Row
                   key={p.orderId}
@@ -282,18 +295,18 @@ export function PaymentHistoryPage() {
                 >
                   <BillingLedger.Main>
                     <BillingLedger.Head>
-                      <BillingLedger.Amount amount={p.amount} locale={locale} />
+                      <span className="billing-row-title">
+                        {p.packageName} — {p.teamName} ·{' '}
+                        <BillingLedger.Amount amount={p.amount} locale={locale} />
+                      </span>
                       <Badge tone={badge.tone} dot={badge.dot}>
                         {badgeLabel}
                       </Badge>
                     </BillingLedger.Head>
                     <BillingLedger.Meta
-                      teamName={p.teamName}
-                      packageName={p.packageName}
-                      durationDays={p.durationDays}
                       createdAt={p.createdAt}
-                      completedAt={p.status === 'completed' ? p.completedAt : null}
-                      daysLabel={(c) => t('billing.days', { count: c })}
+                      orderId={p.orderId}
+                      expiredSuffix={isCancelled ? t('billing.expiredLinkSuffix') : null}
                       formatDate={(iso) => formatDateAdmin(iso, locale)}
                     />
                   </BillingLedger.Main>
@@ -303,7 +316,7 @@ export function PaymentHistoryPage() {
                         size="sm"
                         variant="danger"
                         disabled={busy}
-                        leftIcon={<Trash size={14} aria-hidden="true" />}
+                        leftIcon={<X size={14} aria-hidden="true" />}
                         aria-label={t('billing.cancelAria', {
                           packageName: p.packageName,
                           orderId: p.orderId.slice(0, 8),
@@ -315,9 +328,9 @@ export function PaymentHistoryPage() {
                     )}
                     <Button
                       size="sm"
-                      variant="ghost"
+                      variant="secondary"
                       disabled={busy}
-                      leftIcon={<ArrowSquareOut size={14} weight="bold" aria-hidden="true" />}
+                      leftIcon={<Eye size={14} aria-hidden="true" />}
                       aria-label={t('billing.detailAria', {
                         packageName: p.packageName,
                         orderId: p.orderId.slice(0, 8),
@@ -332,6 +345,9 @@ export function PaymentHistoryPage() {
             })}
           </ul>
         </BillingLedger>
+          {hasCancelled && !error ? (
+            <p className="billing-note">{t('billing.cancelledNote')}</p>
+          ) : null}
         </>
       ) : null}
 
@@ -351,6 +367,7 @@ export function PaymentHistoryPage() {
             : t('billing.cancelDescFallback')
         }
         confirmLabel={t('billing.confirmCancel')}
+        confirmIcon={<X size={14} aria-hidden="true" />}
         busy={busyConfirm}
         error={actionError}
         onConfirm={() => void onConfirmCancel()}

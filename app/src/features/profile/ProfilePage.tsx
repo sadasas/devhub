@@ -519,11 +519,6 @@ export function ProfilePage() {
                           : t('profile.account.copyId', { defaultValue: 'Copy ID' })}
                       </Button>
                     </span>
-                    {copiedId && (
-                      <span className="field-helper field-helper--micro" role="status" aria-live="polite">
-                        {t('profile.account.copied', { defaultValue: 'Copied' })}
-                      </span>
-                    )}
                   </dd>
                 </div>
               </SettingsRowGroup>

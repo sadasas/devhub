@@ -91,7 +91,7 @@ dikecualikan sebagai karya brand. **Jangan tambah hex di file lain.**
 | `forbidden` (401/403), `business` (PLAN_LIMIT), no-access | `locked` + `soft-cream` | `DataErrorState` / settings-no-access |
 | Momen selebrasi nyata | `success` | Hanya bila ada layar perayaan (saat ini: finish tour) |
 | Area uang kosong (billing) | `receipt` + `soft-cream` | `PaymentHistoryPage` |
-| Hero status detail pembayaran (pending/lunas/batal) | `pending`/`paid`/`cancelled` + `soft-cream`/`soft-mint`/`soft-cream`, size 64 | `BillingRedirectPage` (jam pasir, struk+stempel, struk sobek — keputusan owner 2026-10-05) |
+| Hero status detail pembayaran (pending/lunas/batal) | `pending`/`paid`/`cancelled` + `soft-cream`/`soft-mint`/`soft-cream`, size 104 | `BillingRedirectPage` (jam pasir, struk+stempel, struk sobek — keputusan owner 2026-10-05; 64→104 keputusan owner 2026-10-06 agar bobot visual menyamai ikon lingkaran wireframe) |
 | Area tanggal kosong (kalender/timeline) | `calendar` + `neutral` | `DueCalendar`, `BoardTimeline` |
 | Issues / tests / stack / decisions kosong | `bug` / `checklist` / `layers` / `scales` + `neutral` | `IssuesPage`, `TestsPage`, `StackPage`, `DecisionsPage` |
 | Releases / API / templates kosong | `flag` / `nodes` / `layout` + `neutral` | `ReleasesListView`, `ReleasesFlowView`, `ApiPage` ×2, `ApiDocsView`, `TemplatesPage` |

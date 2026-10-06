@@ -3,15 +3,14 @@ import {
   ClockCountdown,
   Copy,
   Lock,
-  ArrowLeft,
-  ArrowRight,
   ArrowSquareOut,
-  Trash,
+  X,
 } from '@phosphor-icons/react';
 import { Link, useParams, useSearchParams } from 'react-router';
 import { useTranslation } from 'react-i18next';
 import { api, ApiError } from '../../lib/api';
 import { classifyError, getErrorMessage } from '../../lib/errors';
+import { formatDateAdmin, formatDateTimeAdmin, formatIdr } from '../../lib/format';
 import type { BillingPayment, BillingStatus, PaymentHistoryItem } from '../../lib/types';
 import { Badge } from '../../components/Badge';
 import { ConfirmDeleteDialog } from '../../components/ConfirmDeleteDialog';
@@ -37,100 +36,81 @@ function isExpiredPlan(expiresAt: string | null): boolean {
   return Date.parse(expiresAt) < Date.now();
 }
 
-function formatDateShort(iso: string | null): string {
-  if (!iso) return '—';
-  try {
-    return new Date(iso).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
-  } catch {
-    return iso ?? '—';
-  }
-}
-
 /* ---------- Presentational helpers (ledger editorial) ---------- */
 
-function WorkspaceEyebrow({ name, loading }: { name: string | null; loading?: boolean }) {
-  if (loading) {
-    return (
-      <div className="billing-context billing-context--loading" aria-hidden="true">
-        <Skeleton style={{ width: 140, height: 13, borderRadius: 6 }} />
-      </div>
-    );
-  }
-  const label = name ? `Workspace: ${name}` : 'Workspace: —';
-  if (!name) {
-    return (
-      <p className="billing-context" aria-label={label} style={{ opacity: 0.85, fontStyle: 'italic' }}>
-        <span>Workspace</span>
-        <span aria-hidden="true" className="billing-context-dot">·</span>
-        <span className="billing-context-name">—</span>
-      </p>
-    );
-  }
+/* Opsi K — nav teks kiri atas (‹ Kembali ke workspace / ‹ Kembali mobile),
+   menggantikan CardBack icon-only agar sama persis struktur wireframe. */
+function NavBack({ to, full, short }: { to: string; full: string; short: string }) {
   return (
-    <p className="billing-context" aria-label={label}>
-      <span>Workspace</span>
-      <span aria-hidden="true" className="billing-context-dot">·</span>
-      <span className="billing-context-name" title={name}>{name}</span>
-    </p>
-  );
-}
-
-/* Tombol kembali ikon-only di kiri atas kartu (satu rupa semua state).
-   Tanpa Tooltip visual (keputusan owner 2026-10-05: panah-kembali
-   self-evident) — aria-label tetap wajib. Terdaftar di ALLOWLIST
-   guard-icon-buttons (satu-satunya btn-icon di file ini). */
-function CardBack({ to, label }: { to: string; label: string }) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="btn-icon"
-        aria-label={label}
-        onClick={() => { window.location.href = to; }}
-      >
-        <ArrowLeft size={16} aria-hidden="true" />
-      </Button>
+    <div className="billing-redirect-navwrap">
+      <Link to={to} className="billing-redirect-nav" aria-label={full}>
+        <span aria-hidden="true">‹ </span>
+        <span className="billing-redirect-nav-full">{full}</span>
+        <span className="billing-redirect-nav-short">{short}</span>
+      </Link>
     </div>
   );
 }
 
 function PaymentFacts({
   payment,
+  onCopy,
+  copied,
+  copyLabel,
+  copiedLabel,
+  copyAria,
 }: {
   payment: (BillingPayment | PaymentHistoryItem) | null;
+  onCopy: (text: string) => void;
+  copied: boolean;
+  copyLabel: string;
+  copiedLabel: string;
+  copyAria: string;
 }) {
-  const { t } = useTranslation('account');
+  const { t, i18n } = useTranslation('account');
+  const locale = i18n.language === 'id' ? 'id-ID' : 'en-US';
   if (!payment) return null;
   const duration = (payment as { durationDays?: number | null }).durationDays ?? null;
+  const teamName = (payment as { teamName?: string }).teamName ?? null;
   const amount = payment.amount;
   const createdAt = payment.createdAt;
   const completedAt = (payment as { completedAt?: string | null }).completedAt ?? null;
+  const muted = payment.status === 'cancelled';
+  /* Opsi K — urutan fakta persis wireframe: Paket, Dibuat, Durasi, Order, Jumlah, Lunas. */
   return (
     <dl className="billing-facts">
       <dt>{t('teams.payment.facts.package')}</dt>
-      <dd>{payment.packageName}</dd>
+      <dd className={muted ? 'billing-facts--muted' : ''}>{teamName ? `${payment.packageName} — ${teamName}` : payment.packageName}</dd>
+      <dt>{t('teams.payment.facts.created')}</dt>
+      <dd className={muted ? 'billing-facts--muted' : ''}>{formatDateTimeAdmin(createdAt, locale)}</dd>
       {duration != null && (
         <>
           <dt>{t('teams.payment.facts.duration')}</dt>
-          <dd>{t('teams.billing.scheduledDuration', { count: duration })}</dd>
+          <dd className={muted ? 'billing-facts--muted' : ''}>{t('teams.billing.scheduledDuration', { count: duration })}</dd>
         </>
       )}
-      <dt>{t('teams.payment.facts.amount')}</dt>
-      <dd style={{ fontVariantNumeric: 'tabular-nums' }}>Rp {amount.toLocaleString('id-ID')}</dd>
       <dt>{t('teams.payment.facts.order')}</dt>
-      <dd style={{ gap: 8 }}>
-        <span className="billing-redirect-mono" title={payment.orderId} style={{ maxWidth: 160 }}>
-          {shortId(payment.orderId)}
+      <dd className={muted ? 'billing-facts--muted' : ''}>
+        <span className="billing-redirect-mono" title={payment.orderId}>
+          #{shortId(payment.orderId)}
         </span>
-        <span style={{ color: 'var(--text-muted)', fontSize: 12 }}>· Rp {amount.toLocaleString('id-ID')}</span>
+        <button
+          type="button"
+          className="billing-redirect-copy"
+          onClick={() => onCopy(payment.orderId)}
+          aria-label={copyAria}
+        >
+          <Copy size={12} aria-hidden="true" /> <span className="billing-redirect-copy-text">{copied ? copiedLabel : copyLabel}</span>
+        </button>
       </dd>
-      <dt>{t('teams.payment.facts.created')}</dt>
-      <dd>{formatDateShort(createdAt)}</dd>
+      <dt>{t('teams.payment.facts.amount')}</dt>
+      <dd className={muted ? 'billing-facts--muted' : ''} style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>
+        {formatIdr(amount, locale)}
+      </dd>
       {completedAt && (
         <>
           <dt>{t('teams.payment.facts.completed')}</dt>
-          <dd>{formatDateShort(completedAt)}</dd>
+          <dd className={muted ? 'billing-facts--muted billing-facts--paid' : 'billing-facts--paid'}>{formatDateTimeAdmin(completedAt, locale)}</dd>
         </>
       )}
     </dl>
@@ -138,7 +118,8 @@ function PaymentFacts({
 }
 
 export function BillingRedirectPage() {
-  const { t } = useTranslation('account');
+  const { t, i18n } = useTranslation('account');
+  const locale = i18n.language === 'id' ? 'id-ID' : 'en-US';
   const { teamId = '' } = useParams<{ teamId: string }>();
   const [searchParams] = useSearchParams();
   const orderIdQuery = searchParams.get('orderId');
@@ -339,6 +320,22 @@ export function BillingRedirectPage() {
     !!detailPayment && !!teamId && detailPayment.teamId !== teamId;
   const billingHref = `/?team=${encodeURIComponent(teamId || detailPayment?.teamId || '')}&tab=settings&section=billing`;
   const backLabel = t('teams.payment.back', { defaultValue: 'Kembali ke workspace' });
+  const backShort = t('teams.payment.backShort', { defaultValue: 'Kembali' });
+  const copyLabel = t('teams.payment.copyOrder', { defaultValue: 'Salin' });
+  const copiedLabel = t('common:action.copied', { defaultValue: 'Disalin' });
+  const copyAria = t('teams.payment.copyOrderId', { defaultValue: 'Salin Order ID' });
+  const durationDays = (targetPayment as { durationDays?: number | null } | null)?.durationDays ?? null;
+  const durationLabel = durationDays != null ? t('teams.billing.scheduledDuration', { count: durationDays }) : '';
+  const detailSub = targetPayment
+    ? t('teams.payment.detailSub', {
+        packageName: targetPayment.packageName,
+        duration: durationLabel,
+        id: shortId(targetPayment.orderId),
+      })
+    : '';
+  const activeUntilDate = data?.team.planExpiresAt
+    ?? (targetPayment as { completedAt?: string | null } | null)?.completedAt
+    ?? null;
 
   const renderHeroIcon = () => {
     const size = 20;
@@ -347,9 +344,9 @@ export function BillingRedirectPage() {
        pending = jam pasir, paid = struk + stempel, cancelled = struk
        sobek. Ikon Phosphor dipertahankan untuk login-required +
        menunggu-tanpa-order. */
-    if (displayState === 'success') return <DoodleIllustration variant="paid" tone="soft-mint" size={64} />;
-    if (displayState === 'failed') return <DoodleIllustration variant="cancelled" tone="soft-cream" size={64} />;
-    if (displayState === 'pending' && targetPayment) return <DoodleIllustration variant="pending" tone="soft-cream" size={64} />;
+    if (displayState === 'success') return <DoodleIllustration variant="paid" tone="soft-mint" size={104} />;
+    if (displayState === 'failed') return <DoodleIllustration variant="cancelled" tone="soft-cream" size={104} />;
+    if (displayState === 'pending' && targetPayment) return <DoodleIllustration variant="pending" tone="soft-cream" size={104} />;
     if (displayState === 'pending') return <span className="billing-redirect-icon billing-redirect-icon--pending" aria-hidden="true"><ClockCountdown size={size} weight={weight} /></span>;
     if (displayState === 'unauthenticated') return <span className="billing-redirect-icon billing-redirect-icon--neutral" aria-hidden="true"><Lock size={size} weight={weight} /></span>;
     return null;
@@ -357,17 +354,12 @@ export function BillingRedirectPage() {
 
   return (
     <div className="billing-redirect-shell">
-      <header className="billing-redirect-header">
-        <Link to="/" className="billing-redirect-logo" aria-label="DevHub">DevHub</Link>
-        <span className="billing-redirect-header-meta">Secure payment · Pakasir</span>
-      </header>
-
+      {/* Wireframe K: tanpa header bar — langsung nav kembali. */}
       <main className="billing-redirect-page" aria-labelledby="billing-redirect-title">
         {displayState === 'loading' && (
           <div className="billing-redirect-card" role="status" aria-live="polite" aria-busy="true" aria-label="Loading billing status">
-            <CardBack to={billingHref} label={backLabel} />
+            <NavBack to={billingHref} full={backLabel} short={backShort} />
             <span className="sr-only">Memuat pembayaran…</span>
-            <WorkspaceEyebrow name={null} loading />
             <div aria-hidden="true" className="billing-redirect-status">
               <Skeleton style={{ width: 64, height: 64, borderRadius: 999 }} />
               <Skeleton style={{ width: 84, height: 20, borderRadius: 999 }} />
@@ -376,7 +368,7 @@ export function BillingRedirectPage() {
               <Skeleton style={{ width: '70%', height: 13, borderRadius: 6 }} />
             </div>
             <dl className="billing-facts" aria-hidden="true">
-              {["Paket", "Durasi", "Jumlah", "Order ID", "Dibuat"].map((label) => (
+              {["Paket", "Dibuat", "Durasi", "Order ID", "Jumlah"].map((label) => (
                 <div key={label} style={{ display: "contents" }}>
                   <dt><Skeleton style={{ width: 60, height: 11, borderRadius: 4 }} /></dt>
                   <dd><Skeleton style={{ width: 120, height: 13, borderRadius: 4 }} /></dd>
@@ -392,8 +384,7 @@ export function BillingRedirectPage() {
 
         {displayState === 'unauthenticated' && (
           <section className="billing-redirect-card billing-redirect-card--neutral" role="alert" aria-live="assertive">
-            <CardBack to="/" label={t('common:action.backToHome', { defaultValue: 'Beranda' })} />
-            <WorkspaceEyebrow name={workspaceName} />
+            <NavBack to="/" full={t('common:action.backToHome', { defaultValue: 'Beranda' })} short={backShort} />
             <div className="billing-redirect-hero">
               {renderHeroIcon()}
               <div>
@@ -419,42 +410,45 @@ export function BillingRedirectPage() {
 
         {(data || detailPayment) && displayState === 'pending' && targetPayment && (
           <>
-            <section className="billing-redirect-card" role="status" aria-live="polite">
-            <CardBack to={billingHref} label={backLabel} />
-            <WorkspaceEyebrow name={workspaceName} />
+            {/* Wireframe K: status langsung di background, tanpa kartu pembungkus. */}
+            <section role="status" aria-live="polite">
+            <NavBack to={billingHref} full={backLabel} short={backShort} />
             <div className="billing-redirect-status">
               {renderHeroIcon()}
               <div className="billing-redirect-badges">
-                <Badge tone="warn" dot>{t('teams.billing.pendingBadge', { defaultValue: 'Menunggu' })}</Badge>
-                <Badge tone="info">Pro</Badge>
+                <Badge tone="warn" dot>{t('teams.payment.pendingBadge', { defaultValue: 'Tertunda' })}</Badge>
               </div>
-              <p className="billing-redirect-amount">Rp {targetPayment.amount.toLocaleString('id-ID')}</p>
-              <h1 id="billing-redirect-title" className="billing-redirect-title">{targetPayment.packageName}</h1>
-              <p className="billing-redirect-subtitle">{t("teams.payment.pendingDesc", { packageName: targetPayment.packageName, amount: targetPayment.amount.toLocaleString("id-ID") })}</p>
+              <p className="billing-redirect-amount">{formatIdr(targetPayment.amount, locale)}</p>
+              <h1 id="billing-redirect-title" className="billing-redirect-title">{t('teams.payment.waitingTitle', { defaultValue: 'Menunggu pembayaran' })}</h1>
+              <p className="billing-redirect-subtitle">{detailSub}</p>
             </div>
             {workspaceMismatch && (
               <p className="billing-redirect-help" style={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
                 {t('teams.payment.workspaceMismatch', { teamName: detailPayment?.teamName ?? '', defaultValue: `Order ini milik workspace lain: ${detailPayment?.teamName}` })}
               </p>
             )}
-            <PaymentFacts payment={targetPayment} />
-            <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 6 }}>
-              <span className="billing-redirect-mono" title={targetPayment.orderId}>{t("teams.payment.orderSummary", { id: shortId(targetPayment.orderId), amount: targetPayment.amount.toLocaleString("id-ID") })}</span>
-              <button type="button" className="billing-redirect-copy" onClick={() => void handleCopy(targetPayment.orderId)} aria-label={t("teams.payment.copyOrderId")}><Copy size={12} aria-hidden="true" /> {copied ? t("common:action.copied") : t("teams.payment.copyOrder")}</button>
-            </div>
+            <PaymentFacts
+              payment={targetPayment}
+              onCopy={(text) => void handleCopy(text)}
+              copied={copied}
+              copyLabel={copyLabel}
+              copiedLabel={copiedLabel}
+              copyAria={copyAria}
+            />
             {actionError && <InlineError>{actionError}</InlineError>}
             <div className="billing-redirect-actions">
-              <Button variant="danger" size="sm" leftIcon={<Trash size={13} aria-hidden="true" />} disabled={busy !== null} loading={busy === 'cancel'} onClick={() => setConfirmCancel(true)}>{t('teams.billing.cancelPayment', { defaultValue: 'Batalkan' })}</Button>
               <Button variant="primary" size="sm" leftIcon={<ArrowSquareOut size={13} weight="bold" aria-hidden="true" />} loading={busy === 'resume'} disabled={busy !== null} onClick={() => void handleResume()}>{t('teams.billing.resumePayment', { defaultValue: 'Lanjutkan pembayaran' })}</Button>
+              <Button variant="danger" size="sm" leftIcon={<X size={13} aria-hidden="true" />} disabled={busy !== null} loading={busy === 'cancel'} onClick={() => setConfirmCancel(true)}>{t('teams.billing.cancelPayment', { defaultValue: 'Batalkan' })}</Button>
             </div>
-            <p className="billing-redirect-help" style={{ marginTop: 4 }}>{t("teams.payment.pendingHelp")}</p>
+            <p className="billing-redirect-help billing-redirect-help--center">{t('teams.payment.pendingActiveHelp', { date: formatDateTimeAdmin(targetPayment.createdAt, locale) })}</p>
             <p className="sr-only" aria-live="polite">{t("teams.payment.pollingHint")}</p>
           </section>
           <ConfirmDeleteDialog
             open={confirmCancel}
             title={t('extras:billing.cancelTitle')}
-            description={targetPayment ? t('extras:billing.cancelDesc', { packageName: targetPayment.packageName, teamName: workspaceName ?? '', amount: targetPayment.amount.toLocaleString('id-ID') }) : t('extras:billing.cancelDescFallback')}
+            description={targetPayment ? t('extras:billing.cancelDesc', { packageName: targetPayment.packageName, teamName: workspaceName ?? '', amount: targetPayment.amount.toLocaleString(locale) }) : t('extras:billing.cancelDescFallback')}
             confirmLabel={t('extras:billing.confirmCancel')}
+            confirmIcon={<X size={14} aria-hidden="true" />}
             busy={busy === 'cancel'}
             onConfirm={() => { setConfirmCancel(false); void handleCancel(); }}
             onClose={() => { if (busy !== 'cancel') setConfirmCancel(false); }}
@@ -464,76 +458,73 @@ export function BillingRedirectPage() {
 
         {(data || detailPayment) && displayState === 'pending' && !targetPayment && (
           <section className="billing-redirect-card" role="status" aria-live="polite">
-            <WorkspaceEyebrow name={workspaceName} />
+            <NavBack to={billingHref} full={backLabel} short={backShort} />
             <div className="billing-redirect-hero">
               {renderHeroIcon()}
               <div>
                 <h1 className="billing-redirect-title">{t('teams.payment.waiting', { defaultValue: 'Menunggu pembayaran' })}</h1>
-                <p className="billing-redirect-subtitle">{t("teams.payment.waitingSubtitle")}</p>
               </div>
             </div>
           </section>
         )}
 
         {(data || detailPayment) && displayState === 'success' && (
-          <section className="billing-redirect-card billing-redirect-card--success" role="status" aria-live="polite">
-            <CardBack to={billingHref} label={backLabel} />
-            <WorkspaceEyebrow name={workspaceName} />
+          <section role="status" aria-live="polite">
+            <NavBack to={billingHref} full={backLabel} short={backShort} />
             <div className="billing-redirect-status">
               {renderHeroIcon()}
               <div className="billing-redirect-badges">
-                <Badge tone="success" dot>{t('teams.billing.activeBadge', { defaultValue: 'Lunas' })}</Badge>
-                <Badge tone="info">Pro</Badge>
+                <Badge tone="success" dot>{t('teams.payment.paidBadge', { defaultValue: 'Lunas' })}</Badge>
               </div>
               {targetPayment ? (
-                <p className="billing-redirect-amount">Rp {targetPayment.amount.toLocaleString('id-ID')}</p>
+                <p className="billing-redirect-amount">{formatIdr(targetPayment.amount, locale)}</p>
               ) : null}
-              <h1 id="billing-redirect-title" className="billing-redirect-title">{targetPayment ? targetPayment.packageName : t('teams.payment.proActive', { defaultValue: 'Pro aktif' })}</h1>
+              <h1 id="billing-redirect-title" className="billing-redirect-title">{t('teams.payment.paidTitle', { defaultValue: 'Pembayaran lunas' })}</h1>
               <p className="billing-redirect-subtitle">
-                {data?.team.planExpiresAt
-                  ? t('teams.payment.unlimitedUntil', { defaultValue: 'Aktif sampai {{date}}.', date: new Date(data.team.planExpiresAt).toLocaleDateString('id-ID') })
+                {activeUntilDate
+                  ? t('teams.payment.paidSubActiveUntil', { date: formatDateAdmin(activeUntilDate, locale) })
                   : t('teams.payment.unlimited', { defaultValue: 'Paket Pro aktif.' })}
               </p>
             </div>
-            <PaymentFacts payment={targetPayment} />
-            {targetPayment && (
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 6 }}>
-                <span className="billing-redirect-mono" title={targetPayment.orderId}>{t("teams.payment.orderSummary", { id: shortId(targetPayment.orderId), amount: targetPayment.amount.toLocaleString("id-ID") })}</span>
-                <button type="button" className="billing-redirect-copy" onClick={() => void handleCopy(targetPayment.orderId)} aria-label={t("teams.payment.copyOrderId")}><Copy size={12} aria-hidden="true" /> {copied ? t("common:action.copied") : t("teams.payment.copyOrder")}</button>
-              </div>
-            )}
-            <p className="billing-redirect-help">{t("teams.payment.successHelp")}</p>
+            <PaymentFacts
+              payment={targetPayment}
+              onCopy={(text) => void handleCopy(text)}
+              copied={copied}
+              copyLabel={copyLabel}
+              copiedLabel={copiedLabel}
+              copyAria={copyAria}
+            />
+            <p className="billing-redirect-help billing-redirect-help--center">{t("teams.payment.lunasHelp")}</p>
           </section>
         )}
 
         {(data || detailPayment) && displayState === 'failed' && (
-          <section className="billing-redirect-card billing-redirect-card--danger" role="alert">
-            <CardBack to={billingHref} label={backLabel} />
-            <WorkspaceEyebrow name={workspaceName} />
+          <section role="alert">
+            <NavBack to={billingHref} full={backLabel} short={backShort} />
             <div className="billing-redirect-status">
               {renderHeroIcon()}
               <div className="billing-redirect-badges">
                 <Badge tone="danger" dot>{failedVariant === 'cancelled' ? t("teams.payment.cancelledBadge") : t("teams.payment.failedBadge")}</Badge>
-                <Badge tone="info">Pro</Badge>
               </div>
               {targetPayment ? (
-                <p className={`billing-redirect-amount${failedVariant === 'cancelled' ? ' billing-redirect-amount--muted' : ''}`}>Rp {targetPayment.amount.toLocaleString('id-ID')}</p>
+                <p className={`billing-redirect-amount${failedVariant === 'cancelled' ? ' billing-redirect-amount--muted' : ''}`}>{formatIdr(targetPayment.amount, locale)}</p>
               ) : null}
-              <h1 id="billing-redirect-title" className="billing-redirect-title">{targetPayment ? targetPayment.packageName : (failedVariant === 'cancelled' ? t('teams.payment.cancelledTitle', { defaultValue: 'Pembayaran dibatalkan' }) : failedVariant === 'expired' ? t('teams.payment.expiredTitle', { defaultValue: 'Masa Pro habis' }) : t('teams.payment.failedTitle', { defaultValue: 'Pembayaran belum berhasil' }))}</h1>
-              <p className="billing-redirect-subtitle">{failedVariant === 'cancelled' ? t('teams.payment.cancelledDesc', { defaultValue: 'Link pembayaran kadaluarsa.' }) : failedVariant === 'expired' ? t('teams.payment.expiredDesc', { defaultValue: 'Langganan habis. Perpanjang untuk lanjut.' }) : t('teams.payment.failedDesc', { defaultValue: 'Pembayaran belum masuk.' })}</p>
+              <h1 id="billing-redirect-title" className={`billing-redirect-title${failedVariant === 'cancelled' ? ' billing-redirect-title--muted' : ''}`}>{failedVariant === 'cancelled' ? t('teams.payment.cancelledTitle', { defaultValue: 'Pembayaran dibatalkan' }) : failedVariant === 'expired' ? t('teams.payment.expiredTitle', { defaultValue: 'Masa Pro habis' }) : t('teams.payment.failedTitle', { defaultValue: 'Pembayaran belum berhasil' })}</h1>
+              <p className="billing-redirect-subtitle">{failedVariant === 'cancelled' ? t('teams.payment.cancelledShortDesc', { defaultValue: 'Link pembayaran kedaluwarsa.' }) : failedVariant === 'expired' ? t('teams.payment.expiredDesc', { defaultValue: 'Langganan habis. Perpanjang untuk lanjut.' }) : t('teams.payment.failedDesc', { defaultValue: 'Pembayaran belum masuk.' })}</p>
             </div>
-            <PaymentFacts payment={targetPayment} />
-            {targetPayment && (
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 6 }}>
-                <span className="billing-redirect-mono" title={targetPayment.orderId}>{t("teams.payment.orderSummary", { id: shortId(targetPayment.orderId), amount: targetPayment.amount.toLocaleString("id-ID") })}</span>
-                <button type="button" className="billing-redirect-copy" onClick={() => void handleCopy(targetPayment.orderId)} aria-label={t("teams.payment.copyOrderId")}><Copy size={12} aria-hidden="true" /> {copied ? t("common:action.copied") : t("teams.payment.copyOrder")}</button>
-              </div>
-            )}
-            <div className="billing-redirect-actions">
+            <PaymentFacts
+              payment={targetPayment}
+              onCopy={(text) => void handleCopy(text)}
+              copied={copied}
+              copyLabel={copyLabel}
+              copiedLabel={copiedLabel}
+              copyAria={copyAria}
+            />
+            <div className="billing-redirect-actions billing-redirect-actions--center">
               {/* Usage now lives in the dashboard settings tab (billing section). */}
-              <Button variant="primary" size="sm" leftIcon={<ArrowRight size={13} weight="bold" aria-hidden="true" />} onClick={() => (window.location.href = `/pricing?teamId=${teamId || detailPayment?.teamId || ''}`)}>{t('teams.payment.newPayment', { defaultValue: 'Lihat Paket' })}</Button>
+              <Button variant="primary" size="sm" leftIcon={<ArrowSquareOut size={13} weight="bold" aria-hidden="true" />} onClick={() => (window.location.href = `/pricing?teamId=${teamId || detailPayment?.teamId || ''}`)}>{t('teams.payment.newPayment', { defaultValue: 'Lihat Paket' })}</Button>
             </div>
-            <p className="billing-redirect-help">{t("teams.payment.failedHelp")}</p>
+            <p className="billing-redirect-help billing-redirect-help--center">{t("teams.payment.batalHelp")}</p>
           </section>
         )}
       </main>

@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef } from 'react';
+import type { ReactNode } from 'react';
 import { ConfirmFooter } from './ConfirmFooter';
 import { InlineError } from './InlineError';
 import { Modal } from './Modal';
@@ -8,6 +9,8 @@ interface ConfirmDeleteDialogProps {
   title: string;
   description: string;
   confirmLabel?: string;
+  /** Override ikon tombol konfirmasi (default Trash ala ConfirmFooter). */
+  confirmIcon?: ReactNode;
   busy?: boolean;
   error?: string | null;
   onConfirm: () => void;
@@ -19,6 +22,7 @@ export function ConfirmDeleteDialog({
   title,
   description,
   confirmLabel,
+  confirmIcon,
   busy = false,
   error,
   onConfirm,
@@ -41,6 +45,7 @@ export function ConfirmDeleteDialog({
           onCancel={onClose}
           onConfirm={onConfirm}
           confirmLabel={confirmLabel}
+          confirmIcon={confirmIcon}
           busy={busy}
         />
       }

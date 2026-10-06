@@ -95,11 +95,11 @@ MCP uses **OAuth 2.1 public client with PKCE S256** — DevHub is the Authorizat
 
 **Discovery (RFC 8414 + RFC 9728):**
 ```bash
-curl -s https://devhub.nrawangbatin.my.id/.well-known/oauth-authorization-server | jq
+curl -s https://app.devhub.nrawangbatin.my.id/.well-known/oauth-authorization-server | jq
 # → { issuer, authorization_endpoint, token_endpoint, registration_endpoint, scopes_supported: ["mcp","mcp:read","mcp:write"], ... }
 
-curl -s https://devhub.nrawangbatin.my.id/.well-known/oauth-protected-resource | jq
-# → { resource: "https://devhub.nrawangbatin.my.id/mcp", authorization_servers: ["https://devhub.nrawangbatin.my.id"], scopes_supported: [...] }
+curl -s https://app.devhub.nrawangbatin.my.id/.well-known/oauth-protected-resource | jq
+# → { resource: "https://app.devhub.nrawangbatin.my.id/mcp", authorization_servers: ["https://app.devhub.nrawangbatin.my.id"], scopes_supported: [...] }
 ```
 
 **Flow (agents do this automatically via `opencode mcp auth devhub`):**
@@ -129,7 +129,7 @@ A step-by-step visual guide is also available in the app under **MCP Guide** (si
   "mcp": {
     "devhub": {
       "type": "remote",
-      "url": "https://devhub.nrawangbatin.my.id/mcp",
+      "url": "https://app.devhub.nrawangbatin.my.id/mcp",
       "enabled": true
     }
   }
@@ -150,7 +150,7 @@ Tool calls appear as `mcp__devhub__<tool_name>`.
 
 ```bash
 # CLI (recommended) — no header needed, OAuth handles auth
-claude mcp add --transport http devhub https://devhub.nrawangbatin.my.id/mcp
+claude mcp add --transport http devhub https://app.devhub.nrawangbatin.my.id/mcp
 claude mcp list  # verify: devhub: connected
 ```
 
@@ -160,7 +160,7 @@ claude mcp list  # verify: devhub: connected
   "mcpServers": {
     "devhub": {
       "type": "http",
-      "url": "https://devhub.nrawangbatin.my.id/mcp"
+      "url": "https://app.devhub.nrawangbatin.my.id/mcp"
     }
   }
 }
@@ -173,7 +173,7 @@ claude mcp list  # verify: devhub: connected
 {
   "mcpServers": {
     "devhub": {
-      "url": "https://devhub.nrawangbatin.my.id/mcp"
+      "url": "https://app.devhub.nrawangbatin.my.id/mcp"
     }
   }
 }
@@ -187,7 +187,7 @@ claude mcp list  # verify: devhub: connected
 {
   "mcpServers": {
     "devhub": {
-      "serverUrl": "https://devhub.nrawangbatin.my.id/mcp"
+      "serverUrl": "https://app.devhub.nrawangbatin.my.id/mcp"
     }
   }
 }
@@ -202,7 +202,7 @@ claude mcp list  # verify: devhub: connected
   "servers": {
     "devhub": {
       "type": "http",
-      "url": "https://devhub.nrawangbatin.my.id/mcp"
+      "url": "https://app.devhub.nrawangbatin.my.id/mcp"
     }
   }
 }
@@ -219,7 +219,7 @@ Optional Copilot CLI: `.github/copilot/mcp.json` with same shape (`servers`).
 {
   "mcpServers": {
     "devhub": {
-      "serverUrl": "https://devhub.nrawangbatin.my.id/mcp"
+      "serverUrl": "https://app.devhub.nrawangbatin.my.id/mcp"
     }
   }
 }
@@ -306,7 +306,7 @@ opencode mcp auth devhub
 
 # 2. Call via OAuth token
 TOKEN=$(jq -r .access_token ~/.local/share/opencode/mcp-auth.json)
-curl -s -X POST https://devhub.nrawangbatin.my.id/mcp \
+curl -s -X POST https://app.devhub.nrawangbatin.my.id/mcp \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-03-26","capabilities":{},"clientInfo":{"name":"curl","version":"1"}}}'

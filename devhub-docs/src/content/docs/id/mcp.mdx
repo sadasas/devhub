@@ -3,6 +3,9 @@ title: Integrasi MCP
 description: Hubungkan agen coding AI ke DevHub via server MCP remote (OAuth 2.1 PKCE).
 ---
 
+import { Code } from '@astrojs/starlight/components';
+import { MCP_URL } from '../../../site-urls';
+
 DevHub mengekspos **server Model Context Protocol (MCP)** agar agen coding AI (opencode, Claude Code, Cursor, dan lainnya) dapat membaca dan memperbarui state proyek. Agen menjadi partisipan kelas satu: merencanakan kerja, melaporkan progres, dan UI browser mencerminkan perubahan secara live.
 
 Keputusan terkunci: agen mengakses data **hanya** via MCP tools (tidak pernah langsung ke DB); transpor **remote streamable HTTP**; auth **OAuth 2.1 PKCE public client** (tanpa shared secret); **tanpa** chat AI di dalam aplikasi.
@@ -36,45 +39,29 @@ Setiap tool memakai `projectId` — salin dari bagian atas halaman proyek di web
 
 ### opencode (`opencode.json`)
 
-```jsonc
-{
-  "$schema": "https://opencode.ai/config.json",
-  "mcp": { "devhub": { "type": "remote", "url": "https://devhub.nrawangbatin.my.id/mcp", "enabled": true } }
-}
-// lalu: opencode mcp auth devhub
-```
+<Code lang="jsonc" title="opencode.json" code={`{\n  "$schema": "https://opencode.ai/config.json",\n  "mcp": { "devhub": { "type": "remote", "url": "${MCP_URL}", "enabled": true } }\n}\n// lalu: opencode mcp auth devhub`} />
 
 ### Claude Code
 
-```bash
-claude mcp add --transport http devhub https://devhub.nrawangbatin.my.id/mcp
-```
+<Code lang="bash" code={`claude mcp add --transport http devhub ${MCP_URL}`} />
 
 ### Cursor (`.cursor/mcp.json` — kunci `url`)
 
-```json
-{ "mcpServers": { "devhub": { "url": "https://devhub.nrawangbatin.my.id/mcp" } } }
-```
+<Code lang="json" title=".cursor/mcp.json" code={`{ "mcpServers": { "devhub": { "url": "${MCP_URL}" } } }`} />
 
 > Cursor butuh restart penuh dan membatasi ~40 tools.
 
 ### Windsurf (`~/.codeium/windsurf/mcp_config.json` — kunci `serverUrl`)
 
-```json
-{ "mcpServers": { "devhub": { "serverUrl": "https://devhub.nrawangbatin.my.id/mcp" } } }
-```
+<Code lang="json" title="mcp_config.json" code={`{ "mcpServers": { "devhub": { "serverUrl": "${MCP_URL}" } } }`} />
 
 ### VS Code / Copilot (`.vscode/mcp.json` — kunci `servers`)
 
-```json
-{ "servers": { "devhub": { "type": "http", "url": "https://devhub.nrawangbatin.my.id/mcp" } } }
-```
+<Code lang="json" title=".vscode/mcp.json" code={`{ "servers": { "devhub": { "type": "http", "url": "${MCP_URL}" } } }`} />
 
 ### Gemini CLI (`~/.gemini/settings.json` — kunci `serverUrl`)
 
-```json
-{ "mcpServers": { "devhub": { "serverUrl": "https://devhub.nrawangbatin.my.id/mcp" } } }
-```
+<Code lang="json" title="settings.json" code={`{ "mcpServers": { "devhub": { "serverUrl": "${MCP_URL}" } } }`} />
 
 ## Tools
 

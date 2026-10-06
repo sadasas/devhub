@@ -20,6 +20,24 @@ export function formatDateAdmin(iso: string | null | undefined, locale = 'id-ID'
   }).format(d);
 }
 
+/** Wireframe K: fakta "Dibuat" memakai tanggal + jam ("5 Okt 2026 · 10:20"). */
+export function formatDateTimeAdmin(iso: string | null | undefined, locale = 'id-ID'): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '—';
+  const date = new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+  }).format(d);
+  const time = new Intl.DateTimeFormat(locale, {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(d);
+  return `${date} · ${time}`;
+}
+
 export function compactId(n: number): string {
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace('.0', '')}jt`;
   if (n >= 1_000) return `${(n / 1_000).toFixed(1).replace('.0', '')}rb`;

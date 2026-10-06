@@ -45,53 +45,43 @@ function Amount({ amount, locale = 'id-ID', className = '' }: { amount: number; 
 }
 
 interface MetaProps {
-  teamName: string;
-  packageName: string;
-  durationDays: number | null;
   createdAt: string;
-  completedAt?: string | null;
-  daysLabel?: (count: number) => string;
+  orderId?: string | null;
+  expiredSuffix?: string | null;
   formatDate?: (iso: string) => string;
   className?: string;
 }
 
+/* Wireframe E: baris ramping — meta hanya tanggal · #order (+ suffix kedaluwarsa).
+   Judul "Paket — Tim · Nominal" dirender di Head oleh pemanggil. */
 function Meta({
-  teamName,
-  packageName,
-  durationDays,
   createdAt,
-  completedAt,
-  daysLabel,
+  orderId,
+  expiredSuffix,
   formatDate,
   className = '',
 }: MetaProps) {
   return (
     <div className={`billing-meta ${className}`.trim()}>
-      <span>{teamName}</span>
-      <span aria-hidden="true" className="billing-meta-dot">
-        ·
-      </span>
-      <strong>{packageName}</strong>
-      {durationDays != null && daysLabel && (
+      <time dateTime={createdAt} className="billing-date">
+        {formatDate ? formatDate(createdAt) : createdAt}
+      </time>
+      {orderId && (
         <>
           <span aria-hidden="true" className="billing-meta-dot">
             ·
           </span>
-          <span>{daysLabel(durationDays)}</span>
+          <span className="billing-order" title={orderId}>
+            #{orderId.slice(0, 8)}
+          </span>
         </>
       )}
-      <span aria-hidden="true" className="billing-meta-dot">
-        ·
-      </span>
-      <time dateTime={createdAt} className="billing-date">
-        {formatDate ? formatDate(createdAt) : createdAt}
-      </time>
-      {completedAt && (
+      {expiredSuffix && (
         <>
-          <span aria-hidden="true">→</span>
-          <time dateTime={completedAt} className="billing-date">
-            {formatDate ? formatDate(completedAt) : completedAt}
-          </time>
+          <span aria-hidden="true" className="billing-meta-dot">
+            ·
+          </span>
+          <span>{expiredSuffix}</span>
         </>
       )}
     </div>
@@ -102,10 +92,6 @@ function Actions({ children, className = '' }: { children: ReactNode; className?
   return <div className={`billing-actions ${className}`.trim()}>{children}</div>;
 }
 
-function Empty({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <div className={`billing-empty ${className}`.trim()}>{children}</div>;
-}
-
 export const BillingLedger = Object.assign(Root, {
   Row,
   Main,
@@ -113,5 +99,4 @@ export const BillingLedger = Object.assign(Root, {
   Amount,
   Meta,
   Actions,
-  Empty,
 });

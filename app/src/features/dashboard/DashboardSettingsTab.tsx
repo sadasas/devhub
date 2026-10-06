@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ArrowSquareOut, Check, ClockCounterClockwise, Copy, GearSix, PencilSimple, SignOut, Tag, Trash } from '@phosphor-icons/react';
 import { api } from '../../lib/api';
 import { getErrorMessage } from '../../lib/errors';
-import { formatBytes } from '../../lib/format';
+import { formatBytes, formatDateAdmin } from '../../lib/format';
 import type { BillingStatus, Team } from '../../lib/types';
 import { useTeams } from '../../state/teams-context';
 import { useAuth } from '../../state/auth-context';
@@ -54,7 +54,8 @@ function formatQuota(used: number, limit: number | null): string {
 // ConfirmDeleteDialog has no text-input slot; Leave mirrors the TeamPage
 // Modal dialog verbatim.
 export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettingsTabProps) {
-  const { t } = useTranslation('account');
+  const { t, i18n } = useTranslation('account');
+  const locale = i18n.language === 'id' ? 'id-ID' : 'en-US';
   const { deleteTeam, refresh } = useTeams();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -290,11 +291,6 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
                     {copied ? t('dashboard.team.settingsCopied') : t('dashboard.team.settingsCopyId')}
                   </Button>
                 </span>
-                {copied && (
-                  <span className="field-helper field-helper--micro" role="status" aria-live="polite">
-                    {t('dashboard.team.settingsCopied')}
-                  </span>
-                )}
               </dd>
             </div>
           </SettingsRowGroup>
@@ -334,6 +330,16 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
               expiryMeta && <span className="dashboard__settings-plan-meta">{expiryMeta}</span>
             )}
           </div>
+          <LinkButton
+            href={`/pricing?teamId=${encodeURIComponent(team.id)}`}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={t('dashboard.team.settingsPlanManageAria', { name: team.name })}
+            className="dashboard__settings-manage"
+            leftIcon={<ArrowSquareOut size={13} weight="bold" aria-hidden="true" />}
+          >
+            {t('dashboard.team.settingsPlanManage')}
+          </LinkButton>
         </div>
         <div className="dashboard__settings-plan-quota">
           {billingLoading ? (
@@ -348,36 +354,24 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
             <span className="dashboard__settings-plan-quota-text">{t('teams.billing.loadError')}</span>
           )}
         </div>
-        <div className="dashboard__settings-plan-manage-row">
-          <LinkButton
-            href={`/pricing?teamId=${encodeURIComponent(team.id)}`}
-            target="_blank"
-            rel="noreferrer"
-            aria-label={t('dashboard.team.settingsPlanManageAria', { name: team.name })}
-            className="dashboard__settings-manage"
-            leftIcon={<ArrowSquareOut size={13} weight="bold" aria-hidden="true" />}
-          >
-            {t('dashboard.team.settingsPlanManage')}
-          </LinkButton>
-        </div>
         {pendingPayment ? (
           <div className="dashboard__settings-pending" role="status">
-            <div className="dashboard__settings-pending-row">
-              <span className="dashboard__settings-plan-name">{pendingPayment.packageName}</span>
-              <Badge tone="warn" dot>{t('teams.billing.pendingBadge')}</Badge>
+            <div className="dashboard__settings-pending-text">
+              <div className="dashboard__settings-pending-row">
+                <span className="dashboard__settings-plan-name">{t('teams.billing.pendingBadge')} · #{pendingPayment.orderId.slice(0, 8)}</span>
+                <Badge tone="warn" dot>{t('teams.billing.pendingBadge')}</Badge>
+              </div>
               <span className="dashboard__settings-plan-meta">
-                {t('teams.billing.pendingMeta', { date: new Date(pendingPayment.createdAt).toLocaleDateString() })}
+                {t('teams.billing.pendingSub', { package: pendingPayment.packageName, amount: pendingPayment.amount.toLocaleString(locale), date: formatDateAdmin(pendingPayment.createdAt, locale) })}
               </span>
             </div>
-            <div className="dashboard__settings-pending-actions">
-              <LinkButton
-                to={`/billing/${team.id}?orderId=${pendingPayment.orderId}`}
-                variant="ghost"
-                leftIcon={<ArrowSquareOut size={14} weight="bold" aria-hidden="true" />}
-              >
-                {t('teams.billing.viewDetail')}
-              </LinkButton>
-            </div>
+            <LinkButton
+              to={`/billing/${team.id}?orderId=${pendingPayment.orderId}`}
+              variant="secondary"
+              leftIcon={<ArrowSquareOut size={14} weight="bold" aria-hidden="true" />}
+            >
+              {t('teams.billing.viewDetail')}
+            </LinkButton>
           </div>
         ) : null}
       </Section>
@@ -439,7 +433,7 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
                 <span className="dashboard__settings-stat-value tabular">
                   {formatBytes(billing.usage.storage.usedBytes)} / {billing.usage.storage.limitBytes == null ? '∞' : formatBytes(billing.usage.storage.limitBytes)}
                 </span>
-                <span className="dashboard__settings-stat-label">{t('teams.billing.storage')}</span>
+                <span className="dashboard__settings-stat-label">{t('teams.billing.storageShort')}</span>
               </div>
             </div>
             <div className="dashboard__settings-meters">
@@ -454,7 +448,7 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
                 limit={billing.usage.projects.limit}
               />
               <UsageMeter
-                label={t('teams.billing.storage')}
+                label={t('teams.billing.storageShort')}
                 used={billing.usage.storage.usedBytes}
                 limit={billing.usage.storage.limitBytes}
                 format={formatBytes}

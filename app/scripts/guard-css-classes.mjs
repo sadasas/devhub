@@ -46,6 +46,17 @@ ALLOWLIST.add('dashboard__settings-section-title--with-icon');
 // Tier-1; didaftar eksplisit agar guard *-label tidak menolaknya.
 ALLOWLIST.add('focus-topbar-label');
 
+// Riwayat Pembayaran E (2026-10-06): `.billing-row-title` — judul baris
+// "Paket — Tim · Nominal" (wireframe E; 13px/600/text-primary, ikut tangga
+// font kanonis). Bukan judul Tier-1 (§7 font-card-title); didaftar eksplisit
+// agar guard *-title tidak menolaknya.
+ALLOWLIST.add('billing-row-title');
+
+// Detail Pembayaran K Batal (2026-10-06): `.billing-redirect-title--muted` —
+// judul skenario dibatalkan abu (wireframe #78716c ≈ text-secondary).
+// Modifier warna, bukan judul Tier-1; didaftar eksplisit.
+ALLOWLIST.add('billing-redirect-title--muted');
+
 // Jangkar kanonis — bila salah satunya hilang, sistem token rusak.
 export const REQUIRED_ANCHORS = [
   '.profile-panel-title',

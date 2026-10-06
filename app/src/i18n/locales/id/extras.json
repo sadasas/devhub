@@ -676,7 +676,6 @@
   },
   "billing": {
     "title": "Riwayat Pembayaran",
-    "subtitle": "Semua pembayaran yang telah Anda lakukan di seluruh workspace.",
     "loading": "Memuat riwayat pembayaran…",
     "empty": {
       "title": "Belum ada pembayaran",
@@ -699,13 +698,16 @@
     "confirmCancel": "Ya, batalkan",
     "cancelAria": "Batalkan pembayaran {{packageName}} order {{orderId}}",
     "detailAria": "Lihat detail pembayaran {{packageName}} order {{orderId}}",
-    "rowLabel": "{{teamName}} {{packageName}} {{status}} {{date}}",
+    "rowLabel": "{{packageName}} {{teamName}} {{status}} {{date}}",
     "resume": "Lanjutkan pembayaran",
     "resumeAria": "Lanjutkan pembayaran {{packageName}} order {{orderId}}",
-    "heroEyebrow": "Menunggu pembayaran · #{{id}}",
-    "heroCreated": "Dibuat {{date}}",
+    "heroEyebrow": "Menunggu pembayaran — #{{id}}",
+    "heroCreatedOrder": "Dibuat {{date}} · Order #{{id}}",
+    "heroHelp": "Membuka link Pakasir di tab ini — selesaikan pembayaran Anda di sana.",
     "historyLabel": "Riwayat",
     "cancelPayment": "Batalkan",
+    "cancelledNote": "Dibatalkan = link kedaluwarsa. Buat pembayaran baru dari halaman Pricing.",
+    "expiredLinkSuffix": "link kedaluwarsa",
     "errors": {
       "load": "Gagal memuat riwayat pembayaran.",
       "resume": "Gagal melanjutkan pembayaran.",

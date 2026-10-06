@@ -155,11 +155,6 @@ function GeneralSection({ project, canEditMeta }: { project: Project; canEditMet
                   {copied ? t('settings.copied', { defaultValue: 'Copied' }) : t('settings.copyId', { defaultValue: 'Copy ID' })}
                 </Button>
               </span>
-              {copied && (
-                <span className="field-helper field-helper--micro" role="status" aria-live="polite">
-                  {t('settings.copied', { defaultValue: 'Copied' })}
-                </span>
-              )}
             </dd>
           </div>
         </SettingsRowGroup>

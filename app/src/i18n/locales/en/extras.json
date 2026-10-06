@@ -675,7 +675,6 @@
   },
   "billing": {
     "title": "Payment History",
-    "subtitle": "All payments you have made across workspaces.",
     "loading": "Loading payment history…",
     "empty": {
       "title": "No payments yet",
@@ -698,13 +697,16 @@
     "confirmCancel": "Yes, cancel",
     "cancelAria": "Cancel payment {{packageName}} order {{orderId}}",
     "detailAria": "View payment detail {{packageName}} order {{orderId}}",
-    "rowLabel": "{{teamName}} {{packageName}} {{status}} {{date}}",
+    "rowLabel": "{{packageName}} {{teamName}} {{status}} {{date}}",
     "resume": "Resume payment",
     "resumeAria": "Resume payment {{packageName}} order {{orderId}}",
-    "heroEyebrow": "Pending payment · #{{id}}",
-    "heroCreated": "Created {{date}}",
+    "heroEyebrow": "Pending payment — #{{id}}",
+    "heroCreatedOrder": "Created {{date}} · Order #{{id}}",
+    "heroHelp": "Opens the Pakasir link in this tab — complete your payment there.",
     "historyLabel": "History",
     "cancelPayment": "Cancel",
+    "cancelledNote": "Cancelled = link expired. Create a new payment from the Pricing page.",
+    "expiredLinkSuffix": "link expired",
     "errors": {
       "load": "Failed to load payment history.",
       "resume": "Failed to resume payment.",

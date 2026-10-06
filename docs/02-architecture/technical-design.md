@@ -333,7 +333,7 @@ Client configuration (opencode.json) — OAuth, no header:
   "mcp": {
     "devhub": {
       "type": "remote",
-      "url": "https://devhub.nrawangbatin.my.id/mcp",
+      "url": "https://app.devhub.nrawangbatin.my.id/mcp",
       "enabled": true
     }
   }
