@@ -4,7 +4,8 @@ import starlight from '@astrojs/starlight';
 
 // Canonical docs site: https://docs.devhub.nrawangbatin.my.id
 // Contract with app/src/lib/docs-urls.ts — do NOT rename these slugs:
-//   / -> home, /mcp, /privacy, /terms, /roadmap, /status, /billing
+//   / -> home, /mcp, /privacy, /terms, /roadmap, /status, /billing,
+//   /features, /features/{issues,schema,decisions,milestones,tasks,api-docs,whiteboard,testing}
 // i18n: defaultLocale 'en' lives at root (/privacy), Indonesian at /id/*.
 export default defineConfig({
 	site: 'https://docs.devhub.nrawangbatin.my.id',
@@ -23,6 +24,21 @@ export default defineConfig({
 			},
 			social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com' }],
 			sidebar: [
+				{
+					label: 'Features',
+					translations: { id: 'Fitur' },
+					items: [
+						{ label: 'Features', translations: { id: 'Fitur' }, slug: 'features' },
+						{ label: 'Issues', translations: { id: 'Isu' }, slug: 'features/issues' },
+						{ label: 'Database schema', translations: { id: 'Skema database' }, slug: 'features/schema' },
+						{ label: 'Decisions (ADRs)', translations: { id: 'Keputusan (ADR)' }, slug: 'features/decisions' },
+						{ label: 'Milestones & releases', translations: { id: 'Milestone & rilis' }, slug: 'features/milestones' },
+						{ label: 'Tasks & board', translations: { id: 'Tugas & papan' }, slug: 'features/tasks' },
+						{ label: 'API docs', translations: { id: 'Dokumentasi API' }, slug: 'features/api-docs' },
+						{ label: 'Whiteboards', translations: { id: 'Whiteboard' }, slug: 'features/whiteboard' },
+						{ label: 'Test cases', translations: { id: 'Test case' }, slug: 'features/testing' },
+					],
+				},
 				{
 					label: 'Guides',
 					translations: { id: 'Panduan' },

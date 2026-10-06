@@ -1013,7 +1013,7 @@
         "title": "Restart / Reload per agen"
       },
       "verify": {
-        "opencodeCheck": "opencode: jalankan opencode mcp list -> devhub connected dan 21 tools.",
+        "opencodeCheck": "opencode: jalankan opencode mcp list -> devhub connected dan 25 tools.",
         "claudeCheck": "Claude Code: claude mcp list -> devhub: connected.",
         "cursorCheck": "Cursor: Settings -> Tools & MCP -> devhub hijau (maks 40 tools).",
         "windsurfCheck": "Windsurf: Settings -> MCP Servers -> devhub hijau (auto-reload).",
@@ -1022,7 +1022,7 @@
         "checklistTitle": "Verifikasi per agen",
         "curlLabel": "Verifikasi via curl",
         "curlDesc": "Pengecekan langsung streamable HTTP (tanpa reload client).",
-        "toolsHint": "21 tools akan terdaftar jika berhasil.",
+        "toolsHint": "25 tools akan terdaftar jika berhasil.",
         "chipsLabel": "Tools tersedia"
       },
       "agentsync": {

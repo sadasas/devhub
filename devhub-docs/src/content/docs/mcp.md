@@ -95,7 +95,10 @@ Every tool: inputs are validated automatically; responses include a timestamp.
 | `add_test_case` / `update_test_case` | name, taskId?/issueId?, steps?, expected?, status? | Yes | `mcp` / `mcp:write` |
 | `add_api_collection` / `add_api_endpoint` / `update_api_endpoint` | method, path, name, collectionId?, headers?, params?, body?, responses? | Yes | `mcp` / `mcp:write` |
 | `create_whiteboard` / `update_whiteboard` | name, description?, elements[]? (7 kinds) | Yes | `mcp` / `mcp:write` |
+| `patch_whiteboard` | `whiteboardId` + `{ add[]?, update[]?, delete[]? }` — granular edits (preferred for embeds) | Yes | `mcp` / `mcp:write` |
 | `list_whiteboards` | `projectId` → boards | No | `mcp` / `mcp:read` |
+| `validate_whiteboard` | `projectId`, `elements[]` — dry-run check, no DB write | No | `mcp` / `mcp:read` |
+| `layout_board` | sequence graph → positioned whiteboard elements, no DB write | No | `mcp` / `mcp:read` |
 
 Status flows: Task `todo → inProgress → review → done`. Issue `open → reproduced → fixing → resolved | wontfix`. Decision `proposed → accepted | rejected | superseded`. Milestone `planned → inProgress → released`.
 

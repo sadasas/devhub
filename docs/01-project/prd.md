@@ -179,7 +179,7 @@ Base { id: string (UUID), createdAt: ISO, updatedAt: ISO, authorId?: string }
 
 ### 3.4 MCP Tools
 
-Auth: OAuth 2.1 PKCE bearer (`scope mcp` / `mcp:read` / `mcp:write`) — `opencode mcp auth devhub` (see [MCP Guide](../03-engineering/mcp-integration.md)). Total **21 tools**.
+Auth: OAuth 2.1 PKCE bearer (`scope mcp` / `mcp:read` / `mcp:write`) — `opencode mcp auth devhub` (see [MCP Guide](../03-engineering/mcp-integration.md)). Total **25 tools**.
 
 | Tool | Signature (brief) | Scope |
 |---|---|---|
@@ -201,9 +201,12 @@ Auth: OAuth 2.1 PKCE bearer (`scope mcp` / `mcp:read` / `mcp:write`) — `openco
 | `update_test_case` | (projectId, testCaseId, {name, status, steps, expected, taskId, issueId}) → test case | `mcp` / `mcp:write` |
 | `add_api_collection` | (projectId, name, {description}) → API collection | `mcp` / `mcp:write` |
 | `add_api_endpoint` | (projectId, method, path, {collectionId, name, headers, params, body, responses}) → API endpoint | `mcp` / `mcp:write` |
+| `update_api_endpoint` | (projectId, endpointId, {method, path, params, body, responses, collectionId}) → API endpoint | `mcp` / `mcp:write` |
 | `create_whiteboard` | (projectId, name, {description, elements[] ≤1000}) → whiteboard (id auto-UUID; cap 50/project) | `mcp` / `mcp:write` |
 | `update_whiteboard` | (projectId, whiteboardId, {name, description, elements[]}) → whiteboard (full replacement) | `mcp` / `mcp:write` |
 | `patch_whiteboard` / `list_whiteboards` | patch elements granular / list boards in project | `mcp` / `mcp:write` (`list` also `mcp:read`) |
+| `validate_whiteboard` | (projectId, elements[]) → dry-run overlap/grouping/oob check (no DB write) | `mcp` or `mcp:read` |
+| `layout_board` | (type: sequence, participants[], messages[], …) → positioned whiteboard elements (no DB write) | `mcp` or `mcp:read` |
 
 ---
 

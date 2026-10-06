@@ -52,6 +52,10 @@ const MCP_TOOLS = [
   'update_api_endpoint',
   'create_whiteboard',
   'update_whiteboard',
+  'patch_whiteboard',
+  'list_whiteboards',
+  'validate_whiteboard',
+  'layout_board',
 ] as const;
 
 const TOC_ITEMS: { id: string; labelKey: string }[] = [

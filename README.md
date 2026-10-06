@@ -130,7 +130,7 @@ devhub/
 │   ├── src/
 │   │   ├── modules/      # per bounded context: */handlers/*.ts (thin: zod → service → respond)
 │   │   ├── db/           # pg pool, migrations
-│   │   └── mcp/          # MCP server + tools (24 tools incl. whiteboard/api)
+│   │   └── mcp/          # MCP server + tools (25 tools incl. whiteboard/api)
 ├── docs/                 # This documentation suite
 ├── docker-compose.yml    # Local Postgres
 ├── Dockerfile            # Deploy image
@@ -186,7 +186,7 @@ DevHub exposes a **remote MCP server** so AI coding agents (opencode, Claude, Cu
 
 - Protocol: Model Context Protocol, streamable HTTP transport.
 - Auth: OAuth 2.1 PKCE public client — `opencode mcp auth devhub` opens a browser login, then auto-stores the bearer token (scope `mcp` / `mcp:read` / `mcp:write`, 15m access + 30d refresh rotation). No API keys.
-- Tools: `project_state`, `update_prd`, `plan_project`, `create_task`, `update_task`, `add_issue`, `update_issue`, `add_decision`, `add_milestone`, `update_milestone`, `add_table`, `add_relation`, `delete_relation`, `add_tech`, `add_test_case`, `update_test_case`, `add_api_collection`, `add_api_endpoint`, `update_api_endpoint`, `create_whiteboard`, `list_whiteboards`, `update_whiteboard`, `patch_whiteboard`, `validate_whiteboard` (24 tools).
+- Tools: `project_state`, `update_prd`, `plan_project`, `create_task`, `update_task`, `add_issue`, `update_issue`, `add_decision`, `add_milestone`, `update_milestone`, `add_table`, `add_relation`, `delete_relation`, `add_tech`, `add_test_case`, `update_test_case`, `add_api_collection`, `add_api_endpoint`, `update_api_endpoint`, `create_whiteboard`, `list_whiteboards`, `update_whiteboard`, `patch_whiteboard`, `validate_whiteboard`, `layout_board` (25 tools).
 
 OAuth tokens are scoped to the user who authorized them: agents can only access projects in teams that user belongs to, with the same role rules as the REST API (viewers are read-only — write tools are rejected, `mcp:read` tokens cannot write). A step-by-step guide is available in the app under **Docs** (sidebar, `/docs/mcp`). See [MCP Integration](docs/03-engineering/mcp-integration.md) for the full specification and example agent workflows.
 

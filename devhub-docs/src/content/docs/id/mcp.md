@@ -95,7 +95,10 @@ Setiap tool: input divalidasi otomatis; respons menyertakan timestamp.
 | `add_test_case` / `update_test_case` | name, taskId?/issueId?, steps?, expected?, status? | Ya | `mcp` / `mcp:write` |
 | `add_api_collection` / `add_api_endpoint` / `update_api_endpoint` | method, path, name, collectionId?, headers?, params?, body?, responses? | Ya | `mcp` / `mcp:write` |
 | `create_whiteboard` / `update_whiteboard` | name, description?, elements[]? (7 jenis) | Ya | `mcp` / `mcp:write` |
+| `patch_whiteboard` | `whiteboardId` + `{ add[]?, update[]?, delete[]? }` — edit granular (disarankan untuk embed) | Ya | `mcp` / `mcp:write` |
 | `list_whiteboards` | `projectId` → daftar board | Tidak | `mcp` / `mcp:read` |
+| `validate_whiteboard` | `projectId`, `elements[]` — cek dry-run, tanpa tulis DB | Tidak | `mcp` / `mcp:read` |
+| `layout_board` | graf sequence → elemen whiteboard terposisi, tanpa tulis DB | Tidak | `mcp` / `mcp:read` |
 
 Alur status: Task `todo → inProgress → review → done`. Issue `open → reproduced → fixing → resolved | wontfix`. Decision `proposed → accepted | rejected | superseded`. Milestone `planned → inProgress → released`.
 
