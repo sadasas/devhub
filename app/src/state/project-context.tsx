@@ -809,16 +809,19 @@ export interface ProjectConflict {
 interface ProviderError {
   message: string;
   status?: number;
+  /** Kode mesin ApiError (mis. 'ARCHIVED') — dipakai cabang 403 di flush. */
+  code?: string;
   details?: unknown;
 }
 
 function asProviderError(err: unknown): ProviderError {
   if (err instanceof ApiError) return err;
   if (err && typeof err === 'object') {
-    const candidate = err as { message?: unknown; status?: unknown; details?: unknown };
+    const candidate = err as { message?: unknown; status?: unknown; code?: unknown; details?: unknown };
     return {
       message: typeof candidate.message === 'string' ? candidate.message : 'Failed to save changes',
       status: typeof candidate.status === 'number' ? candidate.status : undefined,
+      code: typeof candidate.code === 'string' ? candidate.code : undefined,
       details: candidate.details,
     };
   }
@@ -859,6 +862,7 @@ export function ProjectProvider({
   isArchived = false,
   provider = apiProvider,
   createRealtime,
+  onArchivedConflict,
   children,
 }: {
   projectId: string;
@@ -867,6 +871,12 @@ export function ProjectProvider({
   isArchived?: boolean;
   provider?: StorageProvider;
   createRealtime?: (handlers: RealtimeHandlers) => RealtimeSocket;
+  /**
+   * Dipanggil saat server menolak mutasi dengan 403 ARCHIVED sementara
+   * status lokal masih 'active' (basi). Induk me-refresh metadata project
+   * agar UI terkunci read-only. Opsional — tanpa ini hanya antrean dibuang.
+   */
+  onArchivedConflict?: () => void;
   children: ReactNode;
 }) {
   const [state, setState] = useState<State | null>(null);
@@ -905,6 +915,8 @@ export function ProjectProvider({
   const pendingFlushRef = useRef<Promise<void> | null>(null);
   const canEditRef = useRef(role !== 'viewer' && !isArchived);
   canEditRef.current = role !== 'viewer' && !isArchived;
+  const onArchivedConflictRef = useRef(onArchivedConflict);
+  onArchivedConflictRef.current = onArchivedConflict;
   const wsConnectedRef = useRef(false);
 
   const emitPendingCount = useCallback(() => {
@@ -1018,6 +1030,15 @@ export function ProjectProvider({
                     localState: stateRef.current,
                   });
                 }
+              } else if (current && e.status === 403 && e.code === 'ARCHIVED') {
+                // Status lokal basi (project sudah di-archive di server):
+                // buang mutasi agar tak retry 403 selamanya, lalu beri tahu
+                // induk untuk me-refresh metadata + mengunci UI read-only.
+                if (isQueuedStorageProvider(provider)) {
+                  void provider.removePendingMutation(projectId, current.key).catch(() => {});
+                }
+                invalidPendingRef.current.delete(current.key);
+                onArchivedConflictRef.current?.();
               } else if (current) {
                 queue.set(current.key, current);
               }

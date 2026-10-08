@@ -100,7 +100,7 @@ function FocusTask({ projectId }: { projectId: string }) {
 
 export function FocusPage() {
   const { projectId = '' } = useParams<{ projectId: string }>();
-  const { projects } = useProjects();
+  const { projects, refresh } = useProjects();
   if (projects === null) return <FocusLoading />;
   const project = projects.find((p) => p.id === projectId);
   if (!project) return <Navigate to="/" replace />;
@@ -112,6 +112,7 @@ export function FocusPage() {
       teamId={project.teamId}
       isArchived={project.status === 'archived'}
       provider={projectStorage}
+      onArchivedConflict={refresh}
     >
       <FocusTask projectId={projectId} />
     </ProjectProvider>

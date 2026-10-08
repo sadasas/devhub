@@ -194,6 +194,9 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
 
   function onSubmit(e: FormEvent) {
     e.preventDefault();
+    // Kunci archive/viewer lapis kedua (pintu masuk sudah digate; dispatch
+    // juga no-op — ini jaring pengaman bila modal terbuka dari status basi).
+    if (!canEdit) return;
     if (!title.trim()) return;
     if (startAfterDue(startDateInput, dueDateInput)) return;
     const taskStatus = status ?? 'todo';
@@ -390,7 +393,7 @@ export function NewTaskModal({ open, status, milestoneId, dueDate, startDate, on
       expandLabel={t('board.newTaskModal.expandView')}
       collapseLabel={t('board.newTaskModal.contractView')}
       footer={
-        <Button type="submit" size="md" form="new-task-form" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} disabled={!title.trim() || !!startAfterDue(startDateInput, dueDateInput) || uploadBusy}>
+        <Button type="submit" size="md" form="new-task-form" leftIcon={<Plus size={14} weight="bold" aria-hidden="true" />} disabled={!canEdit || !title.trim() || !!startAfterDue(startDateInput, dueDateInput) || uploadBusy}>
           {t('board.newTaskModal.submit')}
         </Button>
       }

@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   dispatch: vi.fn(),
   setStatus: vi.fn(),
   listMembers: vi.fn(),
+  canEdit: true,
 }));
 
 const mockAuth = vi.hoisted(() => ({
@@ -18,7 +19,7 @@ vi.mock('../../state/project-context', () => ({
   useProject: () => ({
     state: mockState,
     dispatch: mocks.dispatch,
-    canEdit: true,
+    canEdit: mocks.canEdit,
     setStatus: mocks.setStatus,
     projectId: mockCtx.projectId,
     teamId: mockCtx.teamId,
@@ -387,5 +388,37 @@ describe('NewTaskModal blocked-by picker', () => {
         task: expect.objectContaining({ blockedBy: [T_BETA] }),
       }),
     );
+  });
+});
+
+describe('NewTaskModal archive / read-only gating', () => {
+  beforeEach(() => {
+    mocks.dispatch.mockReset();
+    mocks.canEdit = true;
+    mockCtx = {};
+    mockState = makeState([]);
+  });
+
+  afterEach(() => {
+    mocks.canEdit = true;
+    vi.restoreAllMocks();
+  });
+
+  it('menonaktifkan tombol Add task dan tidak dispatch saat canEdit false', () => {
+    mocks.canEdit = false;
+    renderModal();
+    fireEvent.change(screen.getByLabelText(/Name/), { target: { value: 'Ghost task' } });
+    const add = screen.getByRole('button', { name: 'Add task' });
+    expect(add.hasAttribute('disabled')).toBe(true);
+    fireEvent.click(add);
+    expect(mocks.dispatch).not.toHaveBeenCalled();
+  });
+
+  it('menolak submit form langsung saat canEdit false', () => {
+    mocks.canEdit = false;
+    renderModal();
+    fireEvent.change(screen.getByLabelText(/Name/), { target: { value: 'Ghost task' } });
+    fireEvent.submit(document.querySelector('#new-task-form')!);
+    expect(mocks.dispatch).not.toHaveBeenCalled();
   });
 });

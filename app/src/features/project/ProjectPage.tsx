@@ -741,6 +741,7 @@ export function ProjectPage() {
       teamId={project.teamId}
       isArchived={isArchived}
       provider={projectStorage}
+      onArchivedConflict={refresh}
     >
       <ProjectPresenceStatus tab={tab} />
       <div className="page">
