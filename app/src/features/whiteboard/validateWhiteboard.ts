@@ -1,5 +1,6 @@
 import type { WhiteboardElement } from "../../lib/types";
 import { STICKY_PAD } from "./tools";
+import { MIN_LABEL_CONTRAST, isLowContrastLabel } from "./label-contrast";
 
 export interface WhiteboardDiagnostic {
   code: string;
@@ -73,6 +74,10 @@ function isFiniteNumber(n: unknown): boolean {
 
 function diag(code: string, message: string, subject: Record<string, unknown>, evidence: Record<string, unknown>, fixes: string[]): WhiteboardDiagnostic {
   return { code, severity: "error", message, subject, evidence, supportedFixes: fixes };
+}
+
+function warn(code: string, message: string, subject: Record<string, unknown>, evidence: Record<string, unknown>, fixes: string[]): WhiteboardDiagnostic {
+  return { code, severity: "warning", message, subject, evidence, supportedFixes: fixes };
 }
 
 export function validateWhiteboardShowcase(elements: WhiteboardElement[]): WhiteboardValidationResult {
@@ -364,6 +369,22 @@ export function validateWhiteboardShowcase(elements: WhiteboardElement[]): White
     }
   }
 
-  return { ok: diagnostics.length === 0, diagnostics };
+  // 13. low-contrast-label (advisory) — label tak terbaca di kanvas putih.
+  // Warning saja: tidak menggagalkan simpan.
+  for (const el of elements) {
+    if (el.kind !== "sticky" && el.kind !== "shape" && el.kind !== "text" && el.kind !== "edge" && el.kind !== "boundary") continue;
+    const hit = isLowContrastLabel(el);
+    if (!hit) continue;
+    diagnostics.push(warn(
+      "whiteboard/low-contrast-label",
+      `${el.kind} ${el.id} label contrast ${hit.ratio.toFixed(2)}:1 < ${MIN_LABEL_CONTRAST}:1 on white canvas`,
+      { elementId: el.id, field: hit.field },
+      { ratio: Number(hit.ratio.toFixed(2)), minimum: MIN_LABEL_CONTRAST, fg: hit.fg, bg: hit.bg },
+      [`set ${hit.field} to a dark color (e.g. "#0f172a") or use a stroke with contrast >= ${MIN_LABEL_CONTRAST}:1`],
+    ));
+    if (diagnostics.filter((d) => d.code === "whiteboard/low-contrast-label").length >= 5) break;
+  }
+
+  return { ok: !diagnostics.some((d) => d.severity === "error"), diagnostics };
 }
 

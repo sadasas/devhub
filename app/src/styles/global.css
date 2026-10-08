@@ -7552,6 +7552,9 @@ span.focus-detail-parentbtn {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  padding: 2px;
+  background: var(--surface-hover);
+  border-radius: var(--radius-sm);
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--duration-fast) var(--ease-out);
@@ -9096,53 +9099,56 @@ body[data-erd-canvas="open"] .chat-drawer { display: none !important; }
   padding: 0;
 }
 
-/* TableColorPicker — native round color input + Default reset (dark-only). */
+/* TableColorPicker — swatch button + custom picker popover + Default reset (dark-only). */
 .table-color-group {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.table-color-native {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 28px;
-  height: 28px;
-  min-width: 28px;
-  min-height: 28px;
+.table-color-current {
   padding: 0;
-  border-radius: var(--radius-pill);
-  border: 1px solid var(--border-strong);
-  background: none;
-  cursor: pointer;
 }
 
-.table-color-native::-webkit-color-swatch-wrapper {
-  padding: 2px;
-}
-
-.table-color-native::-webkit-color-swatch {
-  border: none;
-  border-radius: var(--radius-pill);
-}
-
-.table-color-native::-moz-color-swatch {
-  border: none;
-  border-radius: var(--radius-pill);
-}
-
-.table-color-native:hover {
+.table-color-current:hover {
   border-color: var(--accent);
 }
 
-.table-color-native:focus-visible {
+.table-color-current:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
-.table-color-native:disabled {
+.table-color-current:disabled {
   opacity: 0.45;
   cursor: not-allowed;
+}
+
+/* Popover picker custom — melayang di bawah grup, di atas konten panel.
+   Lebar dijepit ke panel: isi wb-custompick (min-width 208px) menyusut
+   mengikuti, SV menjaga aspect-ratio — tidak terpotong di panel sempit. */
+.table-color-pop {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  z-index: 70;
+  max-width: 100%;
+  padding: 12px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-input);
+  box-shadow: var(--shadow-raised);
+}
+
+.table-color-pop .wb-custompick {
+  min-width: 0;
+}
+
+/* Ruang bawah tak cukup (scroll panel) — popover membuka ke atas. */
+.table-color-pop-above {
+  top: auto;
+  bottom: calc(100% + 8px);
 }
 
 .table-color-swatch {
@@ -15996,7 +16002,7 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--accent);
+  color: var(--text-on-accent);
   white-space: nowrap;
 }
 

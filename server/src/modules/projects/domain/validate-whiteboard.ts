@@ -1,4 +1,5 @@
 import type { WhiteboardElement } from "./state.js";
+import { MIN_LABEL_CONTRAST, isLowContrastLabel } from "./color-contrast.js";
 
 export interface WhiteboardDiagnostic {
   code: string;
@@ -74,6 +75,10 @@ function isFiniteNumber(n: unknown): boolean {
 
 function diag(code: string, message: string, subject: Record<string, unknown>, evidence: Record<string, unknown>, fixes: string[]): WhiteboardDiagnostic {
   return { code, severity: "error", message, subject, evidence, supportedFixes: fixes };
+}
+
+function warn(code: string, message: string, subject: Record<string, unknown>, evidence: Record<string, unknown>, fixes: string[]): WhiteboardDiagnostic {
+  return { code, severity: "warning", message, subject, evidence, supportedFixes: fixes };
 }
 
 export function validateWhiteboardShowcase(elements: WhiteboardElement[]): WhiteboardValidationResult {
@@ -376,5 +381,90 @@ export function validateWhiteboardShowcase(elements: WhiteboardElement[]): White
     }
   }
 
-  return { ok: diagnostics.length === 0, diagnostics };
+  // 13. low-contrast-label (advisory) — label tak terbaca di kanvas putih,
+  // mis. shape fill:none dengan stroke pastel (label ikut warna stroke).
+  // Warning saja: tidak menggagalkan create/update.
+  for (const el of elements) {
+    if (el.kind !== "sticky" && el.kind !== "shape" && el.kind !== "text" && el.kind !== "edge" && el.kind !== "boundary") continue;
+    const hit = isLowContrastLabel(el);
+    if (!hit) continue;
+    diagnostics.push(warn(
+      "whiteboard/low-contrast-label",
+      `${el.kind} ${el.id} label contrast ${hit.ratio.toFixed(2)}:1 < ${MIN_LABEL_CONTRAST}:1 on white canvas`,
+      { elementId: el.id, field: hit.field },
+      { ratio: Number(hit.ratio.toFixed(2)), minimum: MIN_LABEL_CONTRAST, fg: hit.fg, bg: hit.bg },
+      [`set ${hit.field} to a dark color (e.g. "#0f172a") or use a stroke with contrast >= ${MIN_LABEL_CONTRAST}:1`],
+    ));
+    if (diagnostics.filter((d) => d.code === "whiteboard/low-contrast-label").length >= 5) break;
+  }
+
+  // 14. label-crosses-lifeline (advisory) — label pesan menutupi lifeline lain.
+  // Kanvas selalu putih; label edge dirender terpusat di tengah segmen.
+  // Warning saja: tidak menggagalkan create/update.
+  {
+    const lifelines = elements.filter(
+      (e) => e.kind === "edge" && (e as any).dash === "dashed" && Math.abs((e as any).x1 - (e as any).x2) < 5,
+    ) as any[];
+    let crossCount = 0;
+    for (const el of elements) {
+      if (el.kind !== "edge") continue;
+      const label = (el as any).label as unknown;
+      if (typeof label !== "string" || label.length === 0) continue;
+      const dash = (el as any).dash ?? "solid";
+      if (dash === "dashed") continue;
+      const fontSize = (el as any).fontSize ?? 16;
+      const w = approxTextWidth(label, fontSize);
+      const seg = edgeSegments(el as any);
+      const mid: Point = { x: (seg[0].x + seg[1].x) / 2, y: (seg[0].y + seg[1].y) / 2 };
+      const labelRect: Rect = { x: mid.x - w / 2, y: mid.y - 7, w, h: 14 };
+      for (const life of lifelines) {
+        if (life.id === (el as any).id) continue;
+        if ((el as any).sourceNodeId === life.id || (el as any).targetNodeId === life.id) continue;
+        const lSeg = edgeSegments(life);
+        const d = distToSegment(mid, lSeg[0], lSeg[1]);
+        if (d >= w / 2 + 2) continue;
+        const lifeBounds: Rect = {
+          x: Math.min(lSeg[0].x, lSeg[1].x),
+          y: Math.min(lSeg[0].y, lSeg[1].y),
+          w: Math.abs(lSeg[0].x - lSeg[1].x) || 1,
+          h: Math.abs(lSeg[0].y - lSeg[1].y) || 1,
+        };
+        if (!rectsIntersect(labelRect, lifeBounds)) continue;
+        diagnostics.push(warn(
+          "whiteboard/label-crosses-lifeline",
+          `Label "${label}" on ${(el as any).id} crosses lifeline ${life.id}`,
+          { edgeId: (el as any).id, lifelineId: life.id },
+          { label, widthPx: w, lifelineId: life.id },
+          ["shorten label", "route via multi-span", "split into two messages"],
+        ));
+        crossCount++;
+        break;
+      }
+      if (crossCount >= 5) break;
+    }
+  }
+
+  // 15. small-font (advisory) — fontSize eksplisit <12 sulit dibaca.
+  // fontSize null/undefined = default aman, dilewati. Warning saja.
+  {
+    let smallCount = 0;
+    for (const el of elements) {
+      if (el.kind !== "sticky" && el.kind !== "shape" && el.kind !== "text" && el.kind !== "edge" && el.kind !== "boundary") continue;
+      const txt = el.kind === "sticky" || el.kind === "text" ? (el as any).text : (el as any).label;
+      if (typeof txt !== "string" || txt.length === 0) continue;
+      const fs = (el as any).fontSize;
+      if (fs === null || fs === undefined) continue;
+      if (typeof fs !== "number" || fs >= 12) continue;
+      diagnostics.push(warn(
+        "whiteboard/small-font",
+        `${el.kind} ${el.id} fontSize ${fs} < 12 may be unreadable`,
+        { elementId: el.id },
+        { fontSize: fs },
+        ["use fontSize >= 12 for readability"],
+      ));
+      if (++smallCount >= 5) break;
+    }
+  }
+
+  return { ok: !diagnostics.some((d) => d.severity === "error"), diagnostics };
 }

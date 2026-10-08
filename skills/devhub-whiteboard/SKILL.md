@@ -26,9 +26,10 @@ list_whiteboards → [layout_board] → validate_whiteboard (dry-run) → create
 ```
 
 1. `list_whiteboards({ projectId })` — see existing boards first; never create duplicates blindly.
-2. `layout_board({ type: 'sequence', participants, messages })` — constrained layout assistant for sequence diagrams (no DB write). Send semantic graph, get standard-positioned elements with ids: participants across the top in story order, dashed lifelines, labeled horizontal messages (solid = call, dotted = return/async). Paste the output straight into step 4.
+2. `layout_board({ type: 'sequence', participants, messages })` — constrained layout assistant for sequence diagrams (no DB write). Send semantic graph, get standard-positioned elements with ids: participants across the top in story order, dashed lifelines, labeled horizontal messages (solid = call, dotted = return/async). Labels are centered on the arrow and fail-closed when wider than the span — keep message labels short (e.g. "POST /scrape", not "POST /scrape (query, platform)"). Labels ship with readable colors. Paste the output straight into step 4.
 3. `validate_whiteboard({ projectId, elements })` — dry-run, no DB write.
    Fix every `overlap` / `too_close` warning using its `suggestion` before writing.
+   Also fix `low_contrast_label` warnings (label contrast < 4.5:1 on the always-white canvas).
 3. Write with the right tool:
    - `create_whiteboard({ projectId, name, description?, elements? })` — new board.
      Omit element `id`s; the server assigns UUIDs.
@@ -42,8 +43,8 @@ list_whiteboards → [layout_board] → validate_whiteboard (dry-run) → create
 |---|---|---|
 | `sticky` | `x, y, w, h` | `color`, `text` |
 | `text` | `x, y` | `color`, `fontSize` (min 4) |
-| `shape` | `x, y, w, h` | `shapeType`: `rect`/`diamond`/`ellipse`; `fill`: `solid`/`transparent`/`none`; `strokeWidth`, `label` |
-| `edge` | `x1, y1, x2, y2` | `sourceNodeId`/`targetNodeId`, `sourcePort`/`targetPort` optional |
+| `shape` | `x, y, w, h` | `shapeType`: `rect`/`diamond`/`ellipse`; `fill`: `solid`/`transparent`/`none`; `strokeWidth`, `label`, `labelColor` (dark, e.g. `#0f172a`, when stroke is pastel — label follows stroke when `fill` is `"none"`) |
+| `edge` | `x1, y1, x2, y2` | `sourceNodeId`/`targetNodeId`, `sourcePort`/`targetPort` optional; label reuses line `color`, so keep lines dark (≥ 4.5:1 on white) when labeled |
 | `boundary` | `x, y, w, h` | Container; default label `fontSize` 16 |
 | `ref` | `x, y` | Live card for a task/issue (`entity`, `entityId`); assume expanded 260×150 |
 | `stroke` | `points[]` | Pen path; `width`, `color` |
@@ -86,6 +87,7 @@ list_whiteboards → [layout_board] → validate_whiteboard (dry-run) → create
 - Responses may carry `warnings` (`dangling_ref` / `dangling_edge`): the board is still saved, but fix the ids — ref cards render empty until the target exists.
 - `fill: false` is legacy boolean — new boards use `"none"` (or `"solid"`/`"transparent"`).
 - `ref` cards render expanded (260×150) even though stored collapsed — validate against the expanded size.
+- Canvas is always white: keep every label at contrast ≥ 4.5:1 (pastel `color` + `fill: "none"` = invisible text unless `labelColor` is dark).
 - Check the response `groupingHints` after create/patch and group flagged embeds.
 - Scope errors (`Insufficient OAuth scope`): re-auth with `mcp` scope.
 
