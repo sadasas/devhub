@@ -5,6 +5,7 @@ import { whiteboardElementSchema, type State, type WhiteboardElement } from '../
 import { embedGroupingHints } from '../../../projects/domain/sanitize-svg.js';
 import { EMBED_EXAMPLE_GROUPED, EMBED_GUIDE } from './whiteboard-embed-guide.js';
 import { findDanglingRefs } from '../../../projects/domain/whiteboard-refs.js';
+import { CONTRAST_GUIDE, MIN_LABEL_CONTRAST, isLowContrastLabel } from '../../../projects/domain/color-contrast.js';
 import { loadState } from '../state-db.js';
 
 const ELEMENTS_DESCRIPTION =
@@ -14,7 +15,7 @@ const ELEMENTS_DESCRIPTION =
   '{ kind: "text", x: 0, y: 0, color: "#374151", fontSize: 16, text: "title" }, ' +
   '{ kind: "shape", shapeType: "rect", x: 0, y: 0, w: 120, h: 80, color: "#2563eb", fill: "none", strokeWidth: 2, label: "" }, ' +
   '{ kind: "boundary", x: 0, y: 0, w: 300, h: 200, color: "#2563eb", label: "" }, ' +
-  EMBED_EXAMPLE_GROUPED;
+  EMBED_EXAMPLE_GROUPED + ' ' + CONTRAST_GUIDE;
 
 const inputSchema = z.object({
   projectId: z.string().uuid().describe('UUID of the project to validate against (for future ref-data expansion)'),
@@ -76,6 +77,13 @@ function gapBetween(a: Rect, b: Rect): number {
   return Math.hypot(dx, dy);
 }
 
+function distToSegment(px: number, py: number, ax: number, ay: number, bx: number, by: number): number {
+  const dx = bx - ax, dy = by - ay;
+  if (dx === 0 && dy === 0) return Math.hypot(px - ax, py - ay);
+  const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / (dx * dx + dy * dy)));
+  return Math.hypot(px - (ax + t * dx), py - (ay + t * dy));
+}
+
 const MIN_GAP = 30; // minimal breathing room — "too-close" threshold (was 24 in showcase)
 const MIN_GAP_REF = 35; // ref expanded needs more
 
@@ -85,7 +93,7 @@ export function registerValidateWhiteboard(server: McpServer): void {
     {
       title: 'Validate whiteboard layout',
       description:
-        'Dry-run validator for whiteboard elements. Checks for overlap, too-close (<30px gap), out-of-bounds, ref-expanded collision, and advisory embed grouping (missing <g data-component>). Also surfaces dangling refs/edges. Use BEFORE create_whiteboard/update_whiteboard/patch_whiteboard to avoid overlap and first-try embed failures. Returns { ok, warnings, overlaps, closePairs, suggestions }. No DB write.',
+        'Dry-run validator for whiteboard elements. Checks for overlap, too-close (<30px gap), out-of-bounds, ref-expanded collision, low-contrast labels (<4.5:1 on the always-white canvas), message labels crossing other lifelines, and advisory embed grouping (missing <g data-component>). Also surfaces dangling refs/edges. Use BEFORE create_whiteboard/update_whiteboard/patch_whiteboard to avoid overlap and first-try embed failures. Returns { ok, warnings, overlaps, closePairs, suggestions }. No DB write.',
       inputSchema,
     },
     async (args) => {
@@ -190,6 +198,66 @@ export function registerValidateWhiteboard(server: McpServer): void {
       } catch {
         refState = null;
       }
+      // Kontras label (advisory): teks pastel di kanvas putih tak terbaca —
+      // mis. shape fill:none + stroke pastel (label ikut warna stroke).
+      // Tak memblokir create/update; sarankan labelColor gelap eksplisit.
+      let contrastCount = 0;
+      for (const el of elements) {
+        if (el.kind !== 'sticky' && el.kind !== 'shape' && el.kind !== 'text' && el.kind !== 'edge' && el.kind !== 'boundary') continue;
+        const hit = isLowContrastLabel(el);
+        if (!hit) continue;
+        warnings.push({
+          code: 'low_contrast_label',
+          message: `${el.kind} ${el.id.slice(0, 8)} label contrast ${hit.ratio.toFixed(2)}:1 < ${MIN_LABEL_CONTRAST}:1 on white canvas`,
+          a: el.id,
+          b: '',
+          gap: 0,
+          suggestion: `Set ${hit.field} to a dark color (e.g. "#0f172a") or use a stroke with contrast >= ${MIN_LABEL_CONTRAST}:1 on white.`,
+        });
+        if (++contrastCount >= 5) break;
+      }
+
+      // Label pesan vs lifeline (advisory, mirror domain
+      // whiteboard/label-crosses-lifeline): label edge dirender terpusat
+      // di tengah segmen, lifeline dashed tak tercakup cek clearance biasa.
+      {
+        const lifelines = elements.filter(
+          (e) => e.kind === 'edge' && (e as any).dash === 'dashed' && Math.abs(((e as any).x1 ?? 0) - ((e as any).x2 ?? 0)) < 5,
+        ) as any[];
+        let crossCount = 0;
+        for (const el of elements) {
+          if (el.kind !== 'edge') continue;
+          const label = (el as any).label;
+          if (typeof label !== 'string' || label.length === 0) continue;
+          if (((el as any).dash ?? 'solid') === 'dashed') continue;
+          const fontSize = (el as any).fontSize ?? 16;
+          const w = Math.max(label.length * fontSize * 0.62, 40);
+          const x1 = (el as any).x1 ?? 0, y1 = (el as any).y1 ?? 0;
+          const x2 = (el as any).x2 ?? 0, y2 = (el as any).y2 ?? 0;
+          const midX = (x1 + x2) / 2, midY = (y1 + y2) / 2;
+          const labelRect: Rect = { x: midX - w / 2, y: midY - 7, w, h: 14 };
+          for (const life of lifelines) {
+            if (life.id === el.id) continue;
+            if ((el as any).sourceNodeId === life.id || (el as any).targetNodeId === life.id) continue;
+            const lx1 = life.x1 ?? 0, ly1 = life.y1 ?? 0, lx2 = life.x2 ?? 0, ly2 = life.y2 ?? 0;
+            if (distToSegment(midX, midY, lx1, ly1, lx2, ly2) >= w / 2 + 2) continue;
+            const lifeBounds: Rect = { x: Math.min(lx1, lx2), y: Math.min(ly1, ly2), w: Math.abs(lx1 - lx2) || 1, h: Math.abs(ly1 - ly2) || 1 };
+            if (!rectsIntersect(labelRect, lifeBounds)) continue;
+            warnings.push({
+              code: 'label_crosses_lifeline',
+              message: `Label "${label}" on ${el.id.slice(0, 8)} crosses lifeline ${String(life.id).slice(0, 8)}`,
+              a: el.id,
+              b: String(life.id),
+              gap: 0,
+              suggestion: 'Shorten the label, route via multi-span, or split into two messages.',
+            });
+            crossCount++;
+            break;
+          }
+          if (crossCount >= 5) break;
+        }
+      }
+
       for (const w of findDanglingRefs(refState, elements)) {
         warnings.push({
           code: w.code,
@@ -213,7 +281,7 @@ export function registerValidateWhiteboard(server: McpServer): void {
             summary: ok
               ? `OK — ${elements.length} elements, no overlap/too-close (gap ≥${MIN_GAP}px, ref ≥${MIN_GAP_REF}px). Safe to create/update.`
               : `Found ${overlaps.length} overlap(s) + ${warnings.length - overlaps.length} too-close warning(s). Fix suggestions included. Expanded ref assumed 260×150.`,
-            hint: 'Tip: ref expanded 260×150, sticky ideal 175-190×115, boundary inner margin 20px, horizontal gap 30px, vertical ref->sticky 45px.',
+            hint: 'Tip: ref expanded 260×150, sticky ideal 175-190×115, boundary inner margin 20px, horizontal gap 30px, vertical ref->sticky 45px. Canvas is always white: keep label contrast >= 4.5:1 (pastel stroke + fill none needs explicit dark labelColor "#0f172a").',
           }),
         ],
       };

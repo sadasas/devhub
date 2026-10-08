@@ -97,7 +97,7 @@ export function registerLayoutBoard(server: McpServer): void {
               height: layout.height,
               legendY: layout.legendY,
               elements: layout.elements,
-              next: 'Pass elements to create_whiteboard (new board) or patch_whiteboard add (existing board). Run validate_whiteboard first when unsure.',
+              next: 'Pass elements to create_whiteboard (new board) or patch_whiteboard add (existing board). Labels already ship with readable colors (dark labelColor, darkened pastel lines). Run validate_whiteboard first when unsure.',
             }),
           ],
         };

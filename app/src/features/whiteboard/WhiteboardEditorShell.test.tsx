@@ -30,11 +30,16 @@ function makeState(): State {
 }
 
 function renderShell(board: Whiteboard, onBack: () => void = () => {}) {
-  return render(
+  // Kebanyakan test melatih seleksi/editing: aktifkan Select eksplisit
+  // (default shell kini view-only). Untuk mengassert default tool,
+  // pakai render() mentah — lihat 'defaults to the view-only tool'.
+  const result = render(
     <MemoryRouter>
       <WhiteboardEditorShell board={board} state={makeState()} onBack={onBack} />
     </MemoryRouter>,
   );
+  fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
+  return result;
 }
 
 function LocationProbe() {
@@ -820,6 +825,7 @@ describe('whiteboard editor shell', () => {
       );
     }
     render(<LiveShell />);
+    fireEvent.click(screen.getByRole('button', { name: 'Select — V' }));
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
 
     // Drag node A by (+128, 0): client (20,20) → (148,20).
@@ -3745,9 +3751,14 @@ describe('whiteboard editor shell mobile', () => {
     expect(document.querySelector('.wb-dock-right')).toBeNull();
   });
 
-  it('defaults to the select tool in all modes', () => {
-    renderShell(BOARD);
-    expect(screen.getByRole('button', { name: /Select —/ }).getAttribute('aria-pressed')).toBe('true');
+  it('defaults to the view-only tool in all modes', () => {
+    render(
+      <MemoryRouter>
+        <WhiteboardEditorShell board={BOARD} state={makeState()} onBack={() => {}} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('button', { name: /View only —/ }).getAttribute('aria-pressed')).toBe('true');
+    expect(screen.getByRole('button', { name: /Select —/ }).getAttribute('aria-pressed')).toBe('false');
     expect(screen.getByRole('button', { name: /Pen —/ }).getAttribute('aria-pressed')).toBe('false');
   });
 

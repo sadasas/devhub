@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { LIMITS, type WhiteboardElement } from "./state.js";
+import { MIN_LABEL_CONTRAST, WHITE_CANVAS, contrastRatio } from "./color-contrast.js";
 
 /**
  * Constrained layout assistant for sequence diagrams (bukan auto-layout
@@ -43,16 +44,28 @@ export const SEQUENCE_BAND_PAD = 24;
 export const SEQUENCE_ACTIVATION_W = 14;
 export const SEQUENCE_ACTIVATION_PAD_Y = 20;
 
-/** Cycle warna partisipan (7 warna kanvas yang terbaca di putih). */
+/**
+ * Cycle warna partisipan. Border boleh pastel, tapi label pesan edge
+ * memakai warna garis (edge tak punya labelColor) — garis pesan yang
+ * tak mencapai ambang kontras digelapkan agar label tetap terbaca
+ * di kanvas putih.
+ */
+export const SEQUENCE_FALLBACK_LINE = "#0f172a";
 const PARTICIPANT_COLORS = [
   "#2563eb",
   "#e8b955",
   "#0f766e",
-  "#8b5cf6",
+  "#7c3aed",
   "#db2777",
   "#047857",
   "#374151",
 ];
+
+/** Garis pesan memakai warna yang terbaca sebagai label di putih; pastel digelapkan. */
+export function readableLineColor(color: string): string {
+  const ratio = contrastRatio(color, WHITE_CANVAS);
+  return ratio !== null && ratio >= MIN_LABEL_CONTRAST ? color : SEQUENCE_FALLBACK_LINE;
+}
 
 export type SequenceMessageVariant = "call" | "return" | "async" | "security";
 
@@ -144,6 +157,19 @@ export function layoutSequence(input: SequenceLayoutInput): SequenceLayoutResult
     if (Math.abs(x2 - x1) < SEQUENCE_MIN_ARROW_SPAN) {
       fail(`Message ${i} ("${m.label}"): arrow span too short — place sender and receiver in different columns`);
     }
+    // Label pesan dirender terpusat (textAnchor=middle) di tengah segmen di
+    // kanvas putih — label yang lebih lebar dari bentang panah pasti menabrak
+    // lifeline tetangga. SequenceMessageInput tak punya fontSize eksplisit
+    // (cek tipe di atas), jadi pakai fontSize default pesan 16.
+    const span = Math.abs(x2 - x1);
+    const labelWidth = m.label.trim().length * 16 * 0.62;
+    if (labelWidth > span + 40) {
+      fail(
+        `Message ${i} ("${m.label.trim()}"): label too wide (~${Math.round(labelWidth)}px) for arrow span ${span}px — ` +
+          `label dirender terpusat di kanvas putih sehingga menabrak lifeline tetangga; ` +
+          `pendekkan kata tanpa mengubah makna (contoh: "POST /scrape" bukan "POST /scrape (query, platform)")`,
+      );
+    }
   });
   if (activations.length > SEQUENCE_MAX_ACTIVATIONS) fail(`Too many activations (>${SEQUENCE_MAX_ACTIVATIONS})`);
   activations.forEach((a, i) => {
@@ -174,6 +200,7 @@ export function layoutSequence(input: SequenceLayoutInput): SequenceLayoutResult
       w: SEQUENCE_PARTICIPANT_W,
       h: SEQUENCE_PARTICIPANT_H,
       color: PARTICIPANT_COLORS[i % PARTICIPANT_COLORS.length],
+      labelColor: "#0f172a",
       label,
     });
   });
@@ -204,7 +231,7 @@ export function layoutSequence(input: SequenceLayoutInput): SequenceLayoutResult
       cursor += SEQUENCE_PHASE_GAP;
     }
   });
-  const lifelineBottom = (messages.length > 0 ? cursor - SEQUENCE_MESSAGE_STEP : SEQUENCE_FIRST_MESSAGE_Y) + 60;
+  const lifelineBottom = (messages.length > 0 ? cursor - SEQUENCE_MESSAGE_STEP : SEQUENCE_FIRST_MESSAGE_Y) + 32;
   names.forEach((_, i) => {
     raw.push({
       id: randomUUID(),
@@ -213,7 +240,7 @@ export function layoutSequence(input: SequenceLayoutInput): SequenceLayoutResult
       y1: SEQUENCE_LIFELINE_TOP,
       x2: colCenter(i),
       y2: lifelineBottom,
-      color: "#8b5cf6",
+      color: "#7c3aed",
       width: 2,
       arrowhead: false,
       arrowStyle: "none",
@@ -225,12 +252,13 @@ export function layoutSequence(input: SequenceLayoutInput): SequenceLayoutResult
     const variant: SequenceMessageVariant = m.variant ?? "call";
     const y = msgY[i]!;
     const dash = variant === "call" || variant === "security" ? "solid" : "dotted";
-    const color =
+    const color = readableLineColor(
       variant === "security"
         ? "#db2777"
         : variant === "call"
           ? (PARTICIPANT_COLORS[m.from % PARTICIPANT_COLORS.length] as string)
-          : "#8b5cf6";
+          : "#7c3aed",
+    );
     const base = {
       color,
       width: 2,
@@ -300,17 +328,19 @@ export function layoutSequence(input: SequenceLayoutInput): SequenceLayoutResult
   const legendSpecs: Array<{ label: string; dash: string; color: string }> = [
     { label: "request", dash: "solid", color: "#374151" },
     { label: "return", dash: "dotted", color: "#374151" },
-    { label: "async trace", dash: "dotted", color: "#8b5cf6" },
-    { label: "default message", dash: "solid", color: "#8b5cf6" },
+    { label: "async trace", dash: "dotted", color: "#7c3aed" },
+    { label: "default message", dash: "solid", color: "#7c3aed" },
   ];
-  const legendY = bandsEnd + 48;
+  const legendY = bandsEnd + 32;
   raw.push({
     id: randomUUID(),
     kind: "text",
     x: SEQUENCE_FIRST_COLUMN_X,
-    y: legendY - 30,
+    // Judul diangkat agar tak kena aturan spacing 24px vs entri pertama
+    // (font 14 melebarkan bounds dibanding font 12 dulu).
+    y: legendY - 48,
     color: "#374151",
-    fontSize: 12,
+    fontSize: 14,
     text: "Legend",
   });
   legendSpecs.forEach((entry, i) => {
@@ -335,11 +365,16 @@ export function layoutSequence(input: SequenceLayoutInput): SequenceLayoutResult
       x: x + 70,
       y: legendY - 8,
       color: "#374151",
-      fontSize: 12,
+      fontSize: 14,
       text: entry.label,
     });
   });
-  const width = boardRight + 80;
+  // Legend dirender di kanvas putih dengan font 14 — board kecil (mis. n=2)
+  // harus tetap memuat entri terakhir agar tak overflow.
+  const longestLegend = Math.max(...legendSpecs.map((e) => e.label.trim().length));
+  const legendTextEst = longestLegend * 14 * 0.62;
+  const lastLegendX = SEQUENCE_FIRST_COLUMN_X + (legendSpecs.length - 1) * 220;
+  const width = Math.max(boardRight + 80, Math.ceil(lastLegendX + 60 + 70 + legendTextEst + 40));
   const height = legendY + 40;
   const elements = raw as WhiteboardElement[];
   if (elements.length > LIMITS.WHITEBOARD_ELEMENTS) {

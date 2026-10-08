@@ -7,6 +7,7 @@ import { EmbedSanitizerError, embedGroupingHints, sanitizeStateEmbeds } from '..
 import { EMBED_EXAMPLE_GROUPED, EMBED_GUIDE } from './whiteboard-embed-guide.js';
 import { findDanglingRefs } from '../../../projects/domain/whiteboard-refs.js';
 import { validateWhiteboardShowcase } from '../../../projects/domain/validate-whiteboard.js';
+import { CONTRAST_GUIDE } from '../../../projects/domain/color-contrast.js';
 
 const ELEMENTS_DESCRIPTION =
   'Board elements (max 1000). Each element: { id?, kind: "stroke"|"sticky"|"text"|"shape"|"edge"|"boundary"|"ref"|"embed", ...fields }. ' +
@@ -17,9 +18,9 @@ const ELEMENTS_DESCRIPTION =
   '{ kind: "text", x: 0, y: 0, color: "#374151", fontSize: 16, text: "title" }, ' +
   '{ kind: "shape", shapeType: "rect", x: 0, y: 0, w: 120, h: 80, color: "#2563eb", fill: "none", strokeWidth: 2, label: "" }, ' +
   '{ kind: "boundary", x: 0, y: 0, w: 300, h: 200, color: "#2563eb", label: "" }, ' +
-  '{ kind: "edge", x1: 0, y1: 0, x2: 200, y2: 0, color: "#8b5cf6", width: 2, arrowhead: true, arrowStyle: "solid", dash: "solid", label: "", sourceNodeId: null, targetNodeId: null }, ' +
+  '{ kind: "edge", x1: 0, y1: 0, x2: 200, y2: 0, color: "#7c3aed", width: 2, arrowhead: true, arrowStyle: "solid", dash: "solid", label: "", sourceNodeId: null, targetNodeId: null }, ' +
   '{ kind: "ref", entity: "tasks", entityId: "<task-uuid>", x: 0, y: 0 }, ' +
-  EMBED_EXAMPLE_GROUPED;
+  EMBED_EXAMPLE_GROUPED + ' ' + CONTRAST_GUIDE;
 
 const inputSchema = z.object({
   projectId: z.string().uuid().describe('UUID of the target project'),
