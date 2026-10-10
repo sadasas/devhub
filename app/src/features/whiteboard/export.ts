@@ -11,6 +11,7 @@ import {
   wrapTextLines,
   wrapToWidth,
   boundaryChipWidth,
+  edgeLabelCard,
   boundaryLabelDY,
   CHIP_CHAR_W,
   REF_LAYOUT,
@@ -79,6 +80,8 @@ function round(v: number): number {
 interface ExportCtx {
   byId: ReadonlyMap<string, WhiteboardElement>;
   refData?: ReadonlyMap<string, RefCardData | null>;
+  /** Fill card label edge: samakan background yang di-bake (opaque agar garis tertutup). */
+  cardFill: string;
 }
 
 function ctxBounds(el: WhiteboardElement, ctx: ExportCtx): Rect {
@@ -242,7 +245,14 @@ function elementSvg(el: WhiteboardElement, refData: RefCardData | null, ctx: Exp
       const fontSize = el.fontSize ?? 16;
       // Edge labels are always horizontally centered; vertical placement via valign.
       const dy = el.valign === 'top' ? -(fontSize / 2 + 6) : el.valign === 'bottom' ? fontSize / 2 + 12 : 0;
-      const label = el.label ? textNode(mid.x, mid.y + dy, fontSize, el.color, listedLines(el.label, el).join(' '), 'middle', undefined, fontAttrs(el)) : '';
+      const labelText = listedLines(el.label, el).join(' ');
+      // Card persegi agak rounded (rx = radius-sm) sepusat midpoint (cermin kanvas).
+      const card = edgeLabelCard(labelText, fontSize, !!el.bold);
+      const cardY = mid.y + dy - card.h / 2;
+      const label = el.label
+        ? `<rect x="${round(mid.x - card.w / 2)}" y="${round(cardY)}" width="${round(card.w)}" height="${round(card.h)}" rx="6" fill="${ctx.cardFill}" stroke="${esc(el.color)}" stroke-width="1"/>` +
+          textNode(mid.x, mid.y + dy, fontSize, el.color, labelText, 'middle', undefined, `${fontAttrs(el)} dominant-baseline="central"`)
+        : '';
       return `<g><polyline points="${linePoints}" fill="none" stroke="${esc(el.color)}" stroke-width="${el.width}"${dash}/>${arrow}${label}</g>`;
     }
     case 'boundary': {
@@ -316,7 +326,8 @@ export function serializeWhiteboard(
   refData?: ReadonlyMap<string, RefCardData | null>,
   opts?: ExportOptions,
 ): string {
-  const ctx: ExportCtx = { byId: new Map(elements.map((el) => [el.id, el])), refData };
+  const cardFill = (opts?.background ?? 'theme') === 'theme' ? EXPORT_BG[resolveExportTheme(opts?.theme)] : '#ffffff';
+  const ctx: ExportCtx = { byId: new Map(elements.map((el) => [el.id, el])), refData, cardFill };
   const bounds: Rect = unionBounds(elements.map((el) => ctxBounds(el, ctx)));
   const x = bounds.x - EXPORT_MARGIN;
   const y = bounds.y - EXPORT_MARGIN;

@@ -86,6 +86,30 @@ describe('DashboardSettingsTab panel', () => {
     expect(screen.queryByRole('heading', { name: 'General' })).toBeNull();
   });
 
+  it('shows storage quota next to members/projects in the Plan quota line', async () => {
+    billingStatusMock.mockResolvedValue({
+      ...billing,
+      usage: { ...billing.usage, storage: { usedBytes: 5242880, limitBytes: 104857600 } },
+    });
+    const { container } = renderSettings('/alpha/settings?section=plan');
+    await screen.findByRole('heading', { name: 'Plan' });
+    const quota = container.querySelector('.dashboard__settings-plan-quota-text')?.textContent ?? '';
+    expect(quota).toContain('1 / 2');
+    expect(quota).toContain('1 / 3');
+    expect(quota).toContain('5.0 MB / 100 MB');
+  });
+
+  it('renders ∞ for unlimited storage in the Plan quota line', async () => {
+    billingStatusMock.mockResolvedValue({
+      ...billing,
+      usage: { ...billing.usage, storage: { usedBytes: 0, limitBytes: null } },
+    });
+    const { container } = renderSettings('/alpha/settings?section=plan');
+    await screen.findByRole('heading', { name: 'Plan' });
+    const quota = container.querySelector('.dashboard__settings-plan-quota-text')?.textContent ?? '';
+    expect(quota).toContain('0 B / ∞');
+  });
+
   it('maps the legacy ?section=billing deep-link to Usage', async () => {
     renderSettings('/alpha/settings?section=billing');
     expect(await screen.findByRole('heading', { name: 'Usage' })).toBeTruthy();

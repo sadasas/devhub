@@ -1351,6 +1351,43 @@ describe('whiteboard editor shell', () => {
     expect(label?.getAttribute('y')).toBe('50');
   });
 
+  it('renders an edge label card centered on the midpoint (persegi agak rounded)', () => {
+    const dispatch = vi.fn();
+    useProjectMock.mockReturnValue({
+      state: null,
+      role: 'owner',
+      canEdit: true,
+      dispatch,
+    });
+    const board: Whiteboard = {
+      ...BOARD,
+      elements: [
+        { id: 'e1', kind: 'edge', x1: 0, y1: 0, x2: 200, y2: 100, color: '#8b5cf6', width: 2, arrowhead: false, label: 'Yes', arrowStyle: 'none' },
+      ],
+    };
+    renderShell(board);
+    const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;
+    const card = svg.querySelector('.wb-edge-label-card');
+    expect(card).toBeTruthy();
+    // Persegi agak rounded (rx = radius-sm), bukan pil stadium.
+    expect(card?.getAttribute('rx')).toBe('6');
+    // Fill kanvas opaque + border warna garis (teks ikut warna garis).
+    expect(card?.getAttribute('fill')).toBe('#ffffff');
+    expect(card?.getAttribute('stroke')).toBe('#8b5cf6');
+    // Sepusat midpoint (100, 50): x + w/2 == mid.x, y + h/2 == mid.y.
+    const x = Number(card?.getAttribute('x'));
+    const w = Number(card?.getAttribute('width'));
+    expect(x + w / 2).toBeCloseTo(100, 5);
+    const y = Number(card?.getAttribute('y'));
+    const h = Number(card?.getAttribute('height'));
+    expect(y + h / 2).toBeCloseTo(50, 5);
+    // Teks central-baseline: massa visual di tengah garis, bukan di atasnya.
+    const label = svg.querySelector('.wb-edge-label');
+    expect(label?.getAttribute('dominant-baseline')).toBe('central');
+    // Card digambar sebelum teks (di belakang).
+    expect(card?.compareDocumentPosition(label!)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
+  });
+
   it('shows the cursor of the selected tool on the canvas', () => {
     renderShell(BOARD);
     const svg = document.querySelector('svg.wb-svg') as SVGSVGElement;

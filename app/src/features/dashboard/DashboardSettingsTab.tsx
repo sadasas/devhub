@@ -343,6 +343,8 @@ export function DashboardSettingsTab({ team, onBackToProjects }: DashboardSettin
               {t('teams.billing.members')}: {formatQuota(billing.usage.members.used, billing.usage.members.limit)}
               <span aria-hidden="true"> · </span>
               {t('teams.billing.projects')}: {formatQuota(billing.usage.projects.used, billing.usage.projects.limit)}
+              <span aria-hidden="true"> · </span>
+              {t('teams.billing.storage')}: {formatBytes(billing.usage.storage.usedBytes)} / {billing.usage.storage.limitBytes == null ? '∞' : formatBytes(billing.usage.storage.limitBytes)}
             </span>
           ) : (
             <span className="dashboard__settings-plan-quota-text">{t('teams.billing.loadError')}</span>

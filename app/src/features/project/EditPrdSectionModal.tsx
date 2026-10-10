@@ -113,6 +113,9 @@ export function EditPrdSectionModal({ open, section, onClose, project }: EditPrd
             maxLength={SECTION_MAX}
             variant="bare"
             startEditing
+            // Satu-satunya field dan judul sudah di header modal —
+            // kepala ikon+label redundan, nama aksesibel tetap via aria-label.
+            hideHead
           />
         </div>
         {saveError && <InlineError>{saveError}</InlineError>}

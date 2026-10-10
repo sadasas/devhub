@@ -277,6 +277,38 @@ describe('ApiPage', () => {
     expect(document.querySelector('.api-tree-item-title mark')).toBeTruthy();
   });
 
+  it('renders uniform 12px carets with open class only on expanded groups', () => {
+    mocks.state = makeState({
+      apiCollections: [collection, collection2],
+      apiEndpoints: [
+        { ...endpoint, collectionId: 'c1' },
+        { ...endpoint, id: 'e2', collectionId: null },
+      ],
+    });
+    renderPage();
+
+    // Collapse c2 → c1 + ungrouped tetap open, c2 closed.
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse Billing' }));
+
+    const carets = Array.from(sidebarRoot().querySelectorAll('.api-tree-caret-btn svg'));
+    // c1 + c2 + ungrouped (kedua code path: ApiPage.tsx:874-878 & :962-966).
+    expect(carets).toHaveLength(3);
+    for (const svg of carets) {
+      expect(svg.getAttribute('width')).toBe('12');
+      expect(svg.getAttribute('height')).toBe('12');
+    }
+
+    const openCarets = sidebarRoot().querySelectorAll('.api-tree-caret-open');
+    expect(openCarets).toHaveLength(2);
+    // yang collapsed tak membawa kelas open.
+    const collapsedBtn = screen.getByRole('button', { name: 'Expand Billing' });
+    expect(collapsedBtn.querySelector('.api-tree-caret-open')).toBeNull();
+
+    // Expand lagi → ketiga caret open.
+    fireEvent.click(collapsedBtn);
+    expect(sidebarRoot().querySelectorAll('.api-tree-caret-open')).toHaveLength(3);
+  });
+
   it('matches endpoints by method and description and clears via the clear button', () => {
     mocks.state = makeState({
       apiCollections: [collection],
@@ -898,5 +930,59 @@ describe('ApiPage mobile (≤640px)', () => {
     fireEvent.click(screen.getByRole('tab', { name: 'Docs' }));
     expect(screen.queryByRole('button', { name: 'Endpoint' })).toBeNull();
     expect(screen.getByRole('button', { name: 'More API actions' })).toBeTruthy();
+  });
+});
+
+describe('ApiPage tree hidden actions (§10c)', () => {
+  beforeEach(() => {
+    mocks.state = makeState({
+      apiCollections: [collection],
+      apiEndpoints: [
+        { ...endpoint, collectionId: 'c1' },
+        { ...endpoint, id: 'e2', name: 'Loose end', collectionId: null },
+      ],
+    });
+    mocks.canEdit = true;
+    mocks.dispatch.mockClear();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('tombol hapus koleksi overlay di sudut: setelah select fleksibel, count di dalam select', () => {
+    renderPage();
+    const label = sidebarRoot().querySelector('.api-tree-group-label') as HTMLElement;
+    expect(label).toBeTruthy();
+    // Kontrak DOM overlay: aksi = sibling tepat setelah select fleksibel
+    // (CSS absolute menaruhnya di pojok; select flex:1 mendorong count ke sudut).
+    expect(label.querySelector('.api-tree-group-select + .api-tree-actions')).toBeTruthy();
+    expect(label.querySelector('.api-tree-group-select .api-tree-count')).toBeTruthy();
+  });
+
+  it('baris endpoint membawa aksi hapus sebagai anak terakhir item-main', () => {
+    renderPage();
+    const main = sidebarRoot().querySelector('.api-tree-item-main') as HTMLElement;
+    expect(main).toBeTruthy();
+    const actions = main.querySelector('.api-tree-actions');
+    expect(actions).toBeTruthy();
+    expect(main.lastElementChild).toBe(actions);
+  });
+
+  it('header ungrouped punya count tanpa aksi (tak kena fade :has)', () => {
+    renderPage();
+    const labels = Array.from(sidebarRoot().querySelectorAll('.api-tree-group-label'));
+    const ungrouped = labels.find((el) => el.textContent?.includes('Ungrouped')) as HTMLElement | undefined;
+    expect(ungrouped).toBeTruthy();
+    expect(ungrouped!.querySelector('.api-tree-count')).toBeTruthy();
+    expect(ungrouped!.querySelector('.api-tree-actions')).toBeNull();
+  });
+
+  it('viewer: tanpa tombol aksi, count tetap tampil', () => {
+    mocks.canEdit = false;
+    // Viewer default ke mode docs — paksa workspace via ?apiView=workspace.
+    renderPage(undefined, ['?apiView=workspace']);
+    expect(sidebarRoot().querySelectorAll('.api-tree-actions')).toHaveLength(0);
+    expect(sidebarRoot().querySelector('.api-tree-count')).toBeTruthy();
   });
 });

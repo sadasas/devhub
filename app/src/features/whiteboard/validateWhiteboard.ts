@@ -1,5 +1,6 @@
 import type { WhiteboardElement } from "../../lib/types";
 import { STICKY_PAD } from "./tools";
+import { edgeLabelCard } from "./geometry";
 import { MIN_LABEL_CONTRAST, isLowContrastLabel } from "./label-contrast";
 
 export interface WhiteboardDiagnostic {
@@ -62,10 +63,6 @@ function distToSegment(pt: Point, a: Point, b: Point): number {
   if (dx === 0 && dy === 0) return Math.hypot(pt.x - a.x, pt.y - a.y);
   const t = Math.max(0, Math.min(1, ((pt.x - a.x) * dx + (pt.y - a.y) * dy) / (dx * dx + dy * dy)));
   return Math.hypot(pt.x - (a.x + t * dx), pt.y - (a.y + t * dy));
-}
-
-function approxTextWidth(text: string, fontSize: number): number {
-  return Math.max(text.length * fontSize * 0.62, 40);
 }
 
 function isFiniteNumber(n: unknown): boolean {
@@ -145,10 +142,11 @@ export function validateWhiteboardShowcase(elements: WhiteboardElement[]): White
     if (el.kind !== "edge" || !(el as any).label) continue;
     const label = (el as any).label as string;
     const fontSize = (el as any).fontSize ?? 16;
-    const w = approxTextWidth(label, fontSize);
+    // Rect = card label (cermin renderer: sepusat midpoint, bukan teks baseline).
+    const card = edgeLabelCard(label, fontSize, !!(el as any).bold);
     const seg = edgeSegments(el as any);
     const mid: Point = { x: (seg[0].x + seg[1].x) / 2, y: (seg[0].y + seg[1].y) / 2 };
-    const labelRect: Rect = { x: mid.x - w / 2, y: mid.y - 7, w, h: 14 };
+    const labelRect: Rect = { x: mid.x - card.w / 2, y: mid.y - card.h / 2, w: card.w, h: card.h };
     for (const other of elements) {
       if (other.id === el.id) continue;
       if (other.kind !== "edge") continue;

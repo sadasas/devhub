@@ -1138,7 +1138,6 @@ export function WhiteboardEditorShell({ board, state, readOnly = false, onBack }
             shapeFill={shapeFill}
             edgeColor={edgeColor}
             edgeFontSize={edgeFontSize}
-            edgeAlign="center"
             edgeLabel=""
             edgeArrowStyle={edgeArrowStyle}
             edgeDash="solid"

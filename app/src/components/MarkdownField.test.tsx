@@ -52,3 +52,19 @@ describe('MarkdownField embedAttachments', () => {
     expect(screen.getByText(/ss\.png/)).toBeTruthy();
   });
 });
+
+describe('MarkdownField hideHead', () => {
+  it('menyembunyikan kepala ikon+label tapi mempertahankan nama aksesibel', () => {
+    render(
+      <MarkdownField label="Scope" value="" onChange={() => {}} variant="bare" startEditing hideHead />,
+    );
+    expect(document.querySelector('.md-bare-head')).toBeNull();
+    expect(screen.getByRole('textbox', { name: 'Scope' })).toBeTruthy();
+  });
+
+  it('menampilkan kepala bila hideHead tidak diset (default tak berubah)', () => {
+    render(<MarkdownField label="Scope" value="" onChange={() => {}} variant="bare" startEditing />);
+    expect(document.querySelector('.md-bare-head')).toBeTruthy();
+    expect(document.querySelector('.md-bare-head')?.textContent).toContain('Scope');
+  });
+});
