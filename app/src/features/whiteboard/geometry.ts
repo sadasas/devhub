@@ -263,6 +263,17 @@ export function boundaryChipWidth(label: string, fontSize: number, maxW: number,
   return Math.min(textW + 16, Math.max(28, maxW));
 }
 
+/**
+ * Geometri card label edge: persegi agak rounded (rx ikut radius-sm = 6)
+ * sepusat di midpoint, padding simetris 12px agar garis tertutup penuh.
+ * Tanpa batas lebar — label panjang dibiarkan melebar, validator overlap
+ * yang menandai (cermin perilaku teks polos sebelumnya).
+ */
+export function edgeLabelCard(text: string, fontSize: number, bold = false): { w: number; h: number } {
+  const w = approxTextWidth(text, fontSize, bold ? 600 : 400) + 24;
+  return { w, h: fontSize * 1.5 };
+}
+
 const MEASURE_STACK =
   "'Geist Variable', 'Geist Mono Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif";
 let measureCtx: CanvasRenderingContext2D | null | undefined;

@@ -63,7 +63,7 @@ export function DeletedItemsBanner({ items, activeTab = 'board', dismissedUntil,
         <span className="deleted-banner-copy">
           {t('banner.copy')}
         </span>
-        <Button variant="ghost" size="sm" onClick={() => onDismiss(activeTab)}>
+        <Button variant="ghost" size="sm" className="deleted-banner-dismiss" onClick={() => onDismiss(activeTab)}>
           {t('banner.dismiss')}
         </Button>
       </div>

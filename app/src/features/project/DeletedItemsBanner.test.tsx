@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import { DeletedItemsBanner } from './DeletedItemsBanner';
 import type { ActivityEntry } from '../../lib/api';
 
@@ -73,5 +73,40 @@ describe('DeletedItemsBanner', () => {
     expect(button).not.toBeNull();
     button!.click();
     expect(onDismiss).toHaveBeenCalledWith('board');
+  });
+
+  it('renders Dismiss as a real ghost button separate from the copy text', () => {
+    const { container } = render(
+      <DeletedItemsBanner items={[entry({})]} activeTab="board" dismissedUntil={{}} onDismiss={() => {}} />,
+    );
+    // Kunci regresi mobile: varian ghost minim chrome terbaca sebagai body
+    // text bila ter-wrap rata-kiri di bawah copy — pastikan ia tetap button
+    // dengan nama aksesibel, bukan teks.
+    const dismiss = screen.getByRole('button', { name: 'Dismiss' });
+    expect(dismiss.tagName).toBe('BUTTON');
+    expect(dismiss.classList.contains('btn-ghost')).toBe(true);
+    expect(dismiss.classList.contains('deleted-banner-dismiss')).toBe(true);
+    // Copy adalah span terpisah dan tidak mengandung label tombol.
+    const copy = container.querySelector('.deleted-banner-copy');
+    expect(copy?.tagName).toBe('SPAN');
+    expect(copy?.textContent).not.toContain('Dismiss');
+    expect(copy?.querySelector('button')).toBeNull();
+  });
+
+  it('keeps Badge + copy + Dismiss DOM order so the <=640px rule can pin Dismiss top-right', () => {
+    const { container } = render(
+      <DeletedItemsBanner items={[entry({})]} activeTab="board" dismissedUntil={{}} onDismiss={() => {}} />,
+    );
+    // jsdom tak punya layout engine: kunci kontrak struktur (urutan DOM +
+    // hook kelas) yang ditarget rule @media (max-width: 640px) di global.css
+    // (.deleted-banner-dismiss order:2 margin-left:auto; copy order:3
+    // flex-basis:100%), bukan posisi piksel.
+    const head = container.querySelector('.deleted-banner-head');
+    expect(head).not.toBeNull();
+    const kids = Array.from(head!.children);
+    expect(kids.map((el) => el.tagName)).toEqual(['SPAN', 'SPAN', 'BUTTON']);
+    expect(kids[0].classList.contains('badge')).toBe(true);
+    expect(kids[1].classList.contains('deleted-banner-copy')).toBe(true);
+    expect(kids[2].classList.contains('deleted-banner-dismiss')).toBe(true);
   });
 });

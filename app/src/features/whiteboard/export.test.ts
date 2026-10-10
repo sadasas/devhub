@@ -44,6 +44,30 @@ describe('serializeWhiteboard', () => {
     expect(svg).toContain('points="-8,-4 0,0 -8,4"');
   });
 
+  it('renders an edge label card behind the text (persegi agak rounded)', () => {
+    const elements: WhiteboardElement[] = [
+      { id: 'e1', kind: 'edge', x1: 0, y1: 0, x2: 200, y2: 0, color: '#8b5cf6', width: 2, arrowhead: true, arrowStyle: 'solid', label: 'Yes', sourceNodeId: null, targetNodeId: null },
+    ];
+    const svg = serializeWhiteboard(elements);
+    // Card sepusat midpoint x=100: x + w/2 == 100.
+    const m = svg.match(/<rect x="([\d.]+)" y="([\d.-]+)" width="([\d.]+)" height="([\d.]+)" rx="6" fill="#ffffff" stroke="#8b5cf6" stroke-width="1"\/>/);
+    expect(m).toBeTruthy();
+    expect(Number(m![1]) + Number(m![3]) / 2).toBeCloseTo(100, 5);
+    // Sepusat vertikal: y + h/2 == mid.y (0).
+    expect(Number(m![2]) + Number(m![4]) / 2).toBeCloseTo(0, 5);
+    expect(svg).toContain('dominant-baseline="central"');
+    // Card sebelum teks label.
+    expect(svg.indexOf('<rect')).toBeLessThan(svg.indexOf('>Yes</text>'));
+  });
+
+  it('bakes the canvas background into the edge label card per theme', () => {
+    const elements: WhiteboardElement[] = [
+      { id: 'e1', kind: 'edge', x1: 0, y1: 0, x2: 100, y2: 0, color: '#8b5cf6', width: 2, arrowhead: false, arrowStyle: 'none', label: 'go' },
+    ];
+    expect(serializeWhiteboard(elements, undefined, { theme: 'dark' })).toContain('fill="#0f0f11"');
+    expect(serializeWhiteboard(elements, undefined, { background: 'transparent' })).toContain('fill="#ffffff"');
+  });
+
   it('renders boundaries behind other elements', () => {
     const elements: WhiteboardElement[] = [
       sticky(0, 0),

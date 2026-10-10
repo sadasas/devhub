@@ -50,6 +50,10 @@ function MilestoneRow({ m, tasks, unread, canEdit, onSelect, onEdit, onDelete, i
   const total = msTasks.length;
   const progress = total > 0 ? Math.round((done / total) * 100) : 0;
   const overdue = m.targetDate ? m.targetDate < todayIso() && m.status !== "released" : false;
+  // Overlay Edit+Delete hanya dirender saat canEdit + wide (lihat gate di bawah).
+  // Versi/overdue hanya boleh memudar (swap-status, kanonik §10c) dalam kondisi
+  // yang sama — viewer/narrow tak punya overlay sehingga versinya harus selalu tampil.
+  const showHoverActions = canEdit && !isNarrow;
   return (
     <div className="data-row">
       <div className="data-row-top">
@@ -62,12 +66,12 @@ function MilestoneRow({ m, tasks, unread, canEdit, onSelect, onEdit, onDelete, i
           <span className="data-row-title">
             <Badge tone={MILESTONE_STATUS[m.status].tone}>{t("releases.statusBadge." + m.status)}</Badge>
             <span className="row-title-text">{m.name}</span>
-            {m.version && <span className="data-row-meta">v{m.version.replace(/^v/i, "")}</span>}
-            {overdue && <Badge tone="danger" dot>{t("releases.overdue", { defaultValue: "Overdue" })}</Badge>}
+            {m.version && <span className={showHoverActions ? "data-row-meta swap-status" : "data-row-meta"}>v{m.version.replace(/^v/i, "")}</span>}
+            {overdue && <Badge tone="danger" dot className={showHoverActions ? "swap-status" : undefined}>{t("releases.overdue", { defaultValue: "Overdue" })}</Badge>}
           </span>
         </button>
         <span className="data-row-props">
-          {canEdit && !isNarrow && (
+          {showHoverActions && (
             <span className="row-swap">
               <span className="swap-group">
                 <Tooltip title={t("releases.editAria")}><Button size="sm" variant="ghost" className="btn-icon" aria-label={t("releases.editAria")} onClick={() => onEdit(m.id)}>

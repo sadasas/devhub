@@ -72,6 +72,52 @@ describe('ReleasesListView', () => {
     expect(screen.queryByRole('button', { name: /Delete milestone/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /More actions for/ })).toBeNull();
   });
+
+  it('pairs version fade target with overlay when editable + wide (§10c)', () => {
+    renderList();
+    const row = screen.getByText('V1 Launch').closest('.data-row')!;
+    // Kontrak kanonik: overlay ada → konten yang digantikan harus memudar.
+    expect(row.querySelector('.swap-group')).toBeTruthy();
+    const fades = Array.from(row.querySelectorAll('.swap-status')).map((el) => el.textContent ?? '');
+    expect(fades.some((t) => /v1\.0\.0/.test(t))).toBe(true);
+  });
+
+  it('fades overdue badge together with version when editable + wide', () => {
+    render(
+      <ReleasesListView
+        milestones={[milestone({ id: 'm9', name: 'Late', status: 'inProgress', targetDate: '2020-01-01' })]}
+        tasks={[]}
+        canEdit
+        onSelect={onSelect}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        onNew={onNew}
+      />,
+    );
+    const row = screen.getByText('Late').closest('.data-row')!;
+    expect(row.querySelector('.swap-group')).toBeTruthy();
+    const fades = Array.from(row.querySelectorAll('.swap-status')).map((el) => el.textContent ?? '');
+    expect(fades.some((t) => /v1\.0\.0/.test(t))).toBe(true);
+    expect(fades.some((t) => /Overdue/.test(t))).toBe(true);
+  });
+
+  it('never fades version for viewers (no overlay, no .swap-status)', () => {
+    render(
+      <ReleasesListView
+        milestones={[milestone()]}
+        tasks={[]}
+        canEdit={false}
+        onSelect={onSelect}
+        onEdit={onEdit}
+        onDelete={onDelete}
+        onNew={onNew}
+      />,
+    );
+    const row = screen.getByText('V1 Launch').closest('.data-row')!;
+    expect(row.querySelector('.swap-group')).toBeNull();
+    expect(row.querySelector('.swap-status')).toBeNull();
+    expect(row.textContent).toMatch(/v1\.0\.0/);
+  });
 });
 
 describe('ReleasesListView narrow', () => {
@@ -116,5 +162,15 @@ describe('ReleasesListView narrow', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }));
     expect(onDelete).toHaveBeenCalledWith('m1');
     expect(screen.queryByRole('menu')).toBeNull();
+  });
+
+  it('keeps version visible without fade target in narrow (kebab path)', () => {
+    renderList();
+    const row = screen.getByText('V1 Launch').closest('.data-row')!;
+    // Narrow tak merender overlay (.swap-group) — versi tak boleh memudar.
+    expect(row.querySelector('.swap-group')).toBeNull();
+    expect(row.querySelector('.swap-status')).toBeNull();
+    expect(row.textContent).toMatch(/v1\.0\.0/);
+    expect(screen.getAllByRole('button', { name: /More actions for/ }).length).toBe(2);
   });
 });

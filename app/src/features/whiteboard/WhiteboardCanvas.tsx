@@ -81,6 +81,7 @@ import {
   wrapTextLines,
   wrapToWidth,
   boundaryChipWidth,
+  edgeLabelCard,
   boundaryLabelDY,
   CHIP_CHAR_W,
   REF_LAYOUT,
@@ -192,7 +193,6 @@ interface WhiteboardCanvasProps {
   shapeFill?: WhiteboardShapeFill | boolean;
   edgeColor?: string;
   edgeFontSize?: number;
-  edgeAlign?: string | null;
   edgeLabel?: string | null;
   edgeArrowStyle?: string | null;
   edgeDash?: string | null;
@@ -655,19 +655,41 @@ const ElementView = memo(function ElementView({
               const fontSize = el.fontSize ?? 16;
               // Edge labels are always horizontally centered; vertical placement via valign.
               const dy = el.valign === 'top' ? -(fontSize / 2 + 6) : el.valign === 'bottom' ? fontSize / 2 + 12 : 0;
+              const text = listedLines(el.label, el).join(' ');
+              // Card persegi agak rounded (rx = radius-sm) sepusat midpoint.
+              // Teks central-baseline agar massa visual + card center optik
+              // tepat di garis (baseline alfabet menaruh glyph di atas garis).
+              // Fill kanvas opaque menutup garis di belakang teks.
+              const card = edgeLabelCard(text, fontSize, !!(el as { bold?: boolean | null }).bold);
+              const cardH = card.h;
+              const cardY = mid.y + dy - cardH / 2;
               return (
-                <text
-                  className="wb-edge-label"
-                  x={mid.x}
-                  y={mid.y + dy}
-                  textAnchor="middle"
-                  fontSize={fontSize}
-                  fill={el.color}
-                  pointerEvents="none"
-                  {...svgTextStyle(el)}
-                >
-                  {listedLines(el.label, el).join(' ')}
-                </text>
+                <g>
+                  <rect
+                    className="wb-edge-label-card"
+                    x={mid.x - card.w / 2}
+                    y={cardY}
+                    width={card.w}
+                    height={cardH}
+                    rx={6}
+                    fill="#ffffff"
+                    stroke={el.color}
+                    strokeWidth={1}
+                  />
+                  <text
+                    className="wb-edge-label"
+                    x={mid.x}
+                    y={mid.y + dy}
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fontSize={fontSize}
+                    fill={el.color}
+                    pointerEvents="none"
+                    {...svgTextStyle(el)}
+                  >
+                    {text}
+                  </text>
+                </g>
               );
             })()}
             {!editing && !el.label && selected && (() => {
@@ -679,6 +701,7 @@ const ElementView = memo(function ElementView({
                   x={mid.x}
                   y={mid.y + dy}
                   textAnchor="middle"
+                  dominantBaseline="central"
                   fontSize={ghostFs(fontSize)}
                   fill={el.color}
                   opacity={0.45}
@@ -890,7 +913,7 @@ interface DraftStroke {
   points: Array<[number, number]>;
 }
 
-export function WhiteboardCanvas({ board, tool, history, readOnly = false, readOnlyState = null, readOnlyProjectId, selectedIds: selectedIdsProp, onSelectedChange, onToolChange, onOpenShortcuts: onOpenShortcutsProp, registerDelete: registerDeleteProp, isMobile: isMobileProp, snapOn: snapOnProp, penColor: penColorProp, penWidth: penWidthProp, eraserWidth: eraserWidthProp, stickyColor: stickyColorProp, stickyTextColor: stickyTextColorProp, stickyFontSize: stickyFontSizeProp, stickyAlign: stickyAlignProp, textColor: textColorProp, textFontSize: textFontSizeProp, textAlign: textAlignProp, textFontFamily: textFontFamilyProp, textBold: textBoldProp, textStrike: textStrikeProp, textBullet: textBulletProp, shapeColor: shapeColorProp, shapeLabelColor: shapeLabelColorProp, shapeFontSize: shapeFontSizeProp, shapeAlign: shapeAlignProp, shapeType: shapeTypeProp, shapeLabel: shapeLabelProp, shapeFill: shapeFillProp, shapeFillColor: shapeFillColorProp, onNotice: onNoticeProp, edgeColor: edgeColorProp, edgeFontSize: edgeFontSizeProp, edgeAlign: edgeAlignProp, edgeLabel: edgeLabelProp, edgeArrowStyle: edgeArrowStyleProp, edgeDash: edgeDashProp, boundaryColor: boundaryColorProp, boundaryLabelColor: boundaryLabelColorProp, boundaryFontSize: boundaryFontSizeProp, boundaryAlign: boundaryAlignProp, boundaryLabel: boundaryLabelProp, panToId, hideChrome = false }: WhiteboardCanvasProps) {
+export function WhiteboardCanvas({ board, tool, history, readOnly = false, readOnlyState = null, readOnlyProjectId, selectedIds: selectedIdsProp, onSelectedChange, onToolChange, onOpenShortcuts: onOpenShortcutsProp, registerDelete: registerDeleteProp, isMobile: isMobileProp, snapOn: snapOnProp, penColor: penColorProp, penWidth: penWidthProp, eraserWidth: eraserWidthProp, stickyColor: stickyColorProp, stickyTextColor: stickyTextColorProp, stickyFontSize: stickyFontSizeProp, stickyAlign: stickyAlignProp, textColor: textColorProp, textFontSize: textFontSizeProp, textAlign: textAlignProp, textFontFamily: textFontFamilyProp, textBold: textBoldProp, textStrike: textStrikeProp, textBullet: textBulletProp, shapeColor: shapeColorProp, shapeLabelColor: shapeLabelColorProp, shapeFontSize: shapeFontSizeProp, shapeAlign: shapeAlignProp, shapeType: shapeTypeProp, shapeLabel: shapeLabelProp, shapeFill: shapeFillProp, shapeFillColor: shapeFillColorProp, onNotice: onNoticeProp, edgeColor: edgeColorProp, edgeFontSize: edgeFontSizeProp, edgeLabel: edgeLabelProp, edgeArrowStyle: edgeArrowStyleProp, edgeDash: edgeDashProp, boundaryColor: boundaryColorProp, boundaryLabelColor: boundaryLabelColorProp, boundaryFontSize: boundaryFontSizeProp, boundaryAlign: boundaryAlignProp, boundaryLabel: boundaryLabelProp, panToId, hideChrome = false }: WhiteboardCanvasProps) {
   const { t } = useTranslation('extras');
   const proj = useProjectOptional(null);
   const { canEdit, dispatch, projectId, state } =
@@ -2044,7 +2067,6 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         arrowStyle: (edgeArrowStyleProp as WhiteboardEdge['arrowStyle']) ?? 'solid',
         dash: (edgeDashProp as WhiteboardEdge['dash']) ?? 'solid',
         fontSize: Math.max(4, Math.min(96, edgeFontSizeProp ?? 16)),
-        align: (edgeAlignProp ?? 'center') as any,
         sourceNodeId: fromEl.id,
         targetNodeId: endNode.id,
         sourcePort,
@@ -2069,7 +2091,6 @@ export function WhiteboardCanvas({ board, tool, history, readOnly = false, readO
         arrowStyle: (edgeArrowStyleProp as WhiteboardEdge['arrowStyle']) ?? 'solid',
         dash: (edgeDashProp as WhiteboardEdge['dash']) ?? 'solid',
         fontSize: Math.max(4, Math.min(96, edgeFontSizeProp ?? 16)),
-        align: (edgeAlignProp ?? 'center') as any,
         sourceNodeId: fromEl?.id ?? null,
         targetNodeId: endNode?.id ?? null,
         sourcePort: fromEl ? portSideToward(boundsFor(fromEl), d.cur) : null,

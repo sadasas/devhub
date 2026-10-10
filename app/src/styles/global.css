@@ -13373,6 +13373,8 @@ input[type='checkbox'] {
   cursor: pointer;
   color: var(--text-secondary);
   font-size: 12.5px;
+  /* Jangkar overlay .api-tree-actions (§10c: idle tanpa gap). */
+  position: relative;
 }
 
 .api-tree-group-label:hover {
@@ -13383,6 +13385,9 @@ input[type='checkbox'] {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
   padding: 2px;
   border: none;
   background: none;
@@ -13396,12 +13401,26 @@ input[type='checkbox'] {
   background: var(--surface-hover);
 }
 
+/* Box terkunci 12×12 (authored size, tanpa token baru): cegah susut flex
+   + `svg{max-width:100%}` global; `transform-origin:center` menjaga rotasi
+   90° tetap di tengah sehingga jejak visual tak bergeser. Ink chevron
+   memang asimetris (92×172 unit di viewBox 256) — box seragam, bukan ink. */
 .api-tree-caret {
+  width: 12px;
+  height: 12px;
+  flex: 0 0 auto;
+  transform-origin: center;
   transition: transform var(--duration-fast) var(--ease-out);
 }
 
 .api-tree-caret-open {
   transform: rotate(90deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .api-tree-caret {
+    transition: none;
+  }
 }
 
 .api-tree-folder {
@@ -13433,6 +13452,8 @@ input[type='checkbox'] {
   align-items: center;
   gap: 6px;
   min-width: 0;
+  /* Jangkar overlay .api-tree-actions (§10c: idle tanpa gap). */
+  position: relative;
 }
 
 .api-tree-item-title {
@@ -13463,13 +13484,17 @@ input[type='checkbox'] {
   border-radius: var(--radius-pill);
   padding: 1px 6px;
   flex: 0 0 auto;
+  /* Fade saat overlay aksi tampil (§10c: konten yang digantikan). */
+  transition: opacity var(--duration-fast) var(--ease-out);
 }
 
-/* §10c kanonik (migrasi 2026-10-04): `display: none` → opacity agar Tab
-   mencapai tombol hapus; gate `pointer: coarse` → `hover: none` + in-flow
-   (target 44px mengikuti blok touch). Satu-satunya aksi baris (hapus,
-   destruktif) tetap hidden — matriks §10c "selalu tampak" hanya untuk
-   aksi primer. */
+/* §10c kanonik (2026-10-04 opacity + 2026-10-08 overlay): idle TIDAK
+   menyisakan gap — tombol hapus overlay absolute di pojok kanan, badge
+   count mencapai sudut sejati. Saat overlay tampil, count + unread pill
+   (elemen pojok) fade-out dan judul menyisih sebesar
+   var(--mini-actions-reserve); pola cermin `.mini-row-actions`.
+   Satu-satunya aksi baris (hapus, destruktif) tetap hidden — matriks §10c
+   "selalu tampak" hanya untuk aksi primer. */
 .api-tree-actions {
   display: inline-flex;
   align-items: center;
@@ -13486,6 +13511,11 @@ input[type='checkbox'] {
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--duration-fast) var(--ease-out);
+  /* Overlay: keluar dari flow agar tak mencadangkan ruang saat idle. */
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
 }
 
 .api-tree-item:hover .api-tree-actions,
@@ -13497,12 +13527,60 @@ input[type='checkbox'] {
   pointer-events: auto;
 }
 
+/* Konten pojok yang digantikan overlay: fade-out (guard :has agar viewer /
+   ungrouped tanpa tombol tak pernah fade tanpa pengganti). */
+.api-tree-group-label .unread-pill,
+.api-tree-item-main .unread-pill {
+  transition: opacity var(--duration-fast) var(--ease-out);
+}
+.api-tree-group-label:has(.api-tree-actions):hover .api-tree-count,
+.api-tree-group-label:has(.api-tree-actions):focus-within .api-tree-count,
+.api-tree-group-label:has(.api-tree-actions):hover .unread-pill,
+.api-tree-group-label:has(.api-tree-actions):focus-within .unread-pill,
+.api-tree-item:has(.api-tree-actions):hover .unread-pill,
+.api-tree-item:has(.api-tree-actions):focus-within .unread-pill {
+  opacity: 0;
+}
+
+/* Judul fleksibel menyisih agar ekor ellipsis tak jalan di bawah overlay. */
+.api-tree-group-label:has(.api-tree-actions:not(:empty)):hover .api-tree-group-select,
+.api-tree-group-label:has(.api-tree-actions:not(:empty)):focus-within .api-tree-group-select,
+.api-tree-item:has(.api-tree-actions:not(:empty)):hover .api-tree-item-select,
+.api-tree-item:has(.api-tree-actions:not(:empty)):focus-within .api-tree-item-select {
+  padding-right: var(--mini-actions-reserve, 32px);
+}
+
 @media (hover: none) {
   .api-tree-actions {
+    position: static;
+    transform: none;
     opacity: 1;
     pointer-events: auto;
     min-width: 32px;
     min-height: 32px;
+  }
+  .api-tree-group-label:hover .api-tree-count,
+  .api-tree-group-label:focus-within .api-tree-count,
+  .api-tree-group-label:hover .unread-pill,
+  .api-tree-group-label:focus-within .unread-pill,
+  .api-tree-item:hover .unread-pill,
+  .api-tree-item:focus-within .unread-pill {
+    opacity: 1;
+  }
+  .api-tree-group-label:hover .api-tree-group-select,
+  .api-tree-group-label:focus-within .api-tree-group-select,
+  .api-tree-item:hover .api-tree-item-select,
+  .api-tree-item:focus-within .api-tree-item-select {
+    padding-right: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .api-tree-actions,
+  .api-tree-count,
+  .api-tree-group-label .unread-pill,
+  .api-tree-item-main .unread-pill {
+    transition: none;
   }
 }
 
@@ -15927,6 +16005,27 @@ button.wb-layers-head:focus-visible { outline: none; box-shadow: 0 0 0 2px var(-
   flex: 1 1 auto;
   font-size: 12px;
   color: var(--text-muted);
+}
+
+/* Mobile (bp-mobile 640px, tokens §4b): header 2 baris — Badge + Dismiss di
+   baris pertama (Dismiss rata kanan via margin-left:auto), copy full-width di
+   bawah (flex-basis 100% + order). Tanpa ini flex-wrap + copy flex:1 menendang
+   ghost button ke baris kedua rata-kiri sehingga terbaca sebagai teks biasa
+   (~360px). Desktop tak tersentuh (semua di dalam media query); hit-area ikut
+   ladder global (.btn-sm 28px desktop, 44px pada touch hover:none). */
+@media (max-width: 640px) {
+  .deleted-banner-head {
+    row-gap: 8px;
+  }
+  .deleted-banner-head .deleted-banner-dismiss {
+    order: 2;
+    margin-left: auto;
+  }
+  .deleted-banner-copy {
+    flex-basis: 100%;
+    order: 3;
+    min-width: 0;
+  }
 }
 
 .deleted-banner-list {

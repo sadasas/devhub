@@ -180,9 +180,9 @@ function Probe() {
 const PROJECT_ID = '11111111-1111-4111-8111-111111111111';
 const TASK_ID = 't1';
 
-function renderProvider() {
+function renderProvider(opts: { onArchivedConflict?: () => void } = {}) {
   return render(
-    <ProjectProvider projectId={PROJECT_ID} role="owner">
+    <ProjectProvider projectId={PROJECT_ID} role="owner" onArchivedConflict={opts.onArchivedConflict}>
       <Probe />
     </ProjectProvider>,
   );
@@ -359,6 +359,37 @@ describe('project save pipeline', () => {
     expect(patchEntity).toHaveBeenCalledTimes(2);
     expect(screen.getByTestId('title').textContent).toBe('Edited');
     expect(screen.getByTestId('save-error').textContent).toBe('');
+  });
+
+  it('membuang mutasi + memanggil onArchivedConflict saat server 403 ARCHIVED', async () => {
+    vi.useFakeTimers({ toFake: ['setTimeout', 'setInterval', 'clearTimeout', 'clearInterval'] });
+    vi.spyOn(api, 'getState').mockResolvedValue({ state: makeState(), version: 1 });
+    const createEntity = vi
+      .spyOn(api, 'createEntity')
+      .mockRejectedValue(new ApiError(403, 'ARCHIVED', 'Project is archived — restore to edit'));
+    const onArchivedConflict = vi.fn();
+
+    renderProvider({ onArchivedConflict });
+    await flush();
+
+    fireEvent.click(screen.getByRole('button', { name: 'tbl-add' }));
+    await act(async () => {
+      vi.advanceTimersByTime(800);
+    });
+    await flush();
+
+    expect(createEntity).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('save-error').textContent).toContain('archived');
+    expect(onArchivedConflict).toHaveBeenCalledTimes(1);
+    expect(screen.getByTestId('pending').textContent).toBe('0');
+
+    // Mutasi dibuang: tak ada retry 403 selamanya.
+    await act(async () => {
+      vi.advanceTimersByTime(10000);
+    });
+    await flush();
+    await flush();
+    expect(createEntity).toHaveBeenCalledTimes(1);
   });
 
   it('flushes a pending mutation on unmount', async () => {

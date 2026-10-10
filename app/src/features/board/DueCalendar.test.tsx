@@ -3,7 +3,7 @@ import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { State, Task } from '../../lib/types';
 import { DueCalendar } from './DueCalendar';
 
-const mocks = vi.hoisted(() => ({ dispatch: vi.fn(), setStatus: vi.fn() }));
+const mocks = vi.hoisted(() => ({ dispatch: vi.fn(), setStatus: vi.fn(), canEdit: true }));
 
 vi.mock('../../lib/due-dates', async () => {
   const actual = await vi.importActual<typeof import('../../lib/due-dates')>('../../lib/due-dates');
@@ -11,7 +11,7 @@ vi.mock('../../lib/due-dates', async () => {
 });
 
 vi.mock('../../state/project-context', () => ({
-  useProject: () => ({ state: mockState, dispatch: mocks.dispatch, canEdit: true, setStatus: mocks.setStatus }),
+  useProject: () => ({ state: mockState, dispatch: mocks.dispatch, canEdit: mocks.canEdit, setStatus: mocks.setStatus }),
 }));
 
 function makeState(): State {
@@ -69,10 +69,10 @@ function makeState(): State {
 
 let mockState: State;
 
-function renderCalendar() {
+function renderCalendar(props: Partial<React.ComponentProps<typeof DueCalendar>> = {}) {
   const onOpenTask = vi.fn();
   const onQuickCreate = vi.fn();
-  const view = render(<DueCalendar onOpenTask={onOpenTask} onQuickCreate={onQuickCreate} />);
+  const view = render(<DueCalendar onOpenTask={onOpenTask} onQuickCreate={onQuickCreate} {...props} />);
   return { onOpenTask, onQuickCreate, view };
 }
 
@@ -80,8 +80,21 @@ function dataTransfer() {
   return { getData: () => '55555555-5555-4555-8555-555555555555', setData: vi.fn(), effectAllowed: 'move' } as unknown as DataTransfer;
 }
 
+function mockMobileMedia() {
+  return ((query: string) => ({
+    matches: query.includes('640px'),
+    media: query,
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    addListener: () => {},
+    removeListener: () => {},
+    dispatchEvent: () => false,
+  })) as unknown as typeof window.matchMedia;
+}
+
 beforeEach(() => {
   mocks.dispatch.mockReset();
+  mocks.canEdit = true;
   mockState = makeState();
 });
 
@@ -695,5 +708,39 @@ describe('DueCalendar mobile mini layout', () => {
     expect(strip?.hasAttribute('data-drop-key')).toBe(false);
     expect(document.querySelector('#due-cal-strip .due-cal-task')).toBeNull();
     expect(screen.queryByText('Drop tasks here to clear their due date')).toBeNull();
+  });
+});
+
+describe('DueCalendar archive / read-only gating', () => {
+  it('tidak quick-create via klik cell maupun Enter saat canEdit false (archived/viewer)', () => {
+    mocks.canEdit = false;
+    const { onQuickCreate } = renderCalendar();
+    fireEvent.click(document.querySelector('[data-date="2026-08-20"]')!);
+    fireEvent.focus(document.querySelector('[data-date="2026-08-21"]')!);
+    fireEvent.keyDown(document.querySelector('[data-date="2026-08-21"]')!, { key: 'Enter' });
+    expect(onQuickCreate).not.toHaveBeenCalled();
+  });
+
+  it('tidak quick-create saat readOnly walau canEdit true', () => {
+    const { onQuickCreate } = renderCalendar({ readOnly: true });
+    fireEvent.click(document.querySelector('[data-date="2026-08-20"]')!);
+    expect(onQuickCreate).not.toHaveBeenCalled();
+  });
+
+  it('menyembunyikan tombol Task mobile saat canEdit false', () => {
+    const realMatchMedia = window.matchMedia;
+    window.matchMedia = mockMobileMedia();
+    try {
+      mocks.canEdit = false;
+      const { onQuickCreate } = renderCalendar();
+      expect(document.querySelector('.due-cal--mobile')).toBeTruthy();
+      expect(screen.queryByRole('button', { name: 'Task' })).toBeNull();
+      // Tap tetap seleksi tanggal (baca) tanpa create.
+      fireEvent.click(document.querySelector('[data-date="2026-08-20"]')!);
+      expect(screen.getByText('Ship calendar')).toBeTruthy();
+      expect(onQuickCreate).not.toHaveBeenCalled();
+    } finally {
+      window.matchMedia = realMatchMedia;
+    }
   });
 });

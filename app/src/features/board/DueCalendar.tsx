@@ -260,7 +260,9 @@ export function DueCalendar({ onOpenTask, onQuickCreate, taskFilter, onTouchDrop
   const canEdit = !readOnly && (project?.canEdit ?? false);
   // External `tasks` (public view) wins; fallback to provider state for BoardPage.
   const allTasks: Task[] = tasksProp ?? state?.tasks ?? [];
-  const canQuickCreate = !readOnly && !!onQuickCreate;
+  // Kunci archive/viewer: tanpa canEdit tak ada tombol Task (mobile)
+  // maupun klik-cell/Enter (desktop) — konsisten dengan pintu kanban.
+  const canQuickCreate = !readOnly && canEdit && !!onQuickCreate;
   const isMobileCal = useMediaQuery('(max-width: 640px)');
   // Mobile samakan mode lain: tanpa drag & drop (tap kartu buka TaskModal).
   const effectiveTouchDrop = readOnly || isMobileCal ? undefined : onTouchDrop;
